@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-Regular.ttf")
+    format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-MediumItalic.ttf")
+    format("truetype");
+  font-weight: 500;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-SemiBold.ttf")
+    format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-SemiBoldItalic.ttf")
+    format("truetype");
+  font-weight: 600;
+  font-style: italic;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Cabin Condensed";
+  src: url("./assets/fonts/cabin/Cabin_Condensed-BoldItalic.ttf")
+    format("truetype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+html,
+body,
+#root {
+  font-family: "Cabin Condensed", sans-serif;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom, white, #eaf6fb);
+}
