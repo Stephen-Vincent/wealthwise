@@ -57,12 +57,9 @@
 }
 
 html,
-body,
-#root {
-  font-family: "Cabin Condensed", sans-serif;
+body {
   height: 100%;
-  width: 100%;
   margin: 0;
   padding: 0;
-  background: linear-gradient(to bottom, white, #eaf6fb);
+  font-family: "Cabin Condensed", sans-serif;
 }
