@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/wealthwise.png"; // Replace with your real logo path
-import { ArrowLeft, ArrowRight } from "lucide-react"; // Optional icon library
+import logo from "../assets/wealthwise.png";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import ProgressDots from "./ProgressDots";
 
 export default function OnboardingForm() {
   const navigate = useNavigate();
@@ -33,18 +34,11 @@ export default function OnboardingForm() {
     },
   ];
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [questions[step].key]: e.target.value });
-  };
-
   const nextStep = () =>
     setStep((prev) => Math.min(prev + 1, questions.length));
   const prevStep = () => {
-    if (step === 0) {
-      navigate("/");
-    } else {
-      setStep((prev) => Math.max(prev - 1, 0));
-    }
+    if (step === 0) navigate("/");
+    else setStep((prev) => Math.max(prev - 1, 0));
   };
 
   const handleSubmit = () => {
@@ -55,17 +49,21 @@ export default function OnboardingForm() {
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto text-center space-y-6">
-      <img
-        src={logo}
-        alt="WealthWise logo"
-        className="w-32 h-32 mb-6 mx-auto"
-      />
-      {step < questions.length ? (
-        <>
-          <h2 className="text-xl font-semibold">{questions[step].label}</h2>
-          {step === 0 && (
-            <div className="flex flex-col gap-5 items-center">
+    <div className="flex flex-col items-center text-center min-h-screen px-4 py-8 bg-gradient-to-b from-white to-[#EAF6FB] font-sans pt-32">
+      <div className="mt-10 mb-8">
+        <img
+          src={logo}
+          alt="WealthWise logo"
+          className=" w-[250px] h-[250px] mx-auto"
+        />
+      </div>
+
+      <div className="flex flex-col items-center justify-center min-h-[300px] space-y-6 w-full max-w-xl">
+        {step < questions.length ? (
+          <>
+            <h2 className="text-xl font-semibold">{questions[step].label}</h2>
+
+            {step === 0 && (
               <input
                 type="text"
                 className="w-[600px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
@@ -76,10 +74,9 @@ export default function OnboardingForm() {
                 }
                 required
               />
-            </div>
-          )}
-          {step === 1 && (
-            <div className="flex flex-col gap-5 items-center">
+            )}
+
+            {step === 1 && (
               <div className="flex items-center justify-center space-x-2">
                 <select
                   className="w-[600px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
@@ -100,10 +97,9 @@ export default function OnboardingForm() {
                 </select>
                 <span className="text-lg font-bold">years</span>
               </div>
-            </div>
-          )}
-          {step === 2 && (
-            <div className="flex flex-col gap-5 items-center">
+            )}
+
+            {step === 2 && (
               <input
                 type="text"
                 className="w-[600px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
@@ -114,10 +110,9 @@ export default function OnboardingForm() {
                 }
                 required
               />
-            </div>
-          )}
-          {step === 3 && (
-            <div className="flex flex-col gap-5 items-center">
+            )}
+
+            {step === 3 && (
               <div className="flex space-x-4 justify-center">
                 <input
                   type="text"
@@ -138,16 +133,15 @@ export default function OnboardingForm() {
                   }
                 />
               </div>
-            </div>
-          )}
-          {step === 4 && (
-            <div className="flex flex-col gap-5 items-center">
+            )}
+
+            {step === 4 && (
               <div className="flex justify-center space-x-4">
                 {["< 1 year", "1–5 years", "5+ years"].map((label) => (
                   <button
                     key={label}
                     type="button"
-                    className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] border-none hover:brightness-110 transition"
+                    className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
                     onClick={() =>
                       setFormData({ ...formData, timeframe: label })
                     }
@@ -156,76 +150,66 @@ export default function OnboardingForm() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-          {step === 5 && (
-            <div className="flex flex-col gap-5 items-center">
+            )}
+
+            {step === 5 && (
               <div className="flex justify-center space-x-4">
                 {["Cautious", "Balanced", "Adventurous"].map((label) => (
                   <button
                     key={label}
                     type="button"
-                    className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] border-none hover:brightness-110 transition"
+                    className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
                     onClick={() => setFormData({ ...formData, risk: label })}
                   >
                     {label}
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Progress bar */}
+            <ProgressDots total={questions.length} current={step} />
+
+            {/* Navigation Arrows */}
+            <div className="flex justify-center items-center space-x-10 mt-12">
+              <button
+                onClick={prevStep}
+                className="bg-[#00A8FF] text-white w-12 h-12 rounded-full flex items-center justify-center p-0 m-0 hover:brightness-110 transition"
+              >
+                <ArrowLeft className="text-white w-6 h-6" />
+              </button>
+
+              <button
+                onClick={nextStep}
+                className="bg-[#00A8FF] text-white w-12 h-12 rounded-full flex items-center justify-center p-0 m-0 hover:brightness-110 transition"
+              >
+                <ArrowRight className="text-white w-6 h-6" />
+              </button>
             </div>
-          )}
-          <div className="w-[500px] mx-auto flex justify-between items-center mt-4 my-4">
+          </>
+        ) : (
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-4">Declaration</h2>
+            <label className="flex items-center gap-2 text-sm justify-center text-black">
+              <input
+                type="checkbox"
+                checked={formData.consent}
+                onChange={(e) =>
+                  setFormData({ ...formData, consent: e.target.checked })
+                }
+                required
+              />
+              I agree this is a learning tool and not financial advice.
+            </label>
             <button
-              onClick={prevStep}
-              className="bg-[#00A8FF] text-white font-bold w-12 h-12 rounded-full border-none hover:brightness-110 transition flex items-center justify-center"
-              aria-label="Back"
+              className="mt-4 bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
+              onClick={handleSubmit}
             >
-              <ArrowLeft className="text-white p-1 m-0" />
-            </button>
-            <div className="flex space-x-2 items-center mt-4">
-              {questions.map((_, i) => (
-                <span
-                  key={i}
-                  className={`inline-block w-3 h-3 rounded-full transition ${
-                    i === step ? "bg-blue-600" : "bg-gray-300"
-                  }`}
-                ></span>
-              ))}
-            </div>
-            <button
-              onClick={nextStep}
-              className="bg-[#00A8FF] text-white font-bold w-12 h-12 rounded-full border-none hover:brightness-110 transition flex items-center justify-center"
-              aria-label="Next"
-            >
-              <ArrowRight className="text-white p-1 m-0" />
+              Let’s Build Your Portfolio
             </button>
           </div>
-        </>
-      ) : (
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-center text-black">
-            Declaration
-          </h2>
-          <label className="flex items-center gap-2 text-sm justify-center text-black text-center">
-            <input
-              type="checkbox"
-              checked={formData.consent}
-              onChange={(e) =>
-                setFormData({ ...formData, consent: e.target.checked })
-              }
-              required
-              className="text-white"
-            />
-            I agree this is a learning tool and not financial advice.
-          </label>
-          <button
-            className="mt-4 bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] border-none hover:brightness-110 transition"
-            onClick={handleSubmit}
-          >
-            Let’s Build Your Portfolio
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
