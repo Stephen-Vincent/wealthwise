@@ -1,7 +1,30 @@
+import Sidebar from "./DashboardComponents/Sidebar";
+import Header from "./DashboardComponents/Header";
+import SummaryCards from "./DashboardComponents/SummaryCards";
+import PortfolioGraph from "./DashboardComponents/PortfolioGraph";
+import StockPieChart from "./DashboardComponents/StockPieChart";
+import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
+import DashboardButtons from "./DashboardComponents/DashboardButtons";
+import { useNavigate } from "react-router-dom";
+
 export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const handleSliceClick = (label) => {
+    navigate(`/stock/${label}`);
+  };
+
   return (
-    <div>
-      <h2>Your Dashboard</h2>
+    <div className="flex">
+      <Sidebar />
+      <main className="p-8 w-5/6 ">
+        <Header />
+        <SummaryCards />
+        <PortfolioGraph />
+        <StockPieChart onSliceClick={handleSliceClick} />
+        <AIPortfolioSummary />
+        <DashboardButtons />
+      </main>
     </div>
   );
 }
