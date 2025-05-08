@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import PortfolioContext from "../context/PortfolioContext";
 import logo from "../assets/wealthwise.png";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressDots from "./ProgressDots";
 
 export default function OnboardingForm() {
   const navigate = useNavigate();
+  const { setPortfolioData } = useContext(PortfolioContext);
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
   const [formData, setFormData] = useState({
@@ -53,11 +55,41 @@ export default function OnboardingForm() {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.consent)
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.goal || !formData.risk) {
+      return alert("Please complete all questions.");
+    }
+    if (!formData.consent) {
       return alert("Please confirm this is a learning tool.");
-    console.log(formData);
-    navigate("/loading");
+    }
+
+    const payload = {
+      name: formData.name,
+      experience: formData.experience,
+      goal: formData.goal,
+      timeframe: formData.timeframe,
+      risk: formData.risk,
+      lump_sum: parseFloat(formData.lumpSum) || 0,
+      monthly: parseFloat(formData.monthly) || 0,
+      start_date: "2019-01-01",
+      end_date: "2024-01-01",
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/simulate-portfolio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      console.log("Portfolio Simulation Result:", result);
+      setPortfolioData(result);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Simulation request failed", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   return (
