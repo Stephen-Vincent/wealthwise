@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import PortfolioContext from "../../context/PortfolioContext";
 import {
   Chart as ChartJS,
   LineElement,
@@ -18,19 +20,6 @@ ChartJS.register(
   Legend
 );
 
-const data = {
-  labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-  datasets: [
-    {
-      label: "Portfolio Value",
-      data: [1500, 1800, 2200, 2600, 3000, 5000],
-      fill: false,
-      borderColor: "#00A8FF",
-      tension: 0.4,
-    },
-  ],
-};
-
 const options = {
   responsive: true,
   plugins: {
@@ -45,12 +34,34 @@ const options = {
 };
 
 export default function PortfolioGraph() {
+  const { portfolioData } = useContext(PortfolioContext);
+
+  const timeline = portfolioData?.timeline || [];
+  const chartData = {
+    labels: timeline.map((point) => point.date),
+    datasets: [
+      {
+        label: "Portfolio Value",
+        data: timeline.map((point) => point.value),
+        fill: false,
+        borderColor: "#00A8FF",
+        tension: 0.4,
+      },
+    ],
+  };
+
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-2">Your Portfolio</h3>
-      <p className="text-blue-600 text-lg font-bold mb-4">£5,000.00</p>
+      <p className="text-blue-600 text-lg font-bold mb-4">
+        £
+        {portfolioData?.final_balance?.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }) || "0.00"}
+      </p>
       <div className="bg-gray-100 rounded p-4">
-        <Line data={data} options={options} />
+        <Line data={chartData} options={options} />
       </div>
     </div>
   );

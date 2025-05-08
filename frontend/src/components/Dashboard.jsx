@@ -6,6 +6,10 @@ import StockPieChart from "./DashboardComponents/StockPieChart";
 import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
 import DashboardButtons from "./DashboardComponents/DashboardButtons";
 import { useNavigate } from "react-router-dom";
+import PortfolioContext, {
+  PortfolioProvider,
+} from "../context/PortfolioContext";
+import { useContext } from "react";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -15,16 +19,18 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <main className="p-8 w-5/6 ">
-        <Header />
-        <SummaryCards />
-        <PortfolioGraph />
-        <StockPieChart onSliceClick={handleSliceClick} />
-        <AIPortfolioSummary />
-        <DashboardButtons />
-      </main>
-    </div>
+    <PortfolioProvider>
+      <div className="flex">
+        <Sidebar />
+        <main className="p-8 w-5/6 ">
+          <Header />
+          <SummaryCards />
+          <PortfolioGraph />
+          <StockPieChart onSliceClick={handleSliceClick} />
+          <AIPortfolioSummary />
+          <DashboardButtons />
+        </main>
+      </div>
+    </PortfolioProvider>
   );
 }
