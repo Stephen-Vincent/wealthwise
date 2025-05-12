@@ -10,6 +10,7 @@ export default function OnboardingForm() {
   const { setPortfolioData } = useContext(PortfolioContext);
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     experience: "",
@@ -63,19 +64,30 @@ export default function OnboardingForm() {
       return alert("Please confirm this is a learning tool.");
     }
 
-    const payload = {
-      name: formData.name,
-      experience: formData.experience,
-      goal: formData.goal,
-      timeframe: formData.timeframe,
-      risk: formData.risk,
-      lump_sum: parseFloat(formData.lumpSum) || 0,
-      monthly: parseFloat(formData.monthly) || 0,
-      start_date: "2019-01-01",
-      end_date: "2024-01-01",
-    };
+    let savedData;
+    try {
+      const saveResponse = await fetch("http://localhost:8000/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save onboarding data");
+      }
+
+      savedData = await saveResponse.json();
+      console.log("Saved user data:", savedData);
+    } catch (error) {
+      console.error("Saving onboarding data failed", error);
+      alert("Something went wrong saving your data.");
+      return;
+    }
+
+    const payload = { id: savedData.id };
 
     try {
+      setIsLoading(true);
       const response = await fetch("http://localhost:8000/simulate-portfolio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,16 +96,29 @@ export default function OnboardingForm() {
 
       const result = await response.json();
       console.log("Portfolio Simulation Result:", result);
-      setPortfolioData(result);
+      setPortfolioData({
+        ...result,
+        name: formData.name,
+        goal: formData.goal,
+      });
       navigate("/dashboard");
+      setIsLoading(false);
     } catch (error) {
       console.error("Simulation request failed", error);
       alert("Something went wrong. Please try again.");
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center text-center min-h-screen px-4 py-12 font-sans">
+    <div className="flex flex-col items-center text-center min-h-screen px-12 py-12 font-sans">
+      {isLoading && (
+        <div className="fixed top-0 left-0 w-full h-full bg-white bg-opacity-80 flex items-center justify-center z-50">
+          <div className="text-xl font-bold text-[#00A8FF] animate-pulse">
+            Loading your portfolio...
+          </div>
+        </div>
+      )}
       <div className="flex justify-center mb-8">
         <img
           src={logo}
