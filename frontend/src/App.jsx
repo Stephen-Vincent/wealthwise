@@ -10,7 +10,6 @@ export default function App() {
   return (
     <PortfolioProvider>
       {" "}
-      {/* ✅ wrap everything in the provider */}
       <div className="min-h-screen w-full bg-gradient-to-b from-white to-[#a3cde0] font-sans">
         <Router>
           <Routes>
