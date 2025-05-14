@@ -1,9 +1,16 @@
+import PropTypes from "prop-types";
 import React, { useRef } from "react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
 // Register components
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+const RISK_PORTFOLIO = {
+  Cautious: ["KO", "JNJ", "PG"],
+  Balanced: ["MSFT", "V", "UNH"],
+  Adventurous: ["TSLA", "AMZN", "NVDA"],
+};
 
 const shadowPlugin = {
   id: "outerShadow",
@@ -24,22 +31,27 @@ const shadowPlugin = {
   },
 };
 
-const data = {
-  labels: ["Apple", "Google", "Meta", "Amazon"],
-  datasets: [
-    {
-      label: "Portfolio Allocation",
-      data: [30, 25, 25, 20],
-      backgroundColor: [
-        "rgba(0, 168, 255, 0.85)",
-        "rgba(59, 130, 246, 0.85)",
-        "rgba(124, 58, 237, 0.85)",
-        "rgba(251, 191, 36, 0.85)",
-      ],
-      borderColor: "#ffffff",
-      borderWidth: 2,
-    },
-  ],
+const getStockData = (riskLevel) => {
+  const tickers = RISK_PORTFOLIO[riskLevel] || [];
+  return {
+    labels: tickers,
+    datasets: [
+      {
+        label: "Portfolio Allocation",
+        data: new Array(tickers.length).fill(100 / tickers.length), // Even split
+        backgroundColor: [
+          "rgba(0, 168, 255, 0.85)",
+          "rgba(59, 130, 246, 0.85)",
+          "rgba(124, 58, 237, 0.85)",
+          "rgba(251, 191, 36, 0.85)",
+          "rgba(244, 114, 182, 0.85)",
+          "rgba(34, 197, 94, 0.85)",
+        ],
+        borderColor: "#ffffff",
+        borderWidth: 2,
+      },
+    ],
+  };
 };
 
 const options = {
@@ -59,8 +71,11 @@ const options = {
   },
 };
 
-export default function StockPieChart({ onSliceClick }) {
+export default function StockPieChart({ riskLevel, onSliceClick }) {
+  const effectiveRiskLevel = riskLevel ?? "Balanced";
+  console.log("📊 Pie Chart risk level:", effectiveRiskLevel);
   const chartRef = useRef(null);
+  const data = getStockData(effectiveRiskLevel);
 
   const handleClick = (event) => {
     const chart = chartRef.current;
@@ -99,3 +114,8 @@ export default function StockPieChart({ onSliceClick }) {
     </div>
   );
 }
+
+StockPieChart.propTypes = {
+  riskLevel: PropTypes.string.isRequired,
+  onSliceClick: PropTypes.func,
+};

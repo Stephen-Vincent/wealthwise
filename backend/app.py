@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 import yfinance as yf
-from services.portfolio_simulator import simulate_portfolio as simulate_portfolio_logic
+from backend.services.portfolio_simulator import simulate_portfolio as simulate_portfolio_logic
 from database.models import OnboardingSubmission
 from database.database import SessionLocal, engine
 
@@ -98,5 +98,19 @@ def simulate_portfolio(data: SimulationRequest):
         print("❌ Error simulating portfolio:", e)
         raise HTTPException(status_code=500, detail="Portfolio simulation failed")
 
+    finally:
+        db.close()
+
+@app.delete("/clear-database")
+def clear_database():
+    try:
+        db = SessionLocal()
+        deleted = db.query(OnboardingSubmission).delete()
+        db.commit()
+        return {"message": f"Deleted {deleted} records."}
+    except Exception as e:
+        db.rollback()
+        print("❌ Error clearing database:", e)
+        raise HTTPException(status_code=500, detail="Failed to clear database")
     finally:
         db.close()
