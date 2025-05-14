@@ -66,17 +66,29 @@ export default function OnboardingForm() {
 
     let savedData;
     try {
+      const formattedData = {
+        ...formData,
+        experience: parseInt(formData.experience, 10),
+        lump_sum: formData.lumpSum,
+        monthly: formData.monthly,
+      };
+      console.log("Submitting formData to backend:", formattedData);
+
       const saveResponse = await fetch("http://localhost:8000/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formattedData),
       });
 
       if (!saveResponse.ok) {
         throw new Error("Failed to save onboarding data");
       }
 
-      savedData = await saveResponse.json();
+      try {
+        savedData = await saveResponse.json();
+      } catch {
+        throw new Error("Could not parse backend response.");
+      }
       console.log("Saved user data:", savedData);
     } catch (error) {
       console.error("Saving onboarding data failed", error);
@@ -96,6 +108,27 @@ export default function OnboardingForm() {
 
       const result = await response.json();
       console.log("Portfolio Simulation Result:", result);
+      console.log("✅ Portfolio Simulation Result:");
+      console.log("Name:", formData.name);
+      console.log("Goal:", formData.goal);
+      console.log("Risk Profile:", formData.risk);
+      console.log("Timeframe:", formData.timeframe);
+      console.log("Initial Investment:", formData.lumpSum);
+      console.log("Monthly Investment:", formData.monthly);
+
+      console.log("📈 Final Balance:", result.final_balance);
+      console.log("💰 Starting Value (invested):", result.total_start);
+      console.log("📊 Total Value at End:", result.total_end);
+
+      console.log("🪙 Portfolio Breakdown:");
+      Object.entries(result.portfolio).forEach(([ticker, data]) => {
+        console.log(
+          `- ${ticker}: Start £${data.start_price}, End £${data.end_price}, Growth: ${data.growth_pct}%, Final Value: £${data.final_value}`
+        );
+      });
+
+      console.log("📅 Timeline Sample (First 5 Days):");
+      console.log(result.timeline.slice(0, 5));
       setPortfolioData({
         ...result,
         name: formData.name,
@@ -217,7 +250,11 @@ export default function OnboardingForm() {
                     <button
                       key={label}
                       type="button"
-                      className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
+                      className={`font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition ${
+                        formData.timeframe === label
+                          ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
+                          : "bg-[#00A8FF] text-white"
+                      }`}
                       onClick={() =>
                         setFormData({ ...formData, timeframe: label })
                       }
@@ -234,7 +271,11 @@ export default function OnboardingForm() {
                     <button
                       key={label}
                       type="button"
-                      className="bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
+                      className={`font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition ${
+                        formData.risk === label
+                          ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
+                          : "bg-[#00A8FF] text-white"
+                      }`}
                       onClick={() => setFormData({ ...formData, risk: label })}
                     >
                       {label}

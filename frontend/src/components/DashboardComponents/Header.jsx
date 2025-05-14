@@ -3,7 +3,11 @@ import PortfolioContext from "../../context/PortfolioContext";
 
 export default function Header() {
   const { portfolioData } = useContext(PortfolioContext);
-  const userName = portfolioData?.name || "User";
+  console.log("Header portfolioData:", portfolioData);
+  const userName =
+    portfolioData && typeof portfolioData === "object" && portfolioData.name
+      ? portfolioData.name
+      : "User";
 
   return (
     <div className="mb-6">
