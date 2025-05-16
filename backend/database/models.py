@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float
-from database.database import Base
+from backend.database.database import Base
 
 class OnboardingSubmission(Base):
     __tablename__ = "onboarding_submissions"

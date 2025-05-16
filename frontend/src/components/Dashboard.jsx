@@ -25,12 +25,12 @@ export default function Dashboard() {
         <Header />
         <SummaryCards />
         <PortfolioGraph />
-        {portfolioData?.portfolio && (
-          <StockPieChart
-            riskLevel={portfolioData.risk}
-            onSliceClick={handleSliceClick}
-          />
-        )}
+
+        <StockPieChart
+          riskLevel={portfolioData.risk}
+          onSliceClick={handleSliceClick}
+        />
+
         <AIPortfolioSummary portfolioData={portfolioData} />
         <DashboardButtons />
       </main>

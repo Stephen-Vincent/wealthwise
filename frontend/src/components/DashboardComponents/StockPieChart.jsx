@@ -6,12 +6,6 @@ import { Pie } from "react-chartjs-2";
 // Register components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const RISK_PORTFOLIO = {
-  Cautious: ["KO", "JNJ", "PG"],
-  Balanced: ["MSFT", "V", "UNH"],
-  Adventurous: ["TSLA", "AMZN", "NVDA"],
-};
-
 const shadowPlugin = {
   id: "outerShadow",
   beforeDraw: (chart) => {
@@ -31,29 +25,6 @@ const shadowPlugin = {
   },
 };
 
-const getStockData = (riskLevel) => {
-  const tickers = RISK_PORTFOLIO[riskLevel] || [];
-  return {
-    labels: tickers,
-    datasets: [
-      {
-        label: "Portfolio Allocation",
-        data: new Array(tickers.length).fill(100 / tickers.length), // Even split
-        backgroundColor: [
-          "rgba(0, 168, 255, 0.85)",
-          "rgba(59, 130, 246, 0.85)",
-          "rgba(124, 58, 237, 0.85)",
-          "rgba(251, 191, 36, 0.85)",
-          "rgba(244, 114, 182, 0.85)",
-          "rgba(34, 197, 94, 0.85)",
-        ],
-        borderColor: "#ffffff",
-        borderWidth: 2,
-      },
-    ],
-  };
-};
-
 const options = {
   responsive: true,
   plugins: {
@@ -71,11 +42,48 @@ const options = {
   },
 };
 
-export default function StockPieChart({ riskLevel, onSliceClick }) {
-  const effectiveRiskLevel = riskLevel ?? "Balanced";
-  console.log("📊 Pie Chart risk level:", effectiveRiskLevel);
+export default function StockPieChart({ portfolioData = {}, onSliceClick }) {
   const chartRef = useRef(null);
-  const data = getStockData(effectiveRiskLevel);
+
+  // Debugging logs
+  console.log("📊 Rendering StockPieChart with portfolioData:", portfolioData);
+
+  if (
+    !portfolioData.portfolio ||
+    Object.keys(portfolioData.portfolio).length === 0
+  ) {
+    console.log("⚠️ Missing or empty portfolio data");
+    return (
+      <p className="text-gray-500 text-center">
+        No portfolio data available to display.
+      </p>
+    );
+  }
+
+  const labels = Object.keys(portfolioData.portfolio);
+  const dataValues = Object.values(portfolioData.portfolio).map(
+    (stock) => stock.final_value
+  );
+
+  const data = {
+    labels,
+    datasets: [
+      {
+        label: "Portfolio Allocation",
+        data: dataValues,
+        backgroundColor: [
+          "rgba(0, 168, 255, 0.85)",
+          "rgba(59, 130, 246, 0.85)",
+          "rgba(124, 58, 237, 0.85)",
+          "rgba(251, 191, 36, 0.85)",
+          "rgba(244, 114, 182, 0.85)",
+          "rgba(34, 197, 94, 0.85)",
+        ],
+        borderColor: "#ffffff",
+        borderWidth: 2,
+      },
+    ],
+  };
 
   const handleClick = (event) => {
     const chart = chartRef.current;
@@ -116,6 +124,6 @@ export default function StockPieChart({ riskLevel, onSliceClick }) {
 }
 
 StockPieChart.propTypes = {
-  riskLevel: PropTypes.string.isRequired,
+  portfolioData: PropTypes.object,
   onSliceClick: PropTypes.func,
 };
