@@ -4,15 +4,18 @@ from pydantic import BaseModel
 from typing import Optional
 import yfinance as yf
 from backend.services.portfolio_simulator import simulate_portfolio as simulate_portfolio_logic
-from database.models import OnboardingSubmission
-from database.database import SessionLocal, engine
+from backend.services.stock_selector import select_stocks
+from backend.database.models import OnboardingSubmission
+from backend.database.database import SessionLocal, engine
+import pandas as pd
+import os
 
 app = FastAPI(title="WealthWise Backend", version="1.0")
 
 # Allow CORS for local frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Your React frontend
+    allow_origins=["*"],  # Your React frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,21 +54,11 @@ def save_onboarding(data: OnboardingRequest):
         db.commit()
         db.refresh(onboarding_data)
 
-        print("✅ Saved onboarding data:", {
-            "id": onboarding_data.id,
-            "name": onboarding_data.name,
-            "experience": onboarding_data.experience,
-            "goal": onboarding_data.goal,
-            "lump_sum": onboarding_data.lump_sum,
-            "monthly": onboarding_data.monthly,
-            "timeframe": onboarding_data.timeframe,
-            "risk": onboarding_data.risk,
-        })
+        print(f"✅ Saved onboarding data with ID: {onboarding_data.id}")
 
         return {"id": onboarding_data.id}
 
     except Exception as e:
-        print("❌ Error saving onboarding data:", e)
         raise HTTPException(status_code=500, detail="Failed to save onboarding data")
 
     finally:
@@ -80,6 +73,8 @@ def simulate_portfolio(data: SimulationRequest):
         if onboarding_data is None:
             raise HTTPException(status_code=404, detail="Onboarding data not found")
 
+        selected_stocks = select_stocks(onboarding_data.risk)
+
         user_input = {
             "name": onboarding_data.name,
             "experience": onboarding_data.experience,
@@ -88,14 +83,16 @@ def simulate_portfolio(data: SimulationRequest):
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
             "risk": onboarding_data.risk,
+            "selected_stocks": selected_stocks,
         }
 
-        print("🚀 Simulating portfolio with input:", user_input)
         result = simulate_portfolio_logic(user_input)
+        result["selected_stocks"] = selected_stocks
+        result["risk"] = onboarding_data.risk  
+        print("📊 Simulation result:", result)
         return result
 
     except Exception as e:
-        print("❌ Error simulating portfolio:", e)
         raise HTTPException(status_code=500, detail="Portfolio simulation failed")
 
     finally:
@@ -107,10 +104,10 @@ def clear_database():
         db = SessionLocal()
         deleted = db.query(OnboardingSubmission).delete()
         db.commit()
+        print(f"🗑️ Cleared {deleted} onboarding records.")
         return {"message": f"Deleted {deleted} records."}
     except Exception as e:
         db.rollback()
-        print("❌ Error clearing database:", e)
         raise HTTPException(status_code=500, detail="Failed to clear database")
     finally:
         db.close()

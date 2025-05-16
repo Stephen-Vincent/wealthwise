@@ -33,21 +33,38 @@ const options = {
   },
 };
 
+function getRandomColor() {
+  return `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
+}
+
 export default function PortfolioGraph() {
   const { portfolioData } = useContext(PortfolioContext);
+  const risk = portfolioData?.risk;
 
+  const portfolio = portfolioData?.portfolio || {};
   const timeline = portfolioData?.timeline || [];
+
+  const stockKeys = Object.keys(portfolio);
+
+  // Build chart datasets for each stock symbol
+  const datasets = stockKeys.map((symbol) => {
+    const stockTimeline = portfolio[symbol]?.timeline || [];
+
+    return {
+      label: symbol,
+      data: timeline.map((point) => {
+        const match = stockTimeline.find((entry) => entry.date === point.date);
+        return match ? match.value : null;
+      }),
+      fill: false,
+      borderColor: getRandomColor(), // Assign a random color to each stock line
+      tension: 0.4, // Smooth the line chart curves
+    };
+  });
+
   const chartData = {
     labels: timeline.map((point) => point.date),
-    datasets: [
-      {
-        label: "Portfolio Value",
-        data: timeline.map((point) => point.value),
-        fill: false,
-        borderColor: "#00A8FF",
-        tension: 0.4,
-      },
-    ],
+    datasets,
   };
 
   return (

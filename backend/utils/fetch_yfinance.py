@@ -1,6 +1,17 @@
-# utils/fetch_yfinance.py
+import os
 import yfinance as yf
+import pandas as pd
 
-def fetch_historical_data(tickers, start_date, end_date):
-    data = yf.download(tickers, start=start_date, end=end_date, auto_adjust=True)["Close"]
-    return data
+def fetch_and_save_stock_data(ticker: str) -> pd.DataFrame:
+    try:
+        df = yf.download(ticker, period="10y")  # adjust as needed
+        if df.empty:
+            print(f"⚠️ No data found from yfinance for {ticker}")
+            return pd.DataFrame()
+        
+        df.to_csv(f"backend/data/stocks/{ticker}.csv")
+        print(f"✅ Downloaded and saved {ticker} data.")
+        return df
+    except Exception as e:
+        print(f"❌ Error fetching {ticker}: {e}")
+        return pd.DataFrame()
