@@ -32,6 +32,7 @@ class OnboardingRequest(BaseModel):
 
 class SimulationRequest(BaseModel):
     id: int
+    selected_stocks: Optional[list[str]] = None
 
 @app.get("/")
 def read_root():
@@ -73,7 +74,7 @@ def simulate_portfolio(data: SimulationRequest):
         if onboarding_data is None:
             raise HTTPException(status_code=404, detail="Onboarding data not found")
 
-        selected_stocks = select_stocks(onboarding_data.risk)
+        selected_stocks = data.selected_stocks
 
         user_input = {
             "name": onboarding_data.name,
@@ -89,7 +90,7 @@ def simulate_portfolio(data: SimulationRequest):
         result = simulate_portfolio_logic(user_input)
         result["selected_stocks"] = selected_stocks
         result["risk"] = onboarding_data.risk  
-        print("📊 Simulation result:", result)
+        
         return result
 
     except Exception as e:

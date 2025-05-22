@@ -4,6 +4,7 @@ import PortfolioContext from "../context/PortfolioContext";
 import logo from "../assets/wealthwise.png";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressDots from "./ProgressDots";
+import LoadingScreen from "./LoadingScreen";
 
 export default function OnboardingForm() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function OnboardingForm() {
     name: "",
     experience: "",
     goal: "",
+    target: "",
     lumpSum: "",
     monthly: "",
     timeframe: "",
@@ -26,6 +28,7 @@ export default function OnboardingForm() {
     { key: "name", label: "What’s your name?" },
     { key: "experience", label: "How much investing experience do you have?" },
     { key: "goal", label: "What is your main goal for investing?" },
+    { key: "target", label: "What is your target investment value?" },
     { key: "amount", label: "How much would you like to invest?" },
     {
       key: "timeframe",
@@ -64,13 +67,30 @@ export default function OnboardingForm() {
       return alert("Please confirm this is a learning tool.");
     }
 
+    const lumpSum = isNaN(parseFloat(formData.lumpSum))
+      ? 0
+      : parseFloat(formData.lumpSum);
+    const monthly = isNaN(parseFloat(formData.monthly))
+      ? 0
+      : parseFloat(formData.monthly);
+
+    if (lumpSum === 0 && monthly === 0) {
+      return alert("Please enter a lump sum or a monthly contribution.");
+    }
+
     let savedData;
+    let formattedData = {};
     try {
-      const formattedData = {
-        ...formData,
+      formattedData = {
+        name: formData.name,
         experience: parseInt(formData.experience, 10),
-        lump_sum: formData.lumpSum,
-        monthly: formData.monthly,
+        goal: formData.goal,
+        target: parseFloat(formData.target),
+        timeframe: formData.timeframe,
+        risk: formData.risk,
+        consent: formData.consent,
+        lump_sum: lumpSum,
+        monthly: monthly,
       };
       console.log("Submitting formData to backend:", formattedData);
 
@@ -99,7 +119,9 @@ export default function OnboardingForm() {
     const payload = { id: savedData.id };
 
     try {
+      const startTime = Date.now();
       setIsLoading(true);
+
       const response = await fetch("http://localhost:8000/simulate-portfolio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,13 +151,26 @@ export default function OnboardingForm() {
 
       console.log("📅 Timeline Sample (First 5 Days):");
       console.log(result.timeline.slice(0, 5));
+
       setPortfolioData({
         ...result,
         name: formData.name,
         goal: formData.goal,
+        target_value: parseFloat(formData.target),
+        starting_balance: parseFloat(formattedData.lump_sum),
+        total_start: parseFloat(formattedData.lump_sum),
       });
-      navigate("/dashboard");
-      setIsLoading(false);
+
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, 3000 - elapsed);
+
+      setTimeout(() => {
+        // Ensure full 3-second loading screen duration
+        setTimeout(() => {
+          navigate("/dashboard");
+          setIsLoading(false);
+        }, 3000);
+      }, remainingTime);
     } catch (error) {
       console.error("Simulation request failed", error);
       alert("Something went wrong. Please try again.");
@@ -145,13 +180,7 @@ export default function OnboardingForm() {
 
   return (
     <div className="flex flex-col items-center text-center min-h-screen px-12 py-12 font-sans">
-      {isLoading && (
-        <div className="fixed top-0 left-0 w-full h-full bg-white bg-opacity-80 flex items-center justify-center z-50">
-          <div className="text-xl font-bold text-[#00A8FF] animate-pulse">
-            Loading your portfolio...
-          </div>
-        </div>
-      )}
+      {isLoading && <LoadingScreen />}
       <div className="flex justify-center mb-8">
         <img
           src={logo}
@@ -222,6 +251,19 @@ export default function OnboardingForm() {
               )}
 
               {step === 3 && (
+                <input
+                  type="text"
+                  className="w-[600px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
+                  placeholder="Target value e.g. 20000"
+                  value={formData.target}
+                  onChange={(e) =>
+                    setFormData({ ...formData, target: e.target.value })
+                  }
+                  required
+                />
+              )}
+
+              {step === 4 && (
                 <div className="flex space-x-4 justify-center">
                   <input
                     type="text"
@@ -244,7 +286,7 @@ export default function OnboardingForm() {
                 </div>
               )}
 
-              {step === 4 && (
+              {step === 5 && (
                 <div className="flex justify-center space-x-4">
                   {["< 1 year", "1–5 years", "5+ years"].map((label) => (
                     <button
@@ -265,7 +307,7 @@ export default function OnboardingForm() {
                 </div>
               )}
 
-              {step === 5 && (
+              {step === 6 && (
                 <div className="flex justify-center space-x-4">
                   {["Cautious", "Balanced", "Adventurous"].map((label) => (
                     <button

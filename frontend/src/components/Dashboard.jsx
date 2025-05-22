@@ -23,11 +23,12 @@ export default function Dashboard() {
       <Sidebar />
       <main className="p-8 w-5/6 ">
         <Header />
-        <SummaryCards />
+        <SummaryCards portfolioData={portfolioData} />
         <PortfolioGraph />
 
         <StockPieChart
           riskLevel={portfolioData.risk}
+          portfolioBreakdown={portfolioData.portfolioBreakdown}
           onSliceClick={handleSliceClick}
         />
 
