@@ -14,24 +14,26 @@ export default function LoadingScreen() {
   const [fade, setFade] = useState(true);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setIndex((prev) => {
-          const next = prev + 1;
-          if (next === messages.length) {
-            clearInterval(interval);
-            setTimeout(() => navigate("/dashboard"), 1000);
-            return prev;
-          } else {
-            setFade(true);
-            return next;
-          }
-        });
-      }, 500);
-    }, 2000);
+    let timeouts = [];
 
-    return () => clearInterval(interval);
+    messages.forEach((_, i) => {
+      const t = setTimeout(() => {
+        setFade(false);
+        setTimeout(() => {
+          setIndex(i);
+          setFade(true);
+        }, 300);
+      }, i * 1000);
+      timeouts.push(t);
+    });
+
+    // Navigate after all messages are shown + 1s buffer
+    const finalTimeout = setTimeout(() => {
+      navigate("/dashboard");
+    }, messages.length * 1000 + 1000);
+    timeouts.push(finalTimeout);
+
+    return () => timeouts.forEach(clearTimeout);
   }, []);
 
   return (
