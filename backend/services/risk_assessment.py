@@ -1,43 +1,34 @@
-
-from services.stock_selector import get_stocks_for_risk_profile as select_stocks
-
 def assess_risk_score(user_data):
     """
-    Calculates a risk score based on user data.
+    Calculates a numeric risk score and returns a risk profile label.
     """
     score = 0
 
-    # Score based on investment experience
-    if user_data.get("experience", 0) >= 5:
-        score += 2
-    elif user_data.get("experience", 0) >= 2:
-        score += 1
+    # Score based on investment experience (0–60 pts)
+    exp_years = min(int(user_data.get("experience", 0)), 30)
+    score += exp_years * 2  # max 60 pts
 
-    # Score based on financial goals
-    goal = user_data.get("goal", "").lower()
-    if "retire" in goal or "house" in goal:
-        score += 1
-    if "millionaire" in goal or "growth" in goal:
-        score += 2
+    # Score based on self-assessed risk (0–30 pts)
+    risk_pref = user_data.get("risk", "").lower()
+    if risk_pref == "balanced":
+        score += 15
+    elif risk_pref == "adventurous":
+        score += 30
 
-    # Score based on investment timeframe
+    # Score based on timeframe (0–10 pts)
     timeframe = user_data.get("timeframe", "")
     if "5+" in timeframe:
-        score += 2
+        score += 10
     elif "1–5" in timeframe:
-        score += 1
+        score += 5
 
-    # Convert score to risk profile
-    if score >= 5:
-        return "Adventurous"
-    elif score >= 3:
-        return "Balanced"
+    # Return tier based on score
+    if score < 25:
+        risk_profile = "Cautious"
+    elif score < 60:
+        risk_profile = "Balanced"
     else:
-        return "Cautious"
+        risk_profile = "Adventurous"
 
-def get_stocks_based_on_user_data(user_data):
-    """
-    Returns appropriate stocks after assessing the user's risk profile.
-    """
-    risk_profile = assess_risk_score(user_data)
-    return select_stocks(risk_profile), risk_profile
+    print(f"[Risk Assessment] Computed risk score: {score}, Profile: {risk_profile}")
+    return risk_profile, score

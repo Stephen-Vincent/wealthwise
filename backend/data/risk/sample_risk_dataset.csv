@@ -1,0 +1,201 @@
+experience,goal,timeframe,lump_sum,monthly,target_value,risk_profile
+2,buy a car,< 1 year,1000,1000,50000,Cautious
+3,retire early,< 1 year,2500,250,5000,Cautious
+6,grow wealth,1-5 years,10000,0,10000,Adventurous
+5,become a millionaire,5+ years,1000,100,5000,Adventurous
+2,buy a car,< 1 year,20000,0,10000,Cautious
+8,buy a car,5+ years,10000,250,50000,Balanced
+4,become a millionaire,1-5 years,2500,500,50000,Balanced
+9,grow wealth,< 1 year,5000,100,5000,Balanced
+0,save for vacation,1-5 years,5000,250,20000,Cautious
+8,save for vacation,1-5 years,20000,1000,10000,Balanced
+4,buy a house,< 1 year,1000,100,50000,Cautious
+10,become a millionaire,< 1 year,1000,1000,5000,Balanced
+5,retire early,5+ years,2500,500,20000,Adventurous
+9,retire early,5+ years,2500,1000,20000,Adventurous
+10,save for vacation,1-5 years,5000,1000,10000,Balanced
+2,save for vacation,5+ years,2500,500,20000,Balanced
+1,become a millionaire,1-5 years,1000,250,10000,Balanced
+8,become a millionaire,< 1 year,1000,0,20000,Balanced
+7,retire early,5+ years,5000,100,10000,Adventurous
+9,retire early,5+ years,2500,0,20000,Adventurous
+10,become a millionaire,5+ years,2500,1000,50000,Adventurous
+8,buy a house,< 1 year,2500,1000,50000,Balanced
+4,buy a house,< 1 year,2500,0,20000,Cautious
+3,buy a car,5+ years,10000,1000,5000,Balanced
+10,retire early,< 1 year,5000,500,10000,Balanced
+2,grow wealth,5+ years,1000,500,20000,Adventurous
+0,become a millionaire,1-5 years,2500,0,5000,Balanced
+4,grow wealth,< 1 year,1000,1000,20000,Balanced
+5,save for vacation,< 1 year,5000,500,20000,Cautious
+8,grow wealth,5+ years,5000,500,10000,Adventurous
+5,buy a house,5+ years,5000,500,20000,Adventurous
+3,retire early,< 1 year,2500,1000,20000,Cautious
+7,save for vacation,5+ years,10000,0,5000,Balanced
+5,retire early,1-5 years,20000,500,20000,Balanced
+9,become a millionaire,5+ years,20000,0,20000,Adventurous
+7,buy a house,5+ years,1000,0,10000,Adventurous
+8,become a millionaire,5+ years,20000,500,20000,Adventurous
+7,retire early,< 1 year,2500,500,10000,Balanced
+1,retire early,1-5 years,10000,500,20000,Cautious
+2,retire early,< 1 year,5000,1000,5000,Cautious
+9,buy a house,1-5 years,1000,0,20000,Balanced
+5,retire early,5+ years,20000,0,50000,Adventurous
+2,become a millionaire,5+ years,5000,250,5000,Adventurous
+0,buy a car,5+ years,20000,500,50000,Cautious
+0,buy a car,< 1 year,1000,250,5000,Cautious
+2,retire early,< 1 year,5000,500,20000,Cautious
+3,become a millionaire,< 1 year,5000,500,20000,Balanced
+3,buy a car,< 1 year,5000,1000,20000,Cautious
+7,retire early,< 1 year,10000,100,20000,Balanced
+9,buy a house,5+ years,1000,250,50000,Adventurous
+3,grow wealth,< 1 year,20000,500,50000,Balanced
+5,buy a house,< 1 year,10000,250,20000,Balanced
+0,save for vacation,5+ years,1000,500,10000,Cautious
+10,grow wealth,5+ years,2500,1000,5000,Adventurous
+3,buy a house,5+ years,2500,1000,10000,Balanced
+9,grow wealth,< 1 year,5000,250,50000,Balanced
+10,retire early,5+ years,1000,500,5000,Adventurous
+6,become a millionaire,5+ years,5000,250,20000,Adventurous
+3,buy a house,< 1 year,2500,1000,20000,Cautious
+9,retire early,5+ years,1000,1000,20000,Adventurous
+7,save for vacation,5+ years,2500,500,10000,Balanced
+6,retire early,1-5 years,5000,100,20000,Balanced
+1,grow wealth,5+ years,2500,250,10000,Balanced
+3,grow wealth,5+ years,10000,1000,5000,Adventurous
+6,buy a car,1-5 years,20000,1000,20000,Balanced
+7,buy a car,< 1 year,2500,100,10000,Cautious
+5,buy a house,< 1 year,20000,0,20000,Balanced
+1,save for vacation,1-5 years,2500,500,5000,Cautious
+9,become a millionaire,5+ years,20000,250,5000,Adventurous
+6,buy a house,5+ years,5000,100,20000,Adventurous
+5,save for vacation,5+ years,10000,100,10000,Balanced
+3,become a millionaire,5+ years,20000,1000,10000,Adventurous
+1,become a millionaire,< 1 year,10000,100,10000,Cautious
+6,save for vacation,1-5 years,5000,0,10000,Balanced
+10,grow wealth,5+ years,10000,500,50000,Adventurous
+6,buy a car,1-5 years,20000,250,20000,Balanced
+4,become a millionaire,5+ years,2500,250,20000,Adventurous
+0,become a millionaire,1-5 years,10000,100,20000,Balanced
+3,buy a house,< 1 year,1000,500,10000,Cautious
+8,grow wealth,< 1 year,20000,250,10000,Balanced
+7,buy a house,< 1 year,5000,0,10000,Balanced
+5,become a millionaire,5+ years,20000,1000,20000,Adventurous
+4,become a millionaire,5+ years,2500,250,10000,Adventurous
+5,save for vacation,1-5 years,5000,250,10000,Balanced
+4,buy a car,5+ years,10000,1000,10000,Balanced
+9,save for vacation,5+ years,5000,0,5000,Balanced
+0,save for vacation,5+ years,10000,100,10000,Cautious
+4,save for vacation,1-5 years,2500,0,5000,Cautious
+6,buy a car,1-5 years,2500,1000,20000,Balanced
+7,save for vacation,< 1 year,10000,0,5000,Cautious
+1,buy a house,< 1 year,1000,500,20000,Cautious
+3,buy a car,5+ years,20000,0,20000,Balanced
+2,grow wealth,5+ years,10000,250,50000,Adventurous
+5,save for vacation,< 1 year,10000,0,5000,Cautious
+6,save for vacation,1-5 years,10000,250,5000,Balanced
+7,grow wealth,5+ years,5000,500,10000,Adventurous
+8,become a millionaire,1-5 years,10000,1000,20000,Adventurous
+9,buy a car,5+ years,20000,250,50000,Balanced
+7,buy a car,< 1 year,2500,1000,10000,Cautious
+5,retire early,1-5 years,5000,250,20000,Balanced
+4,buy a car,< 1 year,20000,0,50000,Cautious
+3,become a millionaire,5+ years,2500,0,5000,Adventurous
+2,buy a house,1-5 years,5000,1000,20000,Balanced
+8,become a millionaire,< 1 year,20000,250,20000,Balanced
+4,buy a house,5+ years,10000,100,5000,Balanced
+8,save for vacation,1-5 years,5000,500,5000,Balanced
+10,retire early,1-5 years,10000,1000,10000,Balanced
+2,buy a house,1-5 years,20000,1000,5000,Balanced
+9,buy a house,5+ years,20000,0,5000,Adventurous
+8,buy a house,< 1 year,1000,1000,20000,Balanced
+2,grow wealth,< 1 year,5000,100,20000,Balanced
+2,save for vacation,1-5 years,20000,500,5000,Cautious
+7,buy a car,< 1 year,5000,100,50000,Cautious
+10,buy a house,< 1 year,2500,250,10000,Balanced
+10,buy a house,1-5 years,20000,1000,20000,Balanced
+2,grow wealth,5+ years,2500,1000,50000,Adventurous
+7,save for vacation,< 1 year,20000,0,20000,Cautious
+7,buy a house,< 1 year,10000,1000,20000,Balanced
+4,buy a house,< 1 year,10000,100,10000,Cautious
+0,become a millionaire,5+ years,20000,250,50000,Balanced
+10,buy a car,1-5 years,2500,100,10000,Balanced
+0,save for vacation,5+ years,20000,100,5000,Cautious
+1,become a millionaire,< 1 year,2500,500,10000,Cautious
+0,buy a car,5+ years,5000,1000,50000,Cautious
+10,buy a house,< 1 year,2500,250,50000,Balanced
+5,save for vacation,1-5 years,1000,1000,50000,Balanced
+10,become a millionaire,5+ years,20000,250,5000,Adventurous
+3,retire early,1-5 years,2500,500,50000,Balanced
+2,save for vacation,1-5 years,1000,500,10000,Cautious
+5,buy a house,< 1 year,10000,250,20000,Balanced
+8,buy a car,5+ years,10000,0,10000,Balanced
+3,retire early,< 1 year,20000,250,5000,Cautious
+3,grow wealth,< 1 year,10000,100,10000,Balanced
+0,buy a house,5+ years,2500,500,20000,Balanced
+1,grow wealth,< 1 year,10000,100,10000,Cautious
+10,grow wealth,5+ years,20000,1000,10000,Adventurous
+7,buy a house,5+ years,20000,0,50000,Adventurous
+3,grow wealth,5+ years,5000,250,50000,Adventurous
+7,buy a house,< 1 year,5000,1000,10000,Balanced
+2,buy a house,1-5 years,5000,100,10000,Balanced
+7,save for vacation,< 1 year,2500,1000,50000,Cautious
+5,become a millionaire,< 1 year,20000,0,5000,Balanced
+4,save for vacation,< 1 year,20000,500,10000,Cautious
+3,save for vacation,5+ years,10000,1000,50000,Balanced
+6,save for vacation,5+ years,10000,1000,10000,Balanced
+4,save for vacation,5+ years,1000,500,10000,Balanced
+5,buy a car,< 1 year,2500,250,10000,Cautious
+6,buy a house,< 1 year,10000,0,20000,Balanced
+4,become a millionaire,5+ years,5000,0,5000,Adventurous
+4,become a millionaire,5+ years,5000,500,5000,Adventurous
+7,become a millionaire,5+ years,10000,0,50000,Adventurous
+5,grow wealth,5+ years,20000,100,20000,Adventurous
+9,retire early,5+ years,2500,1000,20000,Adventurous
+4,grow wealth,1-5 years,10000,1000,5000,Balanced
+9,save for vacation,< 1 year,5000,500,50000,Cautious
+5,buy a car,1-5 years,1000,0,5000,Balanced
+10,buy a car,< 1 year,20000,1000,10000,Cautious
+3,buy a car,5+ years,10000,1000,5000,Balanced
+10,save for vacation,1-5 years,2500,1000,5000,Balanced
+7,buy a car,5+ years,10000,500,5000,Balanced
+3,buy a car,5+ years,1000,1000,10000,Balanced
+7,save for vacation,5+ years,2500,500,20000,Balanced
+7,retire early,5+ years,2500,250,20000,Adventurous
+8,become a millionaire,1-5 years,1000,250,10000,Adventurous
+2,buy a house,< 1 year,5000,1000,5000,Cautious
+8,retire early,1-5 years,1000,250,5000,Balanced
+2,become a millionaire,< 1 year,20000,100,5000,Balanced
+0,buy a car,5+ years,10000,0,50000,Cautious
+4,buy a house,1-5 years,10000,250,20000,Balanced
+5,save for vacation,5+ years,1000,500,5000,Balanced
+0,retire early,1-5 years,1000,500,50000,Cautious
+9,buy a house,5+ years,5000,500,50000,Adventurous
+6,retire early,< 1 year,2500,100,50000,Balanced
+6,buy a car,5+ years,20000,500,50000,Balanced
+4,save for vacation,< 1 year,10000,250,20000,Cautious
+8,become a millionaire,1-5 years,20000,0,20000,Adventurous
+8,save for vacation,< 1 year,2500,1000,20000,Cautious
+8,buy a car,< 1 year,1000,500,50000,Cautious
+9,save for vacation,5+ years,2500,1000,50000,Balanced
+8,buy a car,< 1 year,10000,500,50000,Cautious
+5,save for vacation,< 1 year,2500,250,5000,Cautious
+7,buy a house,5+ years,20000,250,10000,Adventurous
+1,grow wealth,1-5 years,10000,100,5000,Balanced
+9,save for vacation,1-5 years,1000,1000,50000,Balanced
+4,grow wealth,5+ years,20000,250,5000,Adventurous
+1,buy a house,1-5 years,1000,250,20000,Cautious
+5,retire early,< 1 year,10000,250,10000,Balanced
+4,grow wealth,5+ years,1000,1000,50000,Adventurous
+8,retire early,5+ years,1000,1000,50000,Adventurous
+0,retire early,1-5 years,2500,500,20000,Cautious
+7,retire early,< 1 year,2500,100,5000,Balanced
+3,save for vacation,1-5 years,1000,500,20000,Cautious
+2,buy a house,5+ years,10000,0,50000,Balanced
+2,buy a house,< 1 year,10000,500,50000,Cautious
+9,become a millionaire,< 1 year,1000,100,5000,Balanced
+0,buy a car,< 1 year,20000,250,10000,Cautious
+10,save for vacation,< 1 year,1000,0,5000,Cautious
+7,buy a house,< 1 year,2500,100,10000,Balanced
+1,grow wealth,1-5 years,2500,250,5000,Balanced
+7,grow wealth,1-5 years,20000,250,20000,Adventurous

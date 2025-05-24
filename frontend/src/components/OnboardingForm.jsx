@@ -20,7 +20,6 @@ export default function OnboardingForm() {
     lumpSum: "",
     monthly: "",
     timeframe: "",
-    risk: "",
     consent: false,
   });
 
@@ -29,15 +28,10 @@ export default function OnboardingForm() {
     { key: "experience", label: "How much investing experience do you have?" },
     { key: "goal", label: "What is your main goal for investing?" },
     { key: "target", label: "What is your target investment value?" },
-    { key: "amount", label: "How much would you like to invest?" },
+    { key: "lumpSum", label: "How much would you like to invest?" },
     {
       key: "timeframe",
       label: "What is your ideal time frame to reach your goal?",
-    },
-    {
-      key: "risk",
-      label:
-        "How would you describe your risk level? (Cautious, Balanced, Adventurous)",
     },
   ];
 
@@ -60,19 +54,15 @@ export default function OnboardingForm() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.goal || !formData.risk) {
+    if (!formData.name || !formData.goal) {
       return alert("Please complete all questions.");
     }
     if (!formData.consent) {
       return alert("Please confirm this is a learning tool.");
     }
 
-    const lumpSum = isNaN(parseFloat(formData.lumpSum))
-      ? 0
-      : parseFloat(formData.lumpSum);
-    const monthly = isNaN(parseFloat(formData.monthly))
-      ? 0
-      : parseFloat(formData.monthly);
+    const lumpSum = parseFloat(formData.lumpSum || 0) || 0;
+    const monthly = parseFloat(formData.monthly || 0) || 0;
 
     if (lumpSum === 0 && monthly === 0) {
       return alert("Please enter a lump sum or a monthly contribution.");
@@ -81,18 +71,22 @@ export default function OnboardingForm() {
     let savedData;
     let formattedData = {};
     try {
+      console.log("Parsed lumpSum:", lumpSum);
+      console.log("Raw lumpSum from formData:", formData.lumpSum);
       formattedData = {
         name: formData.name,
         experience: parseInt(formData.experience, 10),
         goal: formData.goal,
-        target: parseFloat(formData.target),
+        target_value: parseFloat(formData.target),
         timeframe: formData.timeframe,
-        risk: formData.risk,
         consent: formData.consent,
         lump_sum: lumpSum,
         monthly: monthly,
       };
-      console.log("Submitting formData to backend:", formattedData);
+      console.log(
+        "📤 Full submission payload:",
+        JSON.stringify(formattedData, null, 2)
+      );
 
       const saveResponse = await fetch("http://localhost:8000/onboarding", {
         method: "POST",
@@ -129,20 +123,7 @@ export default function OnboardingForm() {
       });
 
       const result = await response.json();
-      console.log("Portfolio Simulation Result:", result);
-      console.log("✅ Portfolio Simulation Result:");
-      console.log("Name:", formData.name);
-      console.log("Goal:", formData.goal);
-      console.log("Risk Profile:", formData.risk);
-      console.log("Timeframe:", formData.timeframe);
-      console.log("Initial Investment:", formData.lumpSum);
-      console.log("Monthly Investment:", formData.monthly);
 
-      console.log("📈 Final Balance:", result.final_balance);
-      console.log("💰 Starting Value (invested):", result.total_start);
-      console.log("📊 Total Value at End:", result.total_end);
-
-      console.log("🪙 Portfolio Breakdown:");
       Object.entries(result.portfolio).forEach(([ticker, data]) => {
         console.log(
           `- ${ticker}: Start £${data.start_price}, End £${data.end_price}, Growth: ${data.growth_pct}%, Final Value: £${data.final_value}`
@@ -159,6 +140,8 @@ export default function OnboardingForm() {
         target_value: parseFloat(formData.target),
         starting_balance: parseFloat(formattedData.lump_sum),
         total_start: parseFloat(formattedData.lump_sum),
+        risk: result.risk,
+        risk_score: result.risk_score,
       });
 
       const elapsed = Date.now() - startTime;
@@ -266,7 +249,8 @@ export default function OnboardingForm() {
               {step === 4 && (
                 <div className="flex space-x-4 justify-center">
                   <input
-                    type="text"
+                    type="number"
+                    step="0.01"
                     className="w-[290px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
                     placeholder="Lump sum amount"
                     value={formData.lumpSum}
@@ -275,7 +259,8 @@ export default function OnboardingForm() {
                     }
                   />
                   <input
-                    type="text"
+                    type="number"
+                    step="0.01"
                     className="w-[290px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
                     placeholder="Monthly amount"
                     value={formData.monthly}
@@ -300,25 +285,6 @@ export default function OnboardingForm() {
                       onClick={() =>
                         setFormData({ ...formData, timeframe: label })
                       }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {step === 6 && (
-                <div className="flex justify-center space-x-4">
-                  {["Cautious", "Balanced", "Adventurous"].map((label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      className={`font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition ${
-                        formData.risk === label
-                          ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
-                          : "bg-[#00A8FF] text-white"
-                      }`}
-                      onClick={() => setFormData({ ...formData, risk: label })}
                     >
                       {label}
                     </button>
