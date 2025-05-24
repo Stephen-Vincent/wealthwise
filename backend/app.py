@@ -28,7 +28,7 @@ class OnboardingRequest(BaseModel):
     lumpSum: Optional[float] = 0.0
     monthly: Optional[float] = 0.0
     timeframe: str
-    risk: str
+    consent: Optional[bool] = False
 
 class SimulationRequest(BaseModel):
     id: int
@@ -41,6 +41,11 @@ def read_root():
 @app.post("/onboarding")
 def save_onboarding(data: OnboardingRequest):
     try:
+        print(f"📥 Received onboarding data: {data}")
+        # Estimate target value if needed (or remove entirely if not used at onboarding)
+        print("🎯 Preparing to assess risk and save onboarding data.")
+        from backend.services.risk_assessment import assess_risk_score
+        computed_risk, risk_score = assess_risk_score(data.dict())
         db = SessionLocal()
         onboarding_data = OnboardingSubmission(
             name=data.name,
@@ -49,17 +54,19 @@ def save_onboarding(data: OnboardingRequest):
             lump_sum=data.lumpSum,
             monthly=data.monthly,
             timeframe=data.timeframe,
-            risk=data.risk
+            risk=computed_risk,
+            risk_score=risk_score
         )
         db.add(onboarding_data)
         db.commit()
         db.refresh(onboarding_data)
 
-        print(f"✅ Saved onboarding data with ID: {onboarding_data.id}")
+        print(f"✅ Saved onboarding data to DB: {onboarding_data}")
 
-        return {"id": onboarding_data.id}
+        return {"id": onboarding_data.id, "risk": computed_risk, "risk_score": risk_score}
 
     except Exception as e:
+        print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to save onboarding data")
 
     finally:
@@ -68,6 +75,7 @@ def save_onboarding(data: OnboardingRequest):
 @app.post("/simulate-portfolio")
 def simulate_portfolio(data: SimulationRequest):
     try:
+        print(f"🔍 Fetching onboarding data for ID: {data.id}")
         db = SessionLocal()
         onboarding_data = db.query(OnboardingSubmission).filter(OnboardingSubmission.id == data.id).first()
 
@@ -86,14 +94,18 @@ def simulate_portfolio(data: SimulationRequest):
             "risk": onboarding_data.risk,
             "selected_stocks": selected_stocks,
         }
+        print(f"🧠 User input for simulation: {user_input}")
 
         result = simulate_portfolio_logic(user_input)
+       
         result["selected_stocks"] = selected_stocks
         result["risk"] = onboarding_data.risk  
+        result["target_value"] = onboarding_data.target_value
         
         return result
 
     except Exception as e:
+        print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Portfolio simulation failed")
 
     finally:

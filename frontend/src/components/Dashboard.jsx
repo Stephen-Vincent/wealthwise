@@ -26,11 +26,11 @@ export default function Dashboard() {
         <SummaryCards portfolioData={portfolioData} />
         <PortfolioGraph />
 
-        <StockPieChart
-          riskLevel={portfolioData.risk}
-          portfolioBreakdown={portfolioData.portfolioBreakdown}
-          onSliceClick={handleSliceClick}
-        />
+        <StockPieChart onSliceClick={handleSliceClick} />
+        {console.log(
+          "📊 portfolioData passed to StockPieChart:",
+          portfolioData
+        )}
 
         <AIPortfolioSummary portfolioData={portfolioData} />
         <DashboardButtons />

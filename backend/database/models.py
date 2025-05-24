@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float
-from backend.database.database import Base
+from .database import Base
 
 class OnboardingSubmission(Base):
     __tablename__ = "onboarding_submissions"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
@@ -12,4 +13,6 @@ class OnboardingSubmission(Base):
     monthly = Column(Float)
     timeframe = Column(String)
     risk = Column(String)
+    risk_score = Column(Integer, nullable=True)
     consent = Column(String, nullable=True)
+    target_value = Column(Float, nullable=True)
