@@ -81,8 +81,8 @@ export default function SummaryCards() {
           {
             label: "Starting Balance",
             value: `£${
-              portfolioData?.total_start !== undefined
-                ? portfolioData.total_start.toLocaleString()
+              portfolioData?.starting_balance !== undefined
+                ? portfolioData.starting_balance.toLocaleString()
                 : "0"
             }`,
           },

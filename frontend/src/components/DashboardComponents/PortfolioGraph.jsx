@@ -198,7 +198,7 @@ export default function PortfolioGraph() {
       <h3 className="text-lg font-semibold mb-2">Your Portfolio</h3>
       <div className="text-sm text-gray-700 mb-1">
         Initial Investment: £
-        {portfolioData?.initial_investment?.toLocaleString(undefined, {
+        {portfolioData?.starting_balance?.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         }) || "0.00"}
