@@ -1,4 +1,4 @@
-from backend.services.stock_selector import get_stocks_for_risk_profile
+from backend.models.stock_recommender.recommend_stocks import recommend_stocks
 from backend.services.risk_assessment import assess_risk_score
 from datetime import datetime
 import os
@@ -12,14 +12,16 @@ import math
 def simulate_portfolio(user_input):
     from dateutil.relativedelta import relativedelta
     try:
-        # Parsing user inputs and setting default values
+        # --- Risk score assessment ---
         risk, risk_score = assess_risk_score(user_input)
         print(f"🧠 Computed risk profile: {risk} ({risk_score})")
-        lump_sum = float(user_input.get("lump_sum", 0))
+        lump_sum = float(user_input.get("lump_sum") or user_input.get("lumpSum") or 0)
+        print(f"🐛 Checked both 'lump_sum' and 'lumpSum': {lump_sum}")
       
         monthly = float(user_input.get("monthly", 0))
         actual_total_contributed = 0.0  # Track how much money is actually invested over time
-        # Normalise and determine investment timeframe based on user selection
+        
+        # --- Timeframe parsing ---
         timeframe_raw = user_input.get("timeframe", "1–5 years")
         # Normalize the timeframe string to a consistent format
         timeframe = timeframe_raw.strip().replace("–", "-")  # Normalize en dash to hyphen
@@ -54,13 +56,20 @@ def simulate_portfolio(user_input):
 
         print(f"⏱️ Simulating portfolio from {start_date} to {end_date} ({timeframe.strip()})")
 
-        # Select a list of stock tickers based on the user's risk profile
-        tickers = get_stocks_for_risk_profile(risk)
+        # --- Stock recommendation ---
+        from backend.database.session import SessionLocal
+        db = SessionLocal()
+        try:
+            tickers = recommend_stocks(user_input, risk_score, db)
+        finally:
+            db.close()
+        print(f"📈 Recommended tickers based on AI model: {tickers}")
 
-        # Load historical price data for each selected stock ticker
+        # --- Stock data loading ---
         stock_frames = []
-        for ticker in tickers:
+        for stock in tickers:
             try:
+                ticker = stock["ticker"]
                 df = load_stock_data(ticker)
                 if df.empty:
                     df = fetch_and_save_stock_data(ticker)
@@ -98,7 +107,8 @@ def simulate_portfolio(user_input):
         if data.empty:
             print("❌ Portfolio simulation aborted: No data loaded for selected tickers.")
             print("⚠️ Check if the tickers have data within the selected timeframe.")
-            for ticker in tickers:
+            for stock in tickers:
+                ticker = stock["ticker"]
                 results[ticker] = {
                     "start_price": 0.0,
                     "end_price": 0.0,
@@ -113,23 +123,9 @@ def simulate_portfolio(user_input):
                 "timeline": [],
             }
 
-        # Apply lump sum investment on the first valid trading day
-        shares_held_by_ticker = {ticker: 0 for ticker in tickers}
-        lump_sum_applied = False
-
-        # --- Lump sum investment logic (for compatibility with new requirements) ---
-        # This block is for reference to the new approach requested
-        # (see message for copy-paste location in main.py)
-        # ------------------------------------------------------
-        # # Apply lump sum investment on the first day of the simulation
-        # # This ensures shares are purchased up front even if the lump sum is 0
-        # first_day = stock_prices.index[0]  # Get the earliest date in the price data
-        # for stock in portfolio:
-        #     price = stock_prices[stock].loc[first_day]['Close']
-        #     invested_amount = allocation[stock] * lump_sum
-        #     shares[stock] = invested_amount / price
-        #     print(f"[DEBUG] Lump sum investment for {stock}: £{invested_amount:.2f} at £{price:.2f} per share. Shares bought: {shares[stock]:.4f}")
-        # ------------------------------------------------------
+        # --- Portfolio value calculation ---
+        shares_held_by_ticker = {stock["ticker"]: 0 for stock in tickers}
+        
 
         # Calculating total number of months in the investment period
         total_months = max((datetime.strptime(end_date, "%Y-%m-%d").year - datetime.strptime(start_date, "%Y-%m-%d").year) * 12 + 
@@ -143,33 +139,65 @@ def simulate_portfolio(user_input):
 
         target_reached_flag = False
 
-        for i, date in enumerate(data.index):
-            # Apply lump sum investment on the first valid trading day, even if the lump sum is zero.
-            if not lump_sum_applied:
+        lump_sum_applied = False
+
+        # Apply lump sum or first monthly contribution on the first trading day
+        if not data.empty:
+            first_date = data.index[0]
+            total_contribution_today = 0.0
+
+            if lump_sum > 0:
+                print(f"💰 Applying lump sum of £{lump_sum} on {first_date.strftime('%Y-%m-%d')}")
                 lump_sum_per_ticker = lump_sum / len(tickers)
-                for ticker in tickers:
-                    price_today = data[ticker].loc[date]
+                for stock in tickers:
+                    ticker = stock["ticker"]
+                    price_today = data[ticker].loc[first_date]
                     shares_held_by_ticker[ticker] += lump_sum_per_ticker / price_today
                 actual_total_contributed += lump_sum
-              
-                lump_sum_applied = True
+                total_contribution_today += lump_sum
 
-           
-
-            # Apply monthly contribution (fractional shares) on the first trading day of each month
-            if monthly > 0 and (i == 0 or data.index[i - 1].month != date.month):
+            if monthly > 0:
+                print(f"📆 First monthly contribution of £{monthly} on {first_date.strftime('%Y-%m-%d')}")
                 monthly_per_ticker = monthly / len(tickers)
-                for ticker in tickers:
+                for stock in tickers:
+                    ticker = stock["ticker"]
+                    price_today = data[ticker].loc[first_date]
+                    shares_held_by_ticker[ticker] += monthly_per_ticker / price_today
+                actual_total_contributed += monthly
+                total_contribution_today += monthly
+
+            if total_contribution_today > 0:
+                timeline.append({
+                    "date": first_date.strftime("%Y-%m-%d"),
+                    "value": round(total_contribution_today, 2),
+                    "is_contribution": True,
+                    "target_reached": False
+                })
+
+            # Flag to indicate the first date where monthly contribution was already applied
+            skip_first_contribution_date = first_date if monthly > 0 else None
+
+        for i, date in enumerate(data.index):
+            # Determine if this date represents a contribution
+            is_contribution_day = False
+
+            # Apply monthly contribution only if this is the first trading day of the month,
+            # and ensure we don’t double-apply it if already applied on the first date
+            if monthly > 0 and (i == 0 or data.index[i - 1].month != date.month) and date != skip_first_contribution_date:
+                print(f"📆 Monthly contribution of £{monthly} on {date.strftime('%Y-%m-%d')}")
+                monthly_per_ticker = monthly / len(tickers)
+                for stock in tickers:
+                    ticker = stock["ticker"]
                     price_at_contribution = data[ticker].loc[date]
                     shares_held_by_ticker[ticker] += monthly_per_ticker / price_at_contribution
                 actual_total_contributed += monthly
-              
+                is_contribution_day = True
 
             # Calculate portfolio value
-            total_value = sum(shares_held_by_ticker[t] * data[t].loc[date] for t in tickers if date in data[t])
+            total_value = sum(shares_held_by_ticker[stock["ticker"]] * data[stock["ticker"]].loc[date] for stock in tickers if date in data[stock["ticker"]])
           
-            # Determine if this date represents a contribution
-            is_contribution_day = monthly > 0 and (i == 0 or data.index[i - 1].month != date.month)
+            print(f"📈 Portfolio value on {date.strftime('%Y-%m-%d')}: £{total_value:.2f}")
+
             is_target_reached = False
             if not target_reached_flag and target_value > 0 and total_value >= target_value:
                 is_target_reached = True
@@ -186,10 +214,11 @@ def simulate_portfolio(user_input):
 
         # Calculate final values, growth, and construct a timeline of portfolio value over time
         final_total_value = timeline[-1]["value"] if timeline else 0.0
-        ticker_values = {t: shares_held_by_ticker[t] * data[t].iloc[-1] for t in tickers}
+        ticker_values = {stock["ticker"]: shares_held_by_ticker[stock["ticker"]] * data[stock["ticker"]].iloc[-1] for stock in tickers}
         total_value_check = sum(ticker_values.values()) or 1  # avoid division by zero
 
-        for ticker in tickers:
+        for stock in tickers:
+            ticker = stock["ticker"]
             prices = data[ticker].dropna()
             if len(prices) > 0:
                 start_price = prices.iloc[0]
@@ -214,6 +243,8 @@ def simulate_portfolio(user_input):
 
         # Checking if the target value is achieved
         target_achieved = total_end >= target_value if target_value > 0 else None
+
+        # --- Final output construction ---
         return {
             "portfolio": results,
             "total_invested": round(actual_total_contributed, 2),  # Full amount invested including monthly contributions
@@ -221,7 +252,7 @@ def simulate_portfolio(user_input):
             "final_balance": round(total_end, 2),
             "timeline": timeline,
             "target_achieved": target_achieved,
-            "initial_investment": round(lump_sum, 2),
+            "starting_balance": round(lump_sum, 2),
             "monthly_contribution": round(monthly, 2),
             "total_loss": round(max(0, actual_total_contributed - total_end), 2),
             "risk_profile": risk,

@@ -4,11 +4,14 @@ from pydantic import BaseModel
 from typing import Optional
 import yfinance as yf
 from backend.services.portfolio_simulator import simulate_portfolio as simulate_portfolio_logic
-from backend.services.stock_selector import select_stocks
 from backend.database.models import OnboardingSubmission
 from backend.database.database import SessionLocal, engine
 import pandas as pd
 import os
+from backend.models.stock_recommender.volatility_detector import calculate_volatility
+import joblib
+import numpy as np
+import json
 
 app = FastAPI(title="WealthWise Backend", version="1.0")
 
@@ -32,7 +35,6 @@ class OnboardingRequest(BaseModel):
 
 class SimulationRequest(BaseModel):
     id: int
-    selected_stocks: Optional[list[str]] = None
 
 @app.get("/")
 def read_root():
@@ -72,6 +74,26 @@ def save_onboarding(data: OnboardingRequest):
     finally:
         db.close()
 
+
+# ---- Stock Name Map Endpoint ----
+@app.get("/stock-name-map")
+def get_stock_name_map():
+    try:
+        file_path = "backend/models/stock_recommender/stock_name_map.json"
+        with open(file_path, "r") as f:
+            raw_data = json.load(f)
+
+        # Convert from: { "ADBE": "ADBE" } to { "ADBE": { "name": "Adobe Inc." } }
+        stock_name_map = {
+            ticker: {"name": name} for ticker, name in raw_data.items()
+        }
+
+        return stock_name_map
+
+    except Exception as e:
+        print(f"❌ Failed to load stock name map: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to load stock name map")
+
 @app.post("/simulate-portfolio")
 def simulate_portfolio(data: SimulationRequest):
     try:
@@ -82,8 +104,6 @@ def simulate_portfolio(data: SimulationRequest):
         if onboarding_data is None:
             raise HTTPException(status_code=404, detail="Onboarding data not found")
 
-        selected_stocks = data.selected_stocks
-
         user_input = {
             "name": onboarding_data.name,
             "experience": onboarding_data.experience,
@@ -92,13 +112,11 @@ def simulate_portfolio(data: SimulationRequest):
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
             "risk": onboarding_data.risk,
-            "selected_stocks": selected_stocks,
+            "selected_stocks": None,
         }
         print(f"🧠 User input for simulation: {user_input}")
 
         result = simulate_portfolio_logic(user_input)
-       
-        result["selected_stocks"] = selected_stocks
         result["risk"] = onboarding_data.risk  
         result["target_value"] = onboarding_data.target_value
         
@@ -110,6 +128,40 @@ def simulate_portfolio(data: SimulationRequest):
 
     finally:
         db.close()
+
+
+# ---- Stock Recommendation Endpoint ----
+class RecommendationRequest(BaseModel):
+    risk_score: int
+    timeframe: int
+
+@app.post("/recommend-stocks")
+def recommend_stocks(data: RecommendationRequest):
+    try:
+        print(f"📥 Received recommendation input: {data}")
+        # Load model and label binarizer
+        model = joblib.load("backend/models/stock_recommender/stock_model.pkl")
+        mlb = joblib.load("backend/models/stock_recommender/label_binarizer.pkl")
+
+        # Format input for model
+        features = np.array([[data.risk_score, data.timeframe]])
+
+        predictions = model.predict(features)
+        predicted_labels = mlb.inverse_transform(predictions)[0]
+
+        recommendations = []
+        for ticker in predicted_labels:
+            vol = calculate_volatility(ticker)
+            recommendations.append({
+                "ticker": ticker,
+                "volatility": round(vol, 4) if vol else None
+            })
+
+        return {"recommendations": recommendations}
+
+    except Exception as e:
+        print(f"❌ Recommendation Error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate stock recommendations")
 
 @app.delete("/clear-database")
 def clear_database():

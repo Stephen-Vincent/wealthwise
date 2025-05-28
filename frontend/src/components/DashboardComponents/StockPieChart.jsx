@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useEffect, useState, useContext } from "react";
 import PropTypes from "prop-types";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
-import { useContext } from "react";
 import PortfolioContext from "../../context/PortfolioContext";
 
 // Register chart.js components
@@ -12,6 +11,15 @@ export default function StockPieChart() {
   const { portfolioData } = useContext(PortfolioContext);
   const breakdown = portfolioData?.breakdown;
 
+  const [stockNameMap, setStockNameMap] = useState({});
+
+  useEffect(() => {
+    fetch("http://localhost:8000/stock-name-map")
+      .then((res) => res.json())
+      .then((data) => setStockNameMap(data))
+      .catch((err) => console.error("Failed to fetch stock name map:", err));
+  }, []);
+
   if (!breakdown || typeof breakdown !== "object") {
     return (
       <p className="text-gray-500 text-center">
@@ -20,9 +28,15 @@ export default function StockPieChart() {
     );
   }
 
-  const labels = Object.keys(breakdown);
+  const tickers = Object.keys(breakdown);
   const rawValues = Object.values(breakdown);
   const total = rawValues.reduce((sum, val) => sum + val, 0);
+
+  const labels = tickers.map((ticker, i) => {
+    const name = stockNameMap[ticker]?.name || ticker;
+    const percent = ((rawValues[i] / total) * 100).toFixed(2);
+    return `${name} - ${percent}%`;
+  });
 
   if (total === 0) {
     return (
@@ -61,17 +75,15 @@ export default function StockPieChart() {
     plugins: {
       legend: {
         position: "right",
-
         labels: {
           generateLabels: function (chart) {
             const data = chart.data;
             if (!data.labels || !data.datasets.length) return [];
 
             return data.labels.map((label, i) => {
-              const value = data.datasets[0].data[i];
               const backgroundColor = data.datasets[0].backgroundColor[i];
               return {
-                text: `${label}: ${value}%`,
+                text: label,
                 fillStyle: backgroundColor,
                 strokeStyle: backgroundColor,
                 index: i,
@@ -83,9 +95,10 @@ export default function StockPieChart() {
       tooltip: {
         callbacks: {
           label: function (context) {
-            const label = context.label || "";
+            const ticker = Object.keys(breakdown)[context.dataIndex];
+            const companyName = stockNameMap[ticker]?.name || ticker;
             const value = context.parsed;
-            return `${label}: ${value}%`;
+            return `${companyName} - ${value}%`;
           },
         },
       },
@@ -105,8 +118,8 @@ export default function StockPieChart() {
         Capital Allocation by Stock
       </h3>
       <div
-        className="flex items-center justify-center mx-auto shadow-lg rounded-lg p-4"
-        style={{ backgroundColor: "rgba(255, 255, 255, 0.5)" }}
+        className="flex items-center justify-center mx-auto shadow-xl rounded-xl p-6 backdrop-blur-md"
+        style={{ backgroundColor: "rgba(255, 255, 255, 0.7)" }}
       >
         <Pie data={data} options={options} width={200} height={200} />
       </div>

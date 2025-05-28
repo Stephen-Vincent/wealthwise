@@ -12,6 +12,7 @@ class OnboardingSubmission(Base):
     lump_sum = Column(Float)
     monthly = Column(Float)
     timeframe = Column(String)
+    income_bracket = Column(String, nullable=True)
     risk = Column(String)
     risk_score = Column(Integer, nullable=True)
     consent = Column(String, nullable=True)

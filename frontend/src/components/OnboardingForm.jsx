@@ -20,6 +20,7 @@ export default function OnboardingForm() {
     lumpSum: "",
     monthly: "",
     timeframe: "",
+    incomeBracket: "",
     consent: false,
   });
 
@@ -32,6 +33,10 @@ export default function OnboardingForm() {
     {
       key: "timeframe",
       label: "What is your ideal time frame to reach your goal?",
+    },
+    {
+      key: "incomeBracket",
+      label: "Which income bracket best represents your household?",
     },
   ];
 
@@ -61,6 +66,7 @@ export default function OnboardingForm() {
       return alert("Please confirm this is a learning tool.");
     }
 
+    console.log("Raw lump sum input (before parse):", formData.lumpSum);
     const lumpSum = parseFloat(formData.lumpSum || 0) || 0;
     const monthly = parseFloat(formData.monthly || 0) || 0;
 
@@ -79,8 +85,9 @@ export default function OnboardingForm() {
         goal: formData.goal,
         target_value: parseFloat(formData.target),
         timeframe: formData.timeframe,
+        income_bracket: formData.incomeBracket,
         consent: formData.consent,
-        lump_sum: lumpSum,
+        lumpSum: lumpSum,
         monthly: monthly,
       };
       console.log(
@@ -110,8 +117,6 @@ export default function OnboardingForm() {
       return;
     }
 
-    const payload = { id: savedData.id };
-
     try {
       const startTime = Date.now();
       setIsLoading(true);
@@ -119,10 +124,43 @@ export default function OnboardingForm() {
       const response = await fetch("http://localhost:8000/simulate-portfolio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          id: savedData.id,
+          name: formData.name,
+          experience: parseInt(formData.experience, 10),
+          goal: formData.goal,
+          lumpSum: lumpSum,
+          monthly: monthly,
+          timeframe: formData.timeframe,
+          income_bracket: formData.incomeBracket,
+          risk: savedData.risk,
+          risk_score: savedData.risk_score,
+          selected_stocks: null,
+        }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Simulation response error text:", errorText);
+        throw new Error("Simulation request failed.");
+      }
       const result = await response.json();
+
+      // Build payload for portfolioData context
+      const payload = {
+        name: formData.name,
+        goal: formData.goal,
+        target_value: parseFloat(formData.target),
+        starting_balance: lumpSum,
+        total_start: lumpSum,
+        risk: result.risk,
+        risk_score: result.risk_score,
+        recommendations: result.recommendations,
+        monthly_contribution: monthly,
+        initial_investment: lumpSum,
+        timeline: result.timeline,
+        portfolio: result.portfolio,
+      };
 
       Object.entries(result.portfolio).forEach(([ticker, data]) => {
         console.log(
@@ -133,16 +171,7 @@ export default function OnboardingForm() {
       console.log("📅 Timeline Sample (First 5 Days):");
       console.log(result.timeline.slice(0, 5));
 
-      setPortfolioData({
-        ...result,
-        name: formData.name,
-        goal: formData.goal,
-        target_value: parseFloat(formData.target),
-        starting_balance: parseFloat(formattedData.lump_sum),
-        total_start: parseFloat(formattedData.lump_sum),
-        risk: result.risk,
-        risk_score: result.risk_score,
-      });
+      setPortfolioData(payload);
 
       const elapsed = Date.now() - startTime;
       const remainingTime = Math.max(0, 3000 - elapsed);
@@ -284,6 +313,31 @@ export default function OnboardingForm() {
                       }`}
                       onClick={() =>
                         setFormData({ ...formData, timeframe: label })
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {step === 6 && (
+                <div className="flex justify-center space-x-4 flex-wrap max-w-[600px]">
+                  {[
+                    "Low (under £30k)",
+                    "Medium (£30k–£70k)",
+                    "High (over £70k)",
+                  ].map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`font-bold px-6 py-3 rounded-[15px] m-2 hover:brightness-110 transition ${
+                        formData.incomeBracket === label
+                          ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
+                          : "bg-[#00A8FF] text-white"
+                      }`}
+                      onClick={() =>
+                        setFormData({ ...formData, incomeBracket: label })
                       }
                     >
                       {label}
