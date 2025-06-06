@@ -38,11 +38,6 @@ export default function LoadingScreen() {
 
   return (
     <div className="flex flex-col items-center py-12 text-xl text-center h-screen">
-      <img
-        src={logo}
-        alt="WealthWise logo"
-        className="w-[200px] h-[200px] object-contain mb-6"
-      />
       <p
         className={`text-lg transition-opacity duration-500 ease-in-out mt-32 ${
           fade ? "opacity-100" : "opacity-0"
