@@ -1,4 +1,4 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 
 const PortfolioContext = createContext();
 
@@ -33,6 +33,23 @@ export const PortfolioProvider = ({ children }) => {
       breakdown,
     });
   };
+
+  // 🔥 Add this useEffect to fetch data on load
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    const simulationId = localStorage.getItem("selectedSimulationId");
+
+    if (userId && simulationId) {
+      fetch(`http://localhost:8000/simulations/${simulationId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setPortfolioData(data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch simulation:", err);
+        });
+    }
+  }, []);
 
   return (
     <PortfolioContext.Provider value={{ portfolioData, setPortfolioData }}>
