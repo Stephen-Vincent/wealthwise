@@ -1,19 +1,33 @@
-from sqlalchemy import Column, Integer, String, Float
-from .database import Base
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
+from sqlalchemy.orm import relationship
+from .session import Base
 
-class OnboardingSubmission(Base):
-    __tablename__ = "onboarding_submissions"
-    __table_args__ = {'extend_existing': True}
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    simulations = relationship("Simulation", back_populates="user", cascade="all, delete-orphan")
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    experience = Column(Integer)
-    goal = Column(String)
-    lump_sum = Column(Float)
-    monthly = Column(Float)
-    timeframe = Column(String)
-    income_bracket = Column(String, nullable=True)
-    risk = Column(String)
-    risk_score = Column(Integer, nullable=True)
-    consent = Column(String, nullable=True)
+class Simulation(Base):
+    __tablename__ = "simulations"
+    __table_args__ = {"sqlite_autoincrement": True}
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String, nullable=True)
+    goal = Column(String, nullable=False)
+    risk_score = Column(Integer, nullable=True, default=50)
+    risk_label = Column(String, nullable=True)
     target_value = Column(Float, nullable=True)
+    lump_sum = Column(Float, nullable=True)
+    monthly = Column(Float, nullable=True)
+    timeframe = Column(String, nullable=False)
+    target_achieved = Column(Boolean, default=False, nullable=False)
+    income_bracket = Column(String, nullable=False)
+    results = Column(JSON, nullable=True)
+    ai_summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="simulations")

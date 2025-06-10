@@ -2,12 +2,19 @@ import { useContext } from "react";
 import PortfolioContext from "../../context/PortfolioContext";
 
 export default function Header() {
-  const { portfolioData } = useContext(PortfolioContext);
-  console.log("Header portfolioData:", portfolioData);
-  const userName =
-    portfolioData && typeof portfolioData === "object" && portfolioData.name
-      ? portfolioData.name
-      : "User";
+  let userName = "user";
+
+  const storedUser = localStorage.getItem("user");
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.name) {
+        userName = parsedUser.name;
+      }
+    } catch (error) {
+      console.error("Error parsing stored user from localStorage:", error);
+    }
+  }
 
   return (
     <div className="mb-6">

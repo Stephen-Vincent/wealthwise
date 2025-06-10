@@ -10,42 +10,6 @@ export default function LandingScreen() {
 
   const [simulations, setSimulations] = useState([]);
 
-  // Test onboarding submission function
-  const handleOnboardingTest = async () => {
-    const payload = {
-      name: "Stephen Vincent",
-      goal: "buy a horse",
-      target_value: 12450,
-    };
-
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/onboarding",
-        payload
-      );
-      alert(`Success: ${JSON.stringify(response.data)}`);
-    } catch (error) {
-      alert("Error submitting onboarding data");
-      console.error(error);
-    }
-  };
-
-  // Fetch simulations function
-  const handleFetchSimulations = async () => {
-    try {
-      const userId = 1; // or fetch dynamically if you have auth
-      const response = await axios.get(
-        `http://127.0.0.1:5000/users/${userId}/simulations`
-      );
-      setSimulations(response.data);
-      alert(`Fetched ${response.data.length} simulations`);
-      console.log("Simulations:", response.data);
-    } catch (error) {
-      alert("Error fetching simulations");
-      console.error(error);
-    }
-  };
-
   return (
     <div className="flex flex-col items-center pt-12 pb-12 min-h-screen font-sans">
       <div className="flex flex-col items-center justify-center min-h-[300px] w-full max-w-xl text-center gap-6">
@@ -78,20 +42,6 @@ export default function LandingScreen() {
                 className="bg-white text-[#00A8FF] font-bold px-6 py-3 rounded-[15px] border-2 border-[#00A8FF] cursor-pointer"
               >
                 Log In
-              </button>
-              {/* New onboarding test button */}
-              <button
-                onClick={handleOnboardingTest}
-                className="bg-green-600 text-white font-bold px-6 py-3 rounded-[15px] border-none cursor-pointer"
-              >
-                Test Onboarding API
-              </button>
-              {/* Fetch simulations button */}
-              <button
-                onClick={handleFetchSimulations}
-                className="bg-purple-600 text-white font-bold px-6 py-3 rounded-[15px] border-none cursor-pointer"
-              >
-                Fetch Simulations
               </button>
             </div>
           </div>
