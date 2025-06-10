@@ -3,18 +3,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Signup() {
+  // Initialize navigation and form state
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
-  const [error, setError] = useState(""); // NEW
+  const [error, setError] = useState("");
 
+  // Update form state on input change
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Handle form submission and send signup data to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -30,13 +33,14 @@ export default function Signup() {
 
     if (res.ok) {
       console.log("Signup successful", data);
-      navigate("/login"); // redirect after successful signup
+      navigate("/login");
     } else {
       const errorMsg = data.detail || "Signup failed";
-      setError(errorMsg); // UPDATED
+      setError(errorMsg);
     }
   };
 
+  // Render the signup form UI
   return (
     <div className="flex flex-col items-center justify-center ">
       <form
@@ -75,9 +79,7 @@ export default function Signup() {
           required
         />
 
-        {error && (
-          <p className="text-red-500 text-sm text-center">{error}</p> // NEW
-        )}
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
         <button
           type="submit"

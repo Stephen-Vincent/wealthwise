@@ -11,9 +11,9 @@ import { PortfolioProvider } from "./context/PortfolioContext"; // ✅ import th
 
 export default function App() {
   return (
-    <PortfolioProvider>
-      <div className="min-h-screen w-full bg-gradient-to-b from-white to-[#a3cde0] font-sans">
-        <Router>
+    <Router>
+      <PortfolioProvider>
+        <div className="min-h-screen w-full bg-gradient-to-b from-white to-[#a3cde0] font-sans">
           <Routes>
             <Route path="/" element={<LandingScreen />}>
               <Route index element={<Login />} />
@@ -24,12 +24,15 @@ export default function App() {
               <Route path="loading" element={<LoadingScreen />} />
             </Route>
 
-            <Route path="/dashboard/:id" element={<Dashboard />} />
+            <Route
+              path="/dashboard/:userId/:simulationId"
+              element={<Dashboard />}
+            />
             <Route path="/stock/:stock" element={<StockPage />} />
             <Route path="/simulations" element={<Simulations />} />
           </Routes>
-        </Router>
-      </div>
-    </PortfolioProvider>
+        </div>
+      </PortfolioProvider>
+    </Router>
   );
 }

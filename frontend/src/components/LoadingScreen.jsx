@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/wealthwise.png"; // Replace with your real logo path
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 const messages = [
   "🧠 Calculating your risk score...",
@@ -10,6 +10,10 @@ const messages = [
 
 export default function LoadingScreen() {
   const navigate = useNavigate();
+  const userId = localStorage.getItem("userId");
+  const rawSimulationId = localStorage.getItem("simulationId");
+  const simulationId =
+    rawSimulationId && rawSimulationId !== "null" ? rawSimulationId : null;
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);
 
@@ -27,13 +31,23 @@ export default function LoadingScreen() {
       timeouts.push(t);
     });
 
-    // Navigate after all messages are shown + 1s buffer
-    const finalTimeout = setTimeout(() => {
-      navigate("/dashboard");
-    }, messages.length * 1000 + 1000);
-    timeouts.push(finalTimeout);
-
     return () => timeouts.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (userId && simulationId) {
+      console.log("✅ Redirecting to dashboard with:", {
+        userId,
+        simulationId,
+      });
+      localStorage.setItem("simulationCompleted", "true"); // ✅ Mark simulation as complete
+      navigate(`/dashboard/${userId}/${simulationId}`);
+    } else {
+      console.warn("❌ Missing userId or simulationId in localStorage:", {
+        userId,
+        simulationId,
+      });
+    }
   }, []);
 
   return (

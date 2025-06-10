@@ -1,5 +1,5 @@
 // src/components/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -9,42 +9,67 @@ export default function Login() {
     password: "",
   });
 
+  useEffect(() => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+  }, []);
+
+  // Handle input field changes
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Send login request to backend
     const res = await fetch("http://localhost:8000/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
     const data = await res.json();
+    console.log("Login response:", data); // ← Add this line
 
     if (res.ok) {
-      console.log("Login successful", data);
-      localStorage.setItem("userId", data.user_id);
-      localStorage.setItem("user_name", data.name);
-      console.log("Saved user_name:", localStorage.getItem("user_name"));
+      // Safer user info extraction
+      const userId = data.user?.id;
+      console.log("✅ Extracted user ID:", userId);
 
-      const simRes = await fetch(
-        `http://localhost:8000/users/${data.user_id}/simulations`
+      const userName = data.user?.name;
+
+      if (!userId) {
+        alert("Login response did not include a user ID.");
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("userId", String(userId));
+      console.log(
+        "📦 Stored user ID in localStorage:",
+        localStorage.getItem("user")
       );
-      const simulations = await simRes.json();
-      if (simRes.ok && Array.isArray(simulations)) {
-        if (simulations.length > 0) {
-          navigate(`/simulations`);
+      localStorage.setItem("access_token", data.access_token);
+
+      try {
+        const simRes = await fetch("http://localhost:8000/simulations", {
+          headers: {
+            Authorization: `Bearer ${data.access_token}`,
+          },
+        });
+        const simulations = await simRes.json();
+
+        if (simRes.ok && Array.isArray(simulations)) {
+          navigate(simulations.length > 0 ? "/simulations" : "/onboarding");
         } else {
+          console.warn("No simulations found or response error:", simulations);
           navigate("/onboarding");
         }
-      } else {
-        console.error("Error fetching simulations:", simulations);
-        alert("Error checking simulations. Please try again.");
+      } catch (err) {
+        console.error("Simulation fetch error:", err);
+        navigate("/onboarding");
       }
     } else {
       alert(data.detail || "Login failed");
@@ -96,6 +121,7 @@ export default function Login() {
           </span>
         </p>
       </form>
+
       <button
         onClick={() => navigate("/")}
         className="mt-4 text-[#00A8FF] underline text-sm"

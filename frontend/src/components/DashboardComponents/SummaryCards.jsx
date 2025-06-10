@@ -2,12 +2,18 @@ import { useContext } from "react";
 import PortfolioContext from "../../context/PortfolioContext";
 
 export default function SummaryCards() {
+  const formatCurrency = (amount) =>
+    amount != null ? `£${parseFloat(amount).toFixed(2)}` : "£0";
+
+  // Access portfolio data from context
   const { portfolioData } = useContext(PortfolioContext);
+  const results = portfolioData?.results || {};
 
   // Round today's date down to the 1st of the current month
   const now = new Date();
 
-  const timeline = portfolioData?.timeline || [];
+  // Derive timeline data and find the latest entry before next month
+  const timeline = portfolioData?.results?.timeline?.portfolio || [];
   const sortedTimeline = [...timeline].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   );
@@ -15,38 +21,45 @@ export default function SummaryCards() {
   const filteredTimeline = sortedTimeline.filter(
     (entry) => new Date(entry.date) < nextMonthStart
   );
-  const latestEntry = filteredTimeline.at(-1);
 
-  const finalBalance = latestEntry?.value || portfolioData?.final_balance;
+  // Calculate final balance from results or fallback to portfolioData
+  const finalBalance = results?.end_value ?? portfolioData?.final_balance ?? 0;
 
-  // Calculate total invested based on actual contributions in the timeline
-  const initialInvestment = portfolioData?.initial_investment || 0;
-  const monthlyContribution = portfolioData?.monthly_contribution || 0;
-  const totalInvested = filteredTimeline.reduce((sum, entry) => {
-    return sum + (entry.is_contribution ? monthlyContribution : 0);
-  }, initialInvestment);
+  // Calculate total invested based on lump sum and monthly contributions over timeframe
+  const lumpSum = portfolioData?.lump_sum || 0;
+  const monthlyContribution = portfolioData?.monthly || 0;
+  const timeframeYears = portfolioData?.timeframe || 0;
+  const totalInvested = lumpSum + monthlyContribution * 12 * timeframeYears;
 
+  // Calculate return percentage if total invested and final balance are available
   const returnPercent =
-    totalInvested > 0 && finalBalance
-      ? (((finalBalance - totalInvested) / totalInvested) * 100).toFixed(2)
+    totalInvested > 0 && finalBalance != null
+      ? (
+          ((parseFloat(finalBalance) - parseFloat(totalInvested)) /
+            parseFloat(totalInvested)) *
+          100
+        ).toFixed(2)
       : "N/A";
 
-  // Prepare the target card
-
+  // Detect if the investment target has been met by checking filtered timeline entries
   let targetReachedEntry = null;
   if (
     portfolioData?.target_value &&
-    Array.isArray(filteredTimeline) &&
-    filteredTimeline.length > 0
+    Array.isArray(timeline) &&
+    timeline.length > 0
   ) {
     targetReachedEntry = filteredTimeline.find(
       (entry) => entry.value >= portfolioData.target_value
     );
   }
 
+  // Prepare target card information including status based on target achievement
   const targetCard = {
     label: "Target Investment",
-    value: `£${portfolioData?.target_value?.toLocaleString() || "Not set"}`,
+    value:
+      portfolioData?.target_value != null
+        ? formatCurrency(portfolioData.target_value)
+        : "Not set",
     status:
       portfolioData?.target_value && finalBalance
         ? targetReachedEntry
@@ -60,6 +73,7 @@ export default function SummaryCards() {
         : null,
   };
 
+  // Render summary cards displaying portfolio overview and status
   return (
     <div className="mb-8">
       <h3 className="text-xl font-bold mb-4">My Summary</h3>
@@ -73,24 +87,31 @@ export default function SummaryCards() {
             label: "Risk Profile",
             value:
               portfolioData?.risk_score != null
-                ? `${portfolioData.risk || "Unknown"} (Score: ${
+                ? `${portfolioData.risk_label || "Unknown"} (Score: ${
                     portfolioData.risk_score
                   })`
-                : portfolioData?.risk || "N/A",
+                : portfolioData?.risk_label || "N/A",
           },
           {
             label: "Starting Balance",
-            value: `£${
-              portfolioData?.starting_balance !== undefined
-                ? portfolioData.starting_balance.toLocaleString()
-                : "0"
-            }`,
+            value:
+              portfolioData?.lump_sum != null
+                ? formatCurrency(portfolioData.lump_sum)
+                : "£0",
           },
           {
             label: "Current Balance",
-            value: `£${finalBalance?.toLocaleString() || 0}`,
+            value: finalBalance != null ? formatCurrency(finalBalance) : "£0",
           },
-          { label: "Return %", value: `${returnPercent}%` },
+          {
+            label: "Total Invested",
+            value: formatCurrency(totalInvested),
+          },
+          {
+            label: "Return %",
+            value: `${returnPercent}%`,
+            status: null,
+          },
         ].map((card, index) => (
           <div
             key={index}
@@ -103,7 +124,7 @@ export default function SummaryCards() {
                 {card.status.text}
                 {card.status.text === "Target Achieved" && card.status.date && (
                   <div className="text-xs text-gray-500 mt-1">
-                    Reached £{card.status.reachedValue?.toLocaleString()} on{" "}
+                    Reached {formatCurrency(card.status.reachedValue)} on{" "}
                     {new Date(card.status.date).toLocaleDateString()}
                   </div>
                 )}
