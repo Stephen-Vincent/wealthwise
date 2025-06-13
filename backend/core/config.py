@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Secret key for JWT
     JWT_SECRET_KEY: str
 
+    # GROQ API Key
+    GROQ_API_KEY: str
+
     # App info
     APP_NAME: str = "WealthWise API"
     APP_VERSION: str = "0.1.0"
