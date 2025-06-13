@@ -1,0 +1,197 @@
+investment_goal,income,timeframe,years_of_experience,target_amount,lump_sum_investment,monthly_investment,risk_score
+Buy a house,medium,5–10 years,3,210000,12000,1200,3
+emergency fund,low,Under 1 year,7,12000,3000,400,16
+emergency fund,medium,1–5 years,1,15642,7537,908,3
+Buy a house,high,5–10 years,7,400000,18000,1600,2
+retirement,low,5–10 years,1,227535,7600,282,42
+emergency fund,medium,5–10 years,4,14500,4000,900,84
+emergency fund,medium,5–10 years,4,13369,16665,754,1
+vacation,high,Under 1 year,6,7694,9411,1092,1
+emergency fund,medium,Under 1 year,0,11236,3913,1274,10
+Buy a house,high,Under 1 year,4,346873,2765,411,63
+retirement,medium,1–5 years,6,269998,10752,585,44
+Buy a house,medium,Under 1 year,9,183674,1849,221,71
+emergency fund,low,1–5 years,6,9000,2000,300,50
+retirement,high,1–5 years,3,507107,17287,1636,30
+save for a car,low,1–5 years,5,15000,2500,600,8
+retirement,medium,5–10 years,1,300000,5000,500,35
+vacation,low,5–10 years,0,23444,5791,227,24
+emergency fund,low,1–5 years,7,15520,2278,935,1
+vacation,low,Under 1 year,0,12000,2000,200,30
+retirement,medium,5–10 years,8,250000,12000,1500,88
+vacation,medium,5–10 years,0,7000,1000,300,9
+vacation,medium,1–5 years,1,9000,3000,500,5
+vacation,low,Under 1 year,6,8000,2000,200,18
+emergency fund,medium,Under 1 year,3,17306,1493,978,16
+vacation,low,5–10 years,8,12000,4000,1000,3
+emergency fund,medium,5–10 years,0,16359,4207,1559,1
+Buy a house,medium,Under 1 year,8,230000,4000,900,58
+save for a car,low,1–5 years,1,20612,14047,1204,68
+retirement,high,5–10 years,5,226224,8104,346,22
+save for a car,medium,1–5 years,1,43692,4670,515,19
+emergency fund,medium,Under 1 year,6,10000,5000,1200,10
+retirement,low,5–10 years,9,220000,9000,1200,10
+vacation,low,1–5 years,1,8868,19972,503,81
+emergency fund,high,Under 1 year,7,17869,4759,920,3
+save for a car,medium,5–10 years,5,28000,9000,1000,2
+retirement,high,5–10 years,5,450000,18000,1000,10
+retirement,high,5–10 years,3,180242,19521,1429,6
+emergency fund,low,5–10 years,8,16149,9405,115,3
+Buy a house,high,Under 1 year,0,600000,1000,100,100
+retirement,low,1–5 years,5,150000,3000,1200,45
+emergency fund,medium,1–5 years,6,18392,11234,641,2
+save for a car,low,Under 1 year,9,14832,9434,704,2
+retirement,high,1–5 years,4,420000,15000,1100,13
+vacation,low,1–5 years,7,7000,2000,400,10
+retirement,high,1–5 years,8,543706,17736,595,62
+retirement,medium,1–5 years,5,275000,10000,800,25
+save for a car,medium,5–10 years,3,25000,12000,1000,56
+retirement,medium,Under 1 year,5,583735,10601,1549,100
+retirement,high,1–5 years,8,543706,17736,595,20
+vacation,low,1–5 years,3,18202,14407,1282,51
+retirement,high,5–10 years,3,637669,18459,1033,31
+emergency fund,medium,1–5 years,4,9703,19186,879,1
+Buy a house,low,1–5 years,1,105000,2000,200,59
+emergency fund,low,Under 1 year,1,7000,1500,150,22
+Buy a house,medium,1–5 years,0,180000,2000,200,60
+save for a car,low,5–10 years,8,12000,3000,400,7
+Buy a house,medium,1–5 years,1,239757,19773,128,100
+retirement,medium,5–10 years,2,285000,7000,600,28
+Buy a house,medium,1–5 years,4,350000,10000,800,64
+retirement,high,Under 1 year,0,340345,3450,1983,100
+vacation,low,Under 1 year,5,6659,13158,1110,57
+emergency fund,high,1–5 years,4,18945,8421,707,2
+vacation,low,5–10 years,0,23444,5791,227,17
+save for a car,medium,1–5 years,2,25000,12000,1200,2
+retirement,high,5–10 years,5,226224,8104,346,47
+retirement,high,Under 1 year,5,209256,6425,389,94
+vacation,medium,1–5 years,4,9000,2000,400,92
+emergency fund,low,1–5 years,0,5500,1000,100,18
+Buy a house,high,5–10 years,0,154504,16373,1198,9
+Buy a house,low,1–5 years,1,105000,2000,200,26
+retirement,medium,5–10 years,8,250000,12000,1500,32
+retirement,high,1–5 years,8,543706,17736,595,79
+Buy a house,low,1–5 years,6,164245,12267,751,28
+retirement,medium,5–10 years,9,437920,18463,516,9
+save for a car,low,Under 1 year,2,9000,1200,200,17
+Buy a house,high,Under 1 year,4,346873,2765,411,23
+retirement,medium,5–10 years,0,586930,6496,919,48
+vacation,low,Under 1 year,9,16751,7550,1499,1
+retirement,low,5–10 years,9,220000,9000,1200,86
+emergency fund,low,1–5 years,5,15518,8421,374,6
+vacation,low,5–10 years,3,6000,1000,200,13
+Buy a house,high,1–5 years,2,300000,15000,1000,12
+vacation,low,1–5 years,2,19924,2170,1618,4
+vacation,high,1–5 years,3,21138,12875,278,5
+emergency fund,medium,Under 1 year,1,12000,4000,1000,11
+save for a car,medium,5–10 years,5,28000,9000,1000,43
+retirement,low,Under 1 year,6,434994,8737,179,100
+save for a car,low,1–5 years,1,39918,3872,1774,8
+vacation,low,Under 1 year,9,6000,2000,150,25
+Buy a house,high,Under 1 year,4,346873,2765,411,100
+emergency fund,low,1–5 years,4,9848,16110,1205,1
+save for a car,low,1–5 years,9,30000,2500,400,96
+emergency fund,low,Under 1 year,8,6000,1200,150,20
+Buy a house,high,Under 1 year,1,500000,5000,200,85
+retirement,low,5–10 years,0,130000,1000,100,100
+vacation,medium,Under 1 year,3,5160,6837,795,3
+retirement,medium,5–10 years,7,488346,18269,1556,12
+vacation,medium,Under 1 year,4,10000,4000,1200,9
+retirement,medium,1–5 years,6,350000,8000,700,14
+vacation,low,1–5 years,3,18202,14407,1282,3
+retirement,high,1–5 years,4,420000,15000,1100,72
+save for a car,low,Under 1 year,9,14832,9434,704,75
+retirement,high,Under 1 year,3,282456,15556,1421,60
+retirement,low,1–5 years,2,175000,2000,200,60
+save for a car,medium,5–10 years,0,18228,1272,2000,1
+Buy a house,high,5–10 years,2,336233,18297,663,27
+Buy a house,low,5–10 years,2,110000,2000,200,52
+vacation,medium,Under 1 year,0,22616,13330,596,19
+save for a car,low,5–10 years,2,16249,16088,596,3
+vacation,low,1–5 years,2,8000,2000,200,15
+vacation,low,5–10 years,0,23444,5791,227,77
+save for a car,medium,Under 1 year,0,20125,13796,1216,39
+retirement,low,1–5 years,4,493595,7518,336,100
+Buy a house,high,Under 1 year,3,482567,17147,1984,82
+retirement,medium,1–5 years,6,350000,8000,700,29
+emergency fund,low,1–5 years,7,15520,2278,935,21
+vacation,medium,5–10 years,5,8000,3000,500,2
+save for a car,medium,5–10 years,1,35000,10000,1000,4
+Buy a house,medium,1–5 years,4,350000,10000,800,27
+retirement,medium,5–10 years,8,250000,12000,1500,7
+Buy a house,low,Under 1 year,8,105218,15799,667,22
+Buy a house,high,Under 1 year,2,432467,5944,554,100
+vacation,medium,Under 1 year,6,10000,8000,1600,4
+Buy a house,medium,1–5 years,7,500000,18000,1700,6
+save for a car,medium,5–10 years,3,25000,12000,1000,1
+Buy a house,high,Under 1 year,3,482567,17147,1984,91
+retirement,low,5–10 years,0,130000,1000,100,54
+emergency fund,low,Under 1 year,2,5528,4775,344,12
+Buy a house,low,5–10 years,10,100000,10000,2000,2
+emergency fund,high,Under 1 year,7,17869,4759,920,36
+save for a car,low,1–5 years,1,18420,14588,512,9
+emergency fund,medium,1–5 years,2,25000,5000,600,69
+retirement,high,5–10 years,1,314946,9012,218,80
+emergency fund,medium,1–5 years,8,17000,9000,1200,1
+Buy a house,high,Under 1 year,9,410330,16137,309,20
+save for a car,low,Under 1 year,4,7000,1000,150,19
+save for a car,low,1–5 years,1,18420,14588,512,73
+emergency fund,medium,1–5 years,6,18392,11234,641,40
+vacation,medium,5–10 years,5,8000,3000,500,78
+retirement,medium,5–10 years,0,586930,6496,919,87
+save for a car,low,1–5 years,9,30000,2500,400,22
+save for a car,low,5–10 years,4,10412,12605,766,1
+vacation,medium,1–5 years,2,17318,18917,1340,2
+Buy a house,medium,Under 1 year,5,250000,5000,800,65
+retirement,medium,1–5 years,6,350000,8000,700,30
+Buy a house,low,Under 1 year,2,120000,2000,200,70
+save for a car,low,5–10 years,0,10000,1000,150,67
+Buy a house,low,5–10 years,2,110000,2000,200,74
+emergency fund,low,5–10 years,3,8000,1500,200,15
+vacation,low,Under 1 year,5,6659,13158,1110,3
+retirement,low,Under 1 year,5,428326,15400,706,100
+retirement,medium,1–5 years,6,269998,10752,585,41
+emergency fund,medium,1–5 years,1,15642,7537,908,61
+emergency fund,low,1–5 years,6,9000,2000,300,12
+retirement,medium,5–10 years,8,325642,17357,1376,6
+save for a car,medium,5–10 years,6,49842,16663,674,3
+Buy a house,medium,1–5 years,7,500000,18000,1700,66
+emergency fund,medium,5–10 years,4,14500,4000,900,3
+vacation,medium,5–10 years,0,7000,1000,300,53
+save for a car,medium,1–5 years,1,43692,4670,515,98
+save for a car,low,1–5 years,8,34500,10646,1624,1
+vacation,low,1–5 years,1,8868,19972,503,3
+retirement,high,1–5 years,7,400000,15000,1200,8
+save for a car,medium,5–10 years,2,38514,17032,408,8
+vacation,medium,1–5 years,2,17318,18917,1340,93
+save for a car,low,1–5 years,1,20612,14047,1204,5
+Buy a house,medium,Under 1 year,3,220634,2251,650,100
+save for a car,medium,Under 1 year,5,20000,5000,300,20
+emergency fund,high,Under 1 year,7,6216,3652,1215,1
+retirement,low,5–10 years,1,227535,7600,282,100
+retirement,high,1–5 years,4,420000,15000,1100,49
+save for a car,low,Under 1 year,9,14832,9434,704,90
+retirement,low,Under 1 year,7,400000,2000,200,95
+vacation,medium,1–5 years,2,11809,7583,223,7
+save for a car,low,5–10 years,0,10000,1000,150,46
+retirement,high,5–10 years,1,314946,9012,218,83
+Buy a house,low,Under 1 year,7,287858,6124,1326,97
+save for a car,medium,Under 1 year,0,20125,13796,1216,12
+Buy a house,low,Under 1 year,7,287858,6124,1326,34
+vacation,medium,1–5 years,4,9000,2000,400,10
+retirement,low,5–10 years,9,220000,9000,1200,37
+retirement,medium,Under 1 year,9,500000,5000,500,80
+retirement,low,5–10 years,3,200000,5000,400,35
+Buy a house,low,Under 1 year,4,95000,1000,100,55
+retirement,low,Under 1 year,0,600000,1000,100,100
+emergency fund,medium,1–5 years,2,25000,5000,600,8
+emergency fund,low,5–10 years,5,9500,1500,200,10
+emergency fund,low,1–5 years,4,9848,16110,1205,99
+Buy a house,medium,1–5 years,8,444948,15243,522,33
+vacation,low,Under 1 year,9,6000,2000,150,89
+emergency fund,medium,1–5 years,4,19360,8436,352,6
+Buy a house,low,1–5 years,6,130000,3000,500,38
+vacation,medium,Under 1 year,0,24444,719,543,59
+save for a car,low,5–10 years,0,10000,1000,150,12
+vacation,low,Under 1 year,0,12000,2000,200,76
+Buy a house,medium,5–10 years,8,250000,17000,1900,1
