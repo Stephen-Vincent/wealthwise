@@ -1,0 +1,2001 @@
+years_of_experience,loss_tolerance,panic_behavior,financial_behavior,engagement_level,investment_goal,target_amount,lump_sum_investment,monthly_investment,timeframe,income,risk_score
+0,wait_and_see,yes_always,save_all,rarely,emergency fund,14933,3721,302,2,low,3.5
+6,buy_more,no_never,invest_all,quarterly,wealth building,349589,62080,3373,10,medium,38.8
+5,wait_and_see,no_experience,save_half,monthly,save for a car,36599,24515,609,5,medium,11.4
+10,buy_more,no_never,invest_all,monthly,retirement,512777,600778,2589,15,medium,48.0
+8,buy_more,no_never,save_half,weekly,retirement,1644770,2644494,13780,12,high,90.1
+6,wait_and_see,no_never,save_half,monthly,buy a house,260779,76910,7064,7,high,49.3
+18,buy_more,yes_sometimes,save_half,monthly,wealth building,438100,197698,5810,20,high,70.6
+4,wait_and_see,no_experience,save_half,weekly,retirement,2942517,3816218,13467,7,high,60.4
+6,buy_more,no_experience,invest_all,monthly,buy a house,215150,190153,3269,12,high,45.3
+12,buy_more,yes_sometimes,save_half,monthly,retirement,1076315,788909,5905,20,high,75.1
+12,buy_more,yes_sometimes,invest_all,daily,retirement,420504,332119,4665,10,medium,47.0
+3,sell_immediately,no_experience,save_half,monthly,buy a house,99781,54812,1812,2,low,9.0
+12,buy_more,yes_sometimes,save_half,monthly,retirement,1939139,3049885,9765,15,high,80.3
+10,wait_and_see,no_never,invest_all,daily,retirement,2591837,980345,19232,15,high,74.5
+3,buy_more,yes_sometimes,save_half,quarterly,wealth building,110264,172080,1045,12,high,67.5
+15,buy_more,yes_sometimes,invest_all,monthly,wealth building,327725,299318,509,25,high,68.8
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,271192,77117,8348,4,high,31.1
+10,buy_more,yes_sometimes,invest_all,monthly,retirement,2642273,2727904,30490,10,high,82.0
+3,wait_and_see,yes_sometimes,save_all,rarely,save for a car,38619,33859,1174,5,high,27.8
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,435159,246575,1124,30,medium,49.4
+12,buy_more,no_never,save_half,daily,retirement,2736237,1956504,24097,20,high,84.3
+15,wait_and_see,yes_sometimes,save_half,monthly,retirement,334244,544480,790,20,medium,55.7
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,103283,68403,372,30,medium,43.3
+3,wait_and_see,no_never,invest_all,weekly,buy a house,222500,172973,512,10,medium,18.4
+12,buy_more,no_never,invest_all,monthly,wealth building,1209861,2149766,8660,20,high,81.4
+6,buy_more,yes_sometimes,save_half,monthly,retirement,527923,491625,7492,5,medium,46.4
+6,buy_more,yes_sometimes,save_half,weekly,wealth building,301372,389039,1419,12,medium,39.8
+1,wait_and_see,yes_always,spend_it,rarely,vacation,2784,800,52,3,low,1.0
+18,wait_and_see,no_never,invest_all,daily,wealth building,142159,99973,826,15,medium,42.5
+4,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,11959,7984,233,2,low,1.0
+8,buy_more,yes_sometimes,invest_all,monthly,wealth building,409154,339974,2284,10,high,62.3
+12,wait_and_see,yes_sometimes,invest_all,daily,retirement,2720831,2389697,41179,10,high,74.5
+1,sell_immediately,yes_always,save_all,quarterly,emergency fund,30965,20982,1145,1,medium,3.9
+5,buy_more,no_never,invest_all,weekly,wealth building,119307,27973,1071,10,high,68.5
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,4105,1615,47,3,low,1.0
+12,wait_and_see,yes_sometimes,save_half,monthly,retirement,3192069,2484265,45401,10,high,74.0
+7,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,584831,1431007,5130,7,high,63.8
+4,wait_and_see,no_experience,save_half,monthly,save for a car,26861,16801,434,5,medium,21.9
+3,wait_and_see,no_never,invest_all,weekly,buy a house,137372,290875,1390,7,high,43.5
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,2990758,2916411,7132,20,high,82.1
+4,buy_more,no_never,invest_all,monthly,buy a house,590113,584698,2186,12,high,33.3
+4,buy_more,yes_sometimes,save_half,quarterly,buy a house,218845,100028,401,10,medium,19.8
+7,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,100219,47421,4753,5,high,35.6
+6,wait_and_see,no_experience,invest_all,quarterly,buy a house,135807,91955,1438,5,medium,18.9
+0,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,18391,12757,347,2,low,1.4
+5,wait_and_see,no_experience,save_all,monthly,save for a car,26489,6166,758,3,medium,11.8
+1,sell_immediately,yes_always,spend_it,rarely,vacation,19482,11003,321,2,medium,9.0
+1,wait_and_see,yes_always,spend_it,rarely,vacation,7906,1361,251,2,medium,5.0
+8,wait_and_see,no_never,invest_all,quarterly,wealth building,310617,198909,1608,12,medium,34.5
+8,buy_more,no_never,invest_all,monthly,retirement,2651243,2863508,30956,12,high,90.0
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,5729,4669,59,2,medium,8.9
+2,sell_immediately,no_experience,save_half,rarely,buy a house,82332,37189,979,2,low,1.4
+20,buy_more,yes_sometimes,invest_all,daily,retirement,1434963,1957692,11938,25,high,98.6
+15,wait_and_see,yes_sometimes,save_half,daily,retirement,491460,95264,2633,10,medium,38.7
+15,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,317529,246094,1969,15,medium,42.1
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,7519,4027,152,1,low,10.1
+1,sell_immediately,yes_sometimes,save_half,rarely,save for a car,27908,7553,93,5,low,3.4
+3,buy_more,no_never,invest_all,monthly,buy a house,199897,69917,722,12,medium,21.8
+1,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,17814,8260,194,2,low,7.7
+6,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,1077244,390727,14807,10,high,65.1
+8,buy_more,no_never,save_half,weekly,retirement,1586532,1093434,8349,20,high,79.6
+4,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,865179,748514,13969,12,high,69.3
+18,buy_more,yes_sometimes,save_half,daily,wealth building,270265,209220,724,20,medium,39.2
+15,wait_and_see,no_never,invest_all,weekly,wealth building,190499,57289,2142,15,high,67.4
+12,buy_more,yes_sometimes,save_half,monthly,wealth building,1007957,830027,8824,15,high,70.3
+3,buy_more,no_never,save_half,weekly,wealth building,72418,27319,182,10,medium,36.5
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,552309,1009486,3088,15,high,61.6
+8,buy_more,no_never,save_half,daily,retirement,1171150,1410421,4330,15,medium,56.5
+1,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,19792,5866,199,5,low,4.9
+4,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,10291,3387,208,2,medium,5.4
+4,wait_and_see,no_experience,save_half,rarely,save for a car,74877,91884,3145,2,high,33.2
+8,buy_more,no_experience,save_half,monthly,retirement,2322153,1383778,50095,7,high,77.1
+8,buy_more,yes_sometimes,invest_all,quarterly,wealth building,967476,1870572,7613,12,high,61.4
+3,sell_immediately,no_experience,save_all,rarely,save for a car,66002,65299,727,5,high,29.4
+5,buy_more,no_experience,invest_all,monthly,retirement,678685,220902,5692,5,medium,40.0
+25,buy_more,no_never,invest_all,monthly,retirement,1398629,659187,14835,25,high,91.9
+12,buy_more,no_never,invest_all,weekly,retirement,2290658,1257128,10438,15,high,88.7
+4,buy_more,yes_sometimes,invest_all,monthly,buy a house,359293,272719,5721,7,high,38.7
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,19855,11210,340,3,medium,3.2
+30,buy_more,no_never,invest_all,monthly,retirement,1218510,191740,3299,25,medium,57.0
+0,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,9836,1612,179,2,low,1.0
+1,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,33606,12945,345,3,low,12.4
+1,sell_immediately,no_experience,save_half,monthly,buy a house,258134,176848,6450,4,high,27.5
+4,wait_and_see,no_experience,save_all,quarterly,buy a house,216579,91916,6066,5,high,25.7
+2,sell_immediately,no_experience,save_half,rarely,emergency fund,12870,6500,187,4,low,1.0
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,34153,32917,645,2,medium,10.8
+1,sell_immediately,yes_always,save_all,rarely,vacation,8422,1832,546,2,medium,10.2
+8,buy_more,no_never,invest_all,daily,retirement,256680,124652,1351,10,medium,44.6
+5,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,10390,5950,132,5,medium,8.2
+7,wait_and_see,no_never,save_half,monthly,wealth building,190518,121701,897,7,medium,41.2
+5,buy_more,yes_sometimes,invest_all,monthly,buy a house,164559,122292,559,10,medium,14.6
+3,wait_and_see,no_experience,save_all,monthly,buy a house,195418,61547,9854,3,high,27.7
+5,wait_and_see,no_never,invest_all,weekly,retirement,754025,241322,16103,5,medium,41.6
+4,buy_more,no_experience,save_half,monthly,wealth building,228488,37454,3550,5,medium,38.1
+8,buy_more,yes_sometimes,save_half,weekly,retirement,1173078,679514,8828,10,medium,42.0
+5,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,4024,3210,15,5,low,2.7
+6,buy_more,no_never,invest_all,weekly,wealth building,264390,80127,6398,5,medium,46.6
+10,wait_and_see,no_never,save_half,monthly,wealth building,1253073,2861106,3111,20,high,67.1
+30,buy_more,yes_sometimes,invest_all,monthly,retirement,343469,620090,1358,15,medium,54.9
+0,wait_and_see,yes_always,save_all,rarely,vacation,4080,4576,42,3,medium,14.1
+15,buy_more,no_never,invest_all,monthly,wealth building,337841,356987,989,25,high,72.1
+8,buy_more,no_experience,save_half,quarterly,wealth building,182734,96710,2391,5,medium,38.0
+1,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,33175,32940,387,4,medium,7.4
+10,buy_more,yes_sometimes,invest_all,weekly,retirement,1289601,881568,6459,20,medium,45.6
+3,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,409734,689462,2579,12,high,32.9
+20,buy_more,no_never,invest_all,daily,wealth building,462028,816801,2473,30,high,82.8
+2,wait_and_see,yes_sometimes,save_all,quarterly,vacation,8293,748,116,3,low,4.5
+2,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,11705,6282,239,2,low,5.8
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,1929364,1832237,19759,7,high,77.7
+4,wait_and_see,no_never,save_half,weekly,wealth building,1159849,1300102,10641,12,high,71.9
+7,buy_more,no_experience,invest_all,quarterly,wealth building,214194,252606,1379,10,medium,41.9
+1,wait_and_see,yes_sometimes,save_all,quarterly,vacation,9859,7836,207,1,medium,11.1
+12,buy_more,no_never,save_half,weekly,retirement,978925,228449,5999,15,high,82.0
+5,wait_and_see,no_experience,save_half,rarely,emergency fund,42637,16421,852,3,high,9.1
+10,buy_more,yes_sometimes,invest_all,daily,wealth building,1343365,2069225,10885,20,high,75.8
+1,wait_and_see,yes_sometimes,save_all,rarely,vacation,2359,1032,26,1,low,2.4
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,7390,3167,836,1,medium,12.9
+15,buy_more,no_never,invest_all,daily,wealth building,577342,269819,4582,25,high,78.7
+2,wait_and_see,yes_sometimes,save_half,rarely,emergency fund,5792,4252,52,3,low,5.6
+12,buy_more,no_never,invest_all,monthly,retirement,440531,246511,4852,10,medium,48.1
+8,wait_and_see,yes_sometimes,invest_all,daily,wealth building,182821,74329,2522,10,medium,40.4
+5,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,58424,35580,659,5,high,9.9
+3,sell_immediately,no_experience,save_all,rarely,buy a house,90846,47017,642,5,medium,14.9
+12,buy_more,yes_sometimes,save_half,weekly,retirement,2010522,5780178,8920,15,high,93.8
+18,buy_more,no_never,save_half,daily,retirement,888045,1493957,3981,10,medium,54.1
+4,wait_and_see,no_experience,save_half,monthly,retirement,1616156,1139215,6272,10,high,61.3
+5,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,17713,6165,454,5,medium,17.3
+1,sell_immediately,yes_sometimes,save_half,monthly,buy a house,119300,87322,2768,3,medium,15.3
+1,wait_and_see,yes_always,save_all,rarely,vacation,8876,2540,326,2,medium,12.0
+3,buy_more,no_never,invest_all,weekly,wealth building,840685,897758,5790,7,high,67.8
+4,wait_and_see,yes_sometimes,invest_all,quarterly,wealth building,171397,63129,1950,7,medium,33.0
+3,wait_and_see,no_experience,save_half,quarterly,retirement,535610,588160,1244,12,medium,42.2
+20,buy_more,no_never,invest_all,daily,wealth building,73928,43593,150,15,medium,48.4
+5,buy_more,no_never,invest_all,quarterly,retirement,2194389,2812966,19247,10,high,74.4
+8,buy_more,no_never,save_half,daily,retirement,1339922,1531642,8355,10,high,75.6
+1,sell_immediately,yes_sometimes,save_all,monthly,save for a car,14091,3929,257,4,low,9.6
+8,wait_and_see,yes_sometimes,invest_all,monthly,retirement,805848,295495,14789,7,medium,44.2
+30,buy_more,no_never,invest_all,monthly,retirement,2897844,3219384,26923,30,high,97.1
+12,buy_more,no_never,save_half,daily,retirement,1412321,976814,1521,20,medium,50.8
+2,sell_immediately,yes_always,spend_it,rarely,vacation,10631,5213,161,1,low,1.0
+3,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,14200,4909,75,5,low,3.7
+6,wait_and_see,no_never,save_half,quarterly,buy a house,209274,103405,8806,5,high,34.2
+12,buy_more,no_never,invest_all,weekly,retirement,2740487,3067429,35063,15,high,99.1
+1,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,33417,17687,166,3,medium,3.3
+5,wait_and_see,no_experience,save_half,rarely,save for a car,26483,9018,631,2,low,10.2
+12,buy_more,no_never,save_half,weekly,wealth building,201783,119549,401,10,medium,37.8
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,5677,1491,35,3,low,5.5
+5,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,18493,2754,166,5,medium,3.6
+1,wait_and_see,yes_always,spend_it,rarely,emergency fund,7950,855,207,2,low,6.6
+5,sell_immediately,yes_sometimes,save_half,monthly,buy a house,192977,47489,5154,3,high,23.5
+7,buy_more,no_never,save_half,weekly,retirement,989292,200936,6741,10,medium,44.8
+30,buy_more,no_never,invest_all,monthly,wealth building,128517,52911,569,25,medium,54.3
+5,sell_immediately,yes_sometimes,save_half,monthly,save for a car,27291,14577,194,4,medium,9.8
+3,buy_more,no_experience,invest_all,monthly,retirement,931638,294827,19876,5,medium,37.2
+10,buy_more,yes_sometimes,save_half,weekly,wealth building,318324,184818,2061,15,medium,39.3
+8,buy_more,no_never,save_half,monthly,buy a house,211421,187499,4950,7,high,44.3
+10,wait_and_see,yes_sometimes,invest_all,monthly,retirement,382837,204523,4654,10,medium,41.9
+1,wait_and_see,yes_always,save_all,rarely,vacation,14262,3047,835,1,medium,11.0
+5,wait_and_see,no_experience,save_half,monthly,retirement,2512899,2268320,8960,10,high,53.3
+12,buy_more,no_never,invest_all,daily,retirement,1747459,2824529,8919,15,high,89.2
+7,buy_more,no_never,invest_all,quarterly,wealth building,115746,187419,460,12,high,76.7
+4,wait_and_see,no_experience,save_all,rarely,save for a car,28649,28820,420,5,medium,15.6
+8,wait_and_see,no_experience,save_half,quarterly,wealth building,663920,119636,8819,10,high,63.7
+2,sell_immediately,yes_always,spend_it,rarely,vacation,10805,5322,65,3,medium,7.8
+2,sell_immediately,yes_always,spend_it,quarterly,vacation,3878,1610,64,3,medium,18.0
+1,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,148817,83211,648,5,medium,17.1
+5,buy_more,no_experience,save_half,monthly,buy a house,228594,198537,1751,12,high,42.9
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,10647,2577,287,2,low,6.1
+25,buy_more,yes_sometimes,invest_all,weekly,wealth building,1214741,765028,5048,30,high,85.7
+1,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,32630,9087,957,4,medium,1.7
+5,wait_and_see,no_experience,save_all,rarely,buy a house,50741,15822,540,5,low,2.5
+7,buy_more,yes_sometimes,invest_all,monthly,retirement,1127110,1076848,4998,10,medium,47.5
+3,wait_and_see,no_never,save_half,weekly,buy a house,109186,95927,671,7,medium,17.6
+20,buy_more,no_never,invest_all,monthly,wealth building,701621,528741,3108,15,high,79.7
+30,buy_more,no_never,invest_all,daily,wealth building,230770,72951,2437,15,medium,47.2
+7,buy_more,no_never,save_half,weekly,buy a house,440681,542430,1223,12,high,43.9
+8,wait_and_see,no_never,invest_all,monthly,wealth building,827890,836195,2074,15,high,62.5
+10,buy_more,yes_sometimes,save_half,daily,retirement,3541465,6993218,45903,10,high,83.1
+3,wait_and_see,no_experience,save_all,rarely,buy a house,193300,62775,2613,3,medium,16.5
+2,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,19880,9280,177,3,low,6.9
+25,buy_more,no_never,invest_all,daily,retirement,2205998,4825205,11328,20,high,92.6
+2,wait_and_see,yes_always,spend_it,quarterly,vacation,8118,2684,68,2,low,3.9
+3,buy_more,yes_sometimes,invest_all,monthly,retirement,1279659,2048074,18941,7,high,76.6
+3,wait_and_see,yes_sometimes,invest_all,quarterly,retirement,709033,335377,2041,7,medium,33.2
+3,buy_more,no_never,save_half,quarterly,wealth building,146664,69065,2300,12,high,68.0
+1,sell_immediately,no_experience,save_half,rarely,emergency fund,11320,6958,69,3,low,5.5
+2,sell_immediately,yes_sometimes,save_all,rarely,vacation,3430,1920,89,3,medium,6.5
+0,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,4890,731,143,2,low,1.7
+1,sell_immediately,no_experience,save_all,quarterly,emergency fund,14359,5345,104,3,low,1.0
+3,wait_and_see,no_experience,invest_all,monthly,wealth building,73247,31154,1234,5,medium,32.5
+3,sell_immediately,no_experience,save_half,monthly,emergency fund,57776,33887,2293,5,high,10.9
+4,buy_more,yes_sometimes,invest_all,weekly,retirement,2645442,3610082,30291,7,high,76.3
+2,wait_and_see,no_experience,save_half,rarely,buy a house,135052,50918,2086,3,medium,17.3
+12,buy_more,yes_sometimes,invest_all,daily,retirement,684293,386133,3374,20,medium,50.1
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,120951,178491,462,10,medium,47.6
+15,buy_more,yes_sometimes,invest_all,daily,retirement,3863634,3992599,44136,20,high,85.5
+5,buy_more,yes_sometimes,invest_all,monthly,retirement,1851746,1081300,76165,5,high,73.9
+20,buy_more,no_never,invest_all,weekly,retirement,943759,1360384,4027,20,medium,55.0
+2,sell_immediately,yes_always,spend_it,quarterly,emergency fund,20427,1715,627,2,medium,6.5
+5,wait_and_see,no_experience,save_all,quarterly,save for a car,53442,34465,345,3,medium,16.1
+10,wait_and_see,no_never,invest_all,monthly,wealth building,1353944,2449429,5779,20,high,67.7
+3,wait_and_see,no_experience,invest_all,monthly,retirement,609020,167939,9761,7,medium,51.3
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,44242,15654,746,4,high,19.1
+3,buy_more,yes_sometimes,save_half,monthly,retirement,1222968,2101678,6932,7,high,70.8
+1,sell_immediately,no_experience,save_all,rarely,emergency fund,16028,27778,237,5,high,11.8
+3,wait_and_see,yes_sometimes,save_half,rarely,save for a car,28530,21586,212,4,medium,16.4
+6,buy_more,no_never,invest_all,weekly,retirement,269007,64232,911,12,medium,49.0
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,654401,977392,6941,20,high,76.1
+7,wait_and_see,yes_sometimes,invest_all,monthly,retirement,810546,150142,3412,10,medium,47.0
+4,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,175551,161516,3117,4,medium,19.5
+2,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,14640,7022,203,3,low,5.7
+5,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,42275,14886,687,4,low,8.5
+5,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,5551,2271,111,4,medium,1.0
+5,sell_immediately,no_experience,save_all,monthly,emergency fund,5839,2927,106,3,low,1.0
+6,buy_more,no_experience,save_half,monthly,wealth building,203975,79437,1283,10,medium,42.2
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,13380,2742,322,1,low,1.4
+1,sell_immediately,yes_always,spend_it,quarterly,emergency fund,23351,32638,242,3,medium,11.3
+2,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,138653,186148,859,5,high,21.3
+18,wait_and_see,yes_sometimes,invest_all,daily,wealth building,1008282,1889336,13300,10,high,72.3
+6,buy_more,yes_sometimes,save_half,monthly,buy a house,153911,57891,1678,10,high,33.5
+0,wait_and_see,yes_sometimes,save_all,rarely,vacation,7707,928,212,3,low,1.0
+3,wait_and_see,no_never,save_half,quarterly,wealth building,282351,399007,1743,12,high,59.5
+1,wait_and_see,yes_sometimes,save_all,monthly,save for a car,43542,11025,2452,2,high,22.4
+8,buy_more,yes_sometimes,invest_all,daily,retirement,872383,831448,4554,15,medium,50.6
+4,sell_immediately,yes_sometimes,save_all,monthly,emergency fund,5527,1135,169,2,low,1.0
+3,buy_more,no_experience,save_half,quarterly,retirement,1190423,742708,19506,7,high,68.3
+2,wait_and_see,yes_always,spend_it,rarely,emergency fund,23547,9600,1525,1,medium,2.3
+5,sell_immediately,no_experience,save_all,quarterly,buy a house,94892,23516,801,5,low,10.5
+4,buy_more,no_experience,invest_all,quarterly,retirement,490504,267737,2861,10,medium,40.6
+1,wait_and_see,no_experience,save_half,rarely,emergency fund,10687,5812,42,3,low,1.0
+1,sell_immediately,yes_always,spend_it,quarterly,vacation,6271,2677,64,2,low,3.2
+5,wait_and_see,no_experience,save_half,monthly,buy a house,45991,7270,1105,3,low,6.5
+7,buy_more,yes_sometimes,save_half,quarterly,wealth building,200360,353947,2202,5,high,58.8
+10,wait_and_see,no_never,save_half,monthly,retirement,484330,390177,1646,20,medium,39.8
+15,wait_and_see,no_never,save_half,daily,retirement,444296,614351,1260,20,medium,50.5
+3,buy_more,yes_sometimes,save_half,monthly,retirement,1076041,1982781,13462,7,high,77.7
+2,wait_and_see,yes_sometimes,save_half,monthly,buy a house,148767,26317,3377,5,medium,18.2
+2,wait_and_see,yes_sometimes,save_all,monthly,buy a house,239682,59946,7492,3,high,31.5
+5,wait_and_see,no_experience,save_all,monthly,emergency fund,9454,3055,38,5,low,1.0
+5,sell_immediately,no_experience,save_all,rarely,buy a house,77140,11153,564,4,low,11.0
+10,buy_more,yes_sometimes,invest_all,daily,wealth building,756870,928665,11799,10,high,74.6
+5,sell_immediately,no_experience,save_half,monthly,buy a house,149736,71671,5890,3,medium,15.0
+12,wait_and_see,no_never,save_half,monthly,retirement,621865,87334,2664,20,medium,44.0
+18,buy_more,no_never,save_half,weekly,wealth building,140431,245710,365,20,medium,50.7
+12,wait_and_see,yes_sometimes,invest_all,weekly,retirement,1169926,649854,3982,10,medium,44.0
+5,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,199690,72597,7760,2,medium,22.0
+15,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,257126,290453,3389,10,high,67.0
+4,sell_immediately,yes_sometimes,save_half,rarely,buy a house,195411,59442,3353,2,medium,17.2
+5,wait_and_see,no_experience,save_half,monthly,wealth building,172750,124899,424,12,medium,35.2
+7,wait_and_see,no_experience,save_half,weekly,wealth building,210433,146513,3637,5,medium,37.1
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,1633137,535598,4947,30,high,83.7
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,13729,6922,567,2,medium,7.7
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,257844,46561,1083,25,medium,50.9
+5,wait_and_see,no_experience,save_half,weekly,buy a house,130147,50161,419,10,medium,21.4
+10,wait_and_see,yes_sometimes,invest_all,weekly,retirement,2989306,4074602,7101,15,high,69.5
+25,buy_more,no_never,invest_all,weekly,wealth building,662046,763105,4434,25,high,83.1
+3,wait_and_see,no_experience,save_half,rarely,buy a house,62564,12244,474,5,low,10.9
+6,wait_and_see,no_experience,save_half,monthly,buy a house,415312,303320,3413,12,high,42.2
+2,sell_immediately,yes_always,save_all,rarely,emergency fund,6142,1257,157,2,low,7.2
+30,buy_more,yes_sometimes,invest_all,monthly,retirement,1429702,601870,2336,30,medium,56.8
+5,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,43271,48515,688,2,medium,7.4
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,2967371,5926491,15018,10,high,87.5
+10,wait_and_see,no_never,invest_all,weekly,wealth building,304767,143181,2466,10,medium,45.3
+3,sell_immediately,no_experience,save_half,monthly,emergency fund,10228,6416,165,3,low,12.3
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,24126,15046,433,1,medium,1.0
+8,buy_more,yes_sometimes,invest_all,monthly,wealth building,429522,106956,3336,10,high,66.9
+5,sell_immediately,yes_sometimes,save_half,rarely,buy a house,370756,600467,11660,4,high,28.2
+1,sell_immediately,yes_sometimes,save_all,monthly,buy a house,180240,51316,1052,5,medium,18.1
+8,buy_more,yes_sometimes,save_half,weekly,wealth building,693004,602299,8487,12,high,67.8
+25,buy_more,yes_sometimes,invest_all,daily,retirement,857405,124645,2100,30,medium,52.5
+5,wait_and_see,no_experience,invest_all,weekly,wealth building,967883,1232774,4033,12,high,56.6
+4,sell_immediately,no_experience,save_all,quarterly,buy a house,153432,152092,6010,2,high,16.4
+3,buy_more,no_experience,save_half,monthly,buy a house,192010,189761,1039,7,medium,19.7
+3,wait_and_see,no_never,save_half,weekly,wealth building,464592,735633,8700,7,high,63.5
+2,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,29405,16224,324,3,medium,7.9
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,996433,823780,10691,15,high,71.4
+15,buy_more,no_never,save_half,monthly,retirement,465611,344363,473,20,medium,39.3
+18,wait_and_see,no_never,invest_all,weekly,wealth building,202774,323018,599,15,medium,49.4
+5,sell_immediately,no_experience,save_half,rarely,save for a car,82021,179954,1391,5,high,27.3
+12,wait_and_see,yes_sometimes,save_half,monthly,retirement,283554,271831,881,10,medium,42.3
+4,wait_and_see,yes_sometimes,save_all,monthly,save for a car,15983,5702,247,4,medium,12.9
+8,wait_and_see,yes_sometimes,save_half,monthly,wealth building,115819,223660,428,15,high,67.6
+5,wait_and_see,no_experience,save_all,monthly,buy a house,143850,212389,6677,3,high,29.9
+1,wait_and_see,no_experience,save_all,rarely,buy a house,63723,35015,1002,3,medium,13.1
+6,wait_and_see,no_experience,save_half,weekly,buy a house,164365,34569,1116,12,medium,19.9
+6,buy_more,no_experience,invest_all,weekly,retirement,1363057,591565,26531,7,high,81.0
+4,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,31956,19679,3312,2,high,8.7
+1,sell_immediately,yes_always,spend_it,rarely,vacation,2407,290,31,3,low,11.3
+15,buy_more,no_never,invest_all,weekly,retirement,1562465,2779289,9080,15,high,90.1
+2,sell_immediately,yes_sometimes,spend_it,rarely,vacation,14849,10171,270,2,medium,5.1
+4,wait_and_see,no_never,save_half,monthly,wealth building,94813,28644,1282,7,medium,36.1
+8,buy_more,yes_sometimes,invest_all,monthly,buy a house,238635,253818,938,10,medium,21.7
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,743906,802728,2165,20,medium,56.0
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,110976,49655,981,15,high,73.7
+4,wait_and_see,no_experience,invest_all,monthly,wealth building,711658,146890,10152,7,high,50.3
+12,wait_and_see,no_never,save_half,weekly,wealth building,304504,154161,1351,15,medium,49.8
+0,wait_and_see,yes_sometimes,save_all,quarterly,vacation,5500,3499,121,3,medium,10.4
+8,wait_and_see,no_never,invest_all,weekly,retirement,2661409,660777,36952,7,high,66.2
+1,sell_immediately,no_experience,save_all,monthly,emergency fund,11898,6646,243,5,medium,4.8
+3,buy_more,no_experience,invest_all,quarterly,wealth building,254194,71269,4841,5,medium,35.0
+3,sell_immediately,no_experience,save_all,rarely,emergency fund,4077,744,63,5,low,1.0
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,14329,15782,275,2,medium,8.8
+2,wait_and_see,no_experience,save_half,rarely,emergency fund,50829,117037,1505,2,high,15.1
+1,sell_immediately,no_experience,save_all,rarely,save for a car,47691,50905,539,3,medium,15.3
+15,buy_more,no_never,save_half,daily,retirement,268450,119962,3650,10,medium,53.8
+3,buy_more,yes_sometimes,invest_all,quarterly,wealth building,944474,731426,4667,5,high,52.3
+4,wait_and_see,no_never,save_half,weekly,buy a house,147375,99508,213,12,medium,20.3
+6,wait_and_see,no_experience,save_half,monthly,wealth building,202695,45584,4302,7,medium,34.5
+10,buy_more,yes_sometimes,save_half,monthly,wealth building,243608,309128,360,20,medium,38.4
+4,wait_and_see,no_experience,invest_all,monthly,buy a house,174783,77089,1003,10,medium,19.8
+1,wait_and_see,no_experience,save_half,rarely,save for a car,14018,4370,62,2,low,9.3
+7,buy_more,no_never,invest_all,monthly,buy a house,138983,104850,1177,7,medium,28.4
+4,sell_immediately,no_experience,save_all,rarely,emergency fund,8883,2250,83,3,low,3.2
+18,buy_more,no_never,save_half,monthly,wealth building,340769,141732,4413,10,medium,46.7
+7,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,277395,169690,7443,7,high,40.1
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,18671,2738,457,3,low,6.6
+5,wait_and_see,yes_sometimes,save_half,rarely,save for a car,42185,21656,553,4,medium,10.2
+1,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,18799,3006,396,1,low,10.5
+20,buy_more,no_never,invest_all,weekly,wealth building,313876,458725,812,25,medium,58.5
+3,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,28421,22243,473,2,low,7.9
+12,wait_and_see,no_never,save_half,daily,retirement,3095837,4793813,20191,15,high,85.1
+15,buy_more,no_never,invest_all,daily,retirement,2068388,781676,34981,15,high,90.5
+4,wait_and_see,no_never,invest_all,weekly,buy a house,131211,108499,1198,5,medium,22.0
+3,wait_and_see,no_experience,save_half,quarterly,retirement,943571,624783,6611,7,high,60.9
+4,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,8075,3556,329,2,medium,6.5
+18,buy_more,no_never,save_half,daily,retirement,360225,280774,1085,10,medium,53.9
+1,sell_immediately,no_experience,save_all,rarely,save for a car,10904,1140,127,4,low,2.3
+10,wait_and_see,yes_sometimes,invest_all,daily,retirement,991558,253413,5085,15,medium,42.1
+15,buy_more,no_never,invest_all,weekly,retirement,326055,226567,258,20,medium,50.0
+2,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,10502,8545,164,2,medium,2.5
+15,buy_more,no_never,invest_all,weekly,wealth building,277857,330247,658,15,medium,46.7
+5,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,42898,34745,401,4,medium,17.2
+8,wait_and_see,no_never,invest_all,weekly,retirement,998293,542591,4070,10,medium,43.5
+4,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,138856,177253,1645,7,high,59.0
+3,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,307237,420645,1557,12,high,31.9
+6,wait_and_see,no_never,invest_all,monthly,buy a house,536471,1062410,2846,12,high,41.8
+15,wait_and_see,no_never,save_half,monthly,wealth building,264629,116363,924,10,medium,41.9
+18,buy_more,yes_sometimes,save_half,weekly,retirement,1867621,896755,21706,20,high,80.2
+3,wait_and_see,yes_sometimes,invest_all,quarterly,retirement,2771684,701188,18892,10,high,69.9
+8,buy_more,no_never,invest_all,weekly,wealth building,91378,18840,344,12,medium,43.7
+5,buy_more,yes_sometimes,invest_all,weekly,wealth building,101333,102657,853,5,medium,30.7
+15,buy_more,no_never,invest_all,daily,wealth building,732895,1893476,8036,10,high,83.0
+15,wait_and_see,no_never,invest_all,weekly,retirement,764660,253886,5194,20,high,90.1
+3,wait_and_see,no_never,save_half,weekly,buy a house,94561,100922,637,7,high,31.0
+3,wait_and_see,no_experience,save_all,quarterly,emergency fund,18525,18895,166,4,medium,16.8
+3,wait_and_see,no_experience,save_half,quarterly,retirement,2418919,2288907,26403,7,high,67.5
+2,wait_and_see,yes_sometimes,save_half,rarely,buy a house,263793,108095,18373,3,high,24.9
+15,buy_more,yes_sometimes,invest_all,monthly,wealth building,176145,54898,1149,20,medium,39.7
+5,buy_more,yes_sometimes,invest_all,monthly,wealth building,334258,293131,2112,7,high,61.3
+3,wait_and_see,no_experience,save_all,quarterly,emergency fund,14351,4551,217,5,medium,8.1
+1,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,6686,3638,45,3,low,7.3
+30,buy_more,no_never,invest_all,weekly,wealth building,648439,1058697,4579,20,high,83.4
+10,wait_and_see,no_never,save_half,monthly,retirement,394975,119015,2149,15,medium,46.9
+1,wait_and_see,no_experience,save_half,monthly,buy a house,150423,46442,3386,3,medium,11.2
+12,buy_more,no_never,invest_all,monthly,retirement,528233,185405,8255,10,medium,59.1
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,1141977,197540,2507,20,medium,46.7
+3,sell_immediately,no_experience,save_all,rarely,save for a car,70775,67108,1460,4,high,25.1
+4,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,355172,174347,4691,5,high,29.1
+3,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,6622,3282,60,4,low,3.5
+3,sell_immediately,no_experience,save_all,quarterly,buy a house,74857,22305,628,5,low,11.2
+6,buy_more,no_never,invest_all,weekly,retirement,822413,256072,2191,12,medium,50.4
+20,buy_more,no_never,invest_all,daily,wealth building,1225831,721802,4079,25,high,77.7
+4,sell_immediately,yes_sometimes,save_half,rarely,buy a house,434551,796585,22055,2,high,30.6
+4,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,28690,7847,464,5,medium,4.2
+5,buy_more,no_experience,save_half,quarterly,buy a house,159742,101023,1465,12,medium,26.2
+6,wait_and_see,no_experience,save_half,monthly,buy a house,318003,546019,3339,10,high,37.8
+2,wait_and_see,no_experience,save_all,rarely,buy a house,381611,279461,13149,4,high,30.7
+4,wait_and_see,yes_sometimes,save_half,monthly,buy a house,188374,117624,924,4,medium,19.9
+7,wait_and_see,yes_sometimes,save_half,monthly,wealth building,139620,32234,2388,10,high,62.8
+2,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,109547,68402,424,4,medium,23.2
+4,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,160637,208606,1374,5,medium,9.6
+0,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,25059,7946,1515,1,medium,2.6
+12,wait_and_see,no_never,invest_all,weekly,retirement,806846,1062192,4211,10,medium,50.5
+25,buy_more,no_never,invest_all,daily,retirement,2458576,5291394,6578,20,high,100.0
+18,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,122671,40805,609,15,medium,41.5
+2,sell_immediately,yes_sometimes,save_all,rarely,vacation,7033,706,246,2,medium,5.1
+3,wait_and_see,no_experience,save_half,rarely,save for a car,32984,12466,815,3,low,10.4
+4,buy_more,no_never,save_half,weekly,retirement,1531554,1468888,9619,5,high,76.7
+3,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,14201,5986,175,5,low,6.2
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,3280,1789,95,2,low,1.2
+1,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,16111,3565,238,3,low,1.8
+7,buy_more,no_never,save_half,quarterly,wealth building,116934,176034,931,12,high,79.2
+8,buy_more,no_never,save_half,weekly,buy a house,113187,185263,565,7,medium,27.3
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,688015,1488571,1862,20,high,82.0
+0,wait_and_see,yes_always,save_all,rarely,emergency fund,12130,2057,258,2,low,2.6
+12,buy_more,yes_sometimes,save_half,weekly,wealth building,350307,151101,1452,20,medium,43.9
+2,wait_and_see,no_experience,save_half,monthly,save for a car,26358,17442,1971,2,high,33.5
+5,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,21964,18689,206,4,medium,15.0
+18,wait_and_see,no_never,save_half,weekly,wealth building,340585,264950,1978,10,high,71.4
+2,wait_and_see,yes_sometimes,save_all,monthly,buy a house,142090,47261,3659,4,medium,19.5
+2,wait_and_see,no_experience,save_half,quarterly,buy a house,184936,199995,4445,2,medium,16.6
+5,wait_and_see,no_experience,save_half,weekly,buy a house,247162,232059,7736,5,high,33.1
+18,wait_and_see,no_never,invest_all,monthly,retirement,692535,494008,5970,10,medium,42.3
+1,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,46171,46672,292,5,high,5.7
+0,wait_and_see,yes_always,save_all,rarely,vacation,15707,13661,614,1,medium,1.0
+2,wait_and_see,no_experience,save_half,rarely,save for a car,56059,40774,1138,3,high,18.5
+8,wait_and_see,no_never,save_half,monthly,retirement,1089519,179202,7204,15,medium,40.3
+1,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,5325,1368,302,1,medium,7.9
+4,wait_and_see,no_never,invest_all,monthly,retirement,2709126,3912914,19810,12,high,70.8
+18,wait_and_see,yes_sometimes,invest_all,weekly,retirement,1224819,608509,6953,15,high,78.4
+2,sell_immediately,yes_sometimes,spend_it,rarely,emergency fund,4719,1825,39,3,low,7.9
+8,buy_more,yes_sometimes,invest_all,quarterly,wealth building,137271,99954,214,12,medium,37.3
+8,buy_more,yes_sometimes,save_half,monthly,retirement,256926,238260,2386,7,medium,46.9
+3,buy_more,no_experience,save_half,quarterly,buy a house,192918,63608,4024,5,high,36.4
+5,wait_and_see,yes_sometimes,save_half,quarterly,wealth building,537400,627190,2366,7,high,49.8
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,9774,2095,87,3,low,9.0
+4,sell_immediately,yes_sometimes,save_half,rarely,save for a car,25596,2633,181,5,low,16.5
+7,buy_more,no_experience,invest_all,monthly,buy a house,94293,53391,488,7,medium,20.0
+2,sell_immediately,yes_sometimes,save_all,rarely,vacation,8201,6905,88,3,low,9.5
+12,wait_and_see,yes_sometimes,invest_all,weekly,retirement,287432,195424,685,20,medium,51.5
+4,wait_and_see,no_never,invest_all,weekly,buy a house,183882,218692,5891,5,high,44.0
+3,wait_and_see,yes_sometimes,save_half,quarterly,wealth building,259950,122179,1659,7,medium,35.1
+4,wait_and_see,yes_sometimes,invest_all,monthly,buy a house,126900,57459,447,5,medium,19.8
+3,buy_more,no_experience,invest_all,monthly,wealth building,144222,141108,430,12,medium,34.6
+3,wait_and_see,yes_sometimes,save_all,monthly,buy a house,32182,7341,619,4,low,13.2
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,11558,2143,157,2,low,2.5
+4,wait_and_see,no_never,save_half,quarterly,wealth building,183141,53228,3254,10,high,59.9
+1,wait_and_see,no_experience,save_half,monthly,emergency fund,6921,2751,51,4,low,1.7
+2,wait_and_see,no_experience,save_all,rarely,save for a car,15212,7059,241,4,low,6.5
+5,buy_more,yes_sometimes,save_half,weekly,retirement,656143,563939,13058,5,high,69.0
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,10535,4759,436,1,medium,2.6
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,12108,2295,577,2,medium,15.0
+7,wait_and_see,yes_sometimes,save_half,quarterly,wealth building,527991,356825,14096,7,high,57.3
+10,buy_more,no_never,invest_all,daily,retirement,3231016,3195407,11864,10,high,80.3
+5,buy_more,yes_sometimes,save_half,quarterly,buy a house,185282,92471,1870,12,medium,18.8
+8,wait_and_see,no_experience,invest_all,quarterly,retirement,2357203,1659566,62050,7,high,77.4
+3,wait_and_see,no_experience,save_all,quarterly,save for a car,94417,22824,3237,5,high,27.6
+5,wait_and_see,no_experience,save_half,quarterly,wealth building,267492,127183,2256,7,medium,38.5
+2,sell_immediately,yes_sometimes,save_all,quarterly,vacation,5808,5371,131,1,low,1.1
+3,sell_immediately,yes_sometimes,save_half,rarely,save for a car,32127,22655,679,4,medium,18.1
+5,wait_and_see,no_experience,save_half,monthly,emergency fund,42290,31334,404,4,high,10.7
+6,wait_and_see,no_experience,invest_all,monthly,wealth building,255633,83786,1670,5,medium,37.3
+20,buy_more,no_never,invest_all,monthly,wealth building,399447,269523,1561,25,medium,46.8
+4,sell_immediately,no_experience,save_all,rarely,buy a house,324427,273561,6579,5,high,27.1
+6,wait_and_see,no_never,save_half,weekly,wealth building,126610,34772,1654,12,high,65.7
+5,wait_and_see,no_never,invest_all,monthly,retirement,2787725,5310836,27825,7,high,70.1
+5,sell_immediately,yes_sometimes,save_all,monthly,buy a house,208320,504132,3906,3,high,32.0
+4,wait_and_see,yes_sometimes,save_half,weekly,retirement,815298,651546,5365,10,medium,33.2
+2,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,9228,4798,78,3,low,1.0
+8,wait_and_see,no_experience,invest_all,monthly,retirement,2911191,6154458,41853,7,high,76.3
+12,buy_more,no_never,save_half,weekly,wealth building,135878,114167,586,20,medium,47.3
+2,sell_immediately,yes_always,spend_it,quarterly,vacation,8715,2684,211,3,low,3.9
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,16971,24045,540,1,medium,11.9
+4,wait_and_see,no_never,invest_all,weekly,retirement,3355083,1777421,43944,12,high,80.3
+6,wait_and_see,no_experience,save_half,quarterly,wealth building,517539,578853,3761,7,high,59.8
+2,wait_and_see,no_experience,save_half,rarely,emergency fund,53898,46530,640,2,high,14.3
+18,buy_more,yes_sometimes,save_half,monthly,retirement,1407881,1379545,4066,20,medium,49.7
+12,buy_more,no_never,invest_all,daily,retirement,1812717,2812462,10646,20,high,90.3
+5,sell_immediately,no_experience,save_all,monthly,buy a house,105130,160663,837,4,medium,18.9
+10,wait_and_see,no_never,save_half,daily,wealth building,555295,517435,3532,20,high,60.8
+5,wait_and_see,no_experience,invest_all,weekly,buy a house,263234,312668,575,12,high,33.6
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,756578,675474,3245,15,medium,48.6
+3,sell_immediately,no_experience,save_half,rarely,buy a house,63591,11103,546,5,low,12.9
+4,wait_and_see,no_experience,save_all,monthly,emergency fund,26757,8811,418,3,medium,14.2
+2,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,5942,791,115,3,medium,1.0
+4,wait_and_see,no_never,save_half,monthly,buy a house,122999,29532,781,10,medium,15.0
+1,wait_and_see,no_experience,save_all,monthly,buy a house,76765,21181,461,3,low,6.2
+5,buy_more,no_experience,invest_all,quarterly,buy a house,520981,425555,6756,10,high,32.3
+5,wait_and_see,no_never,save_half,quarterly,buy a house,124738,11928,1369,5,medium,23.0
+6,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1846650,1237017,22761,12,high,74.8
+15,wait_and_see,no_never,save_half,weekly,wealth building,433247,264130,806,20,medium,42.9
+6,buy_more,no_experience,save_half,quarterly,buy a house,111444,86200,1405,5,medium,26.6
+5,wait_and_see,no_experience,save_half,monthly,buy a house,186961,160573,7122,4,high,33.6
+4,sell_immediately,no_experience,save_half,monthly,save for a car,88488,83270,1074,5,high,26.2
+4,wait_and_see,no_never,save_half,quarterly,buy a house,357625,263803,13556,5,high,28.9
+8,buy_more,no_experience,invest_all,weekly,retirement,1118899,1467736,23200,5,high,78.7
+30,buy_more,yes_sometimes,invest_all,daily,wealth building,282694,156087,383,30,medium,43.2
+30,buy_more,no_never,invest_all,weekly,retirement,225689,58544,1127,15,medium,53.3
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,29104,29365,821,2,medium,7.7
+3,wait_and_see,no_experience,invest_all,weekly,wealth building,223652,151380,676,10,medium,34.5
+12,wait_and_see,no_never,save_half,weekly,wealth building,512194,650277,6421,10,high,70.0
+0,sell_immediately,yes_sometimes,save_all,rarely,vacation,9555,3973,48,3,low,1.0
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,11372,7170,791,1,medium,9.7
+2,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,10129,2384,236,3,low,12.5
+4,wait_and_see,yes_sometimes,save_half,rarely,save for a car,88793,97476,1760,5,high,28.9
+15,buy_more,no_never,invest_all,daily,wealth building,528041,716136,2328,25,high,85.2
+3,sell_immediately,no_experience,save_all,quarterly,buy a house,183046,65289,5311,3,high,19.1
+0,sell_immediately,yes_always,save_all,rarely,emergency fund,7213,4697,95,3,medium,5.8
+12,buy_more,no_never,invest_all,weekly,wealth building,214281,155864,2137,10,medium,48.6
+3,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,235002,104081,6193,5,high,24.9
+8,wait_and_see,no_never,invest_all,weekly,wealth building,280742,201303,952,20,medium,38.0
+12,wait_and_see,no_never,invest_all,weekly,retirement,716089,780935,1556,20,medium,53.2
+5,wait_and_see,no_never,save_half,monthly,retirement,2683307,3356526,54778,5,high,73.1
+0,wait_and_see,yes_sometimes,save_all,quarterly,vacation,3409,1111,68,3,low,8.4
+6,wait_and_see,yes_sometimes,save_half,weekly,wealth building,56793,44311,251,10,medium,28.8
+12,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,313678,278486,2725,10,medium,45.6
+15,buy_more,yes_sometimes,save_half,weekly,wealth building,409185,229390,835,20,medium,39.7
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,15720,8911,578,2,medium,7.1
+8,wait_and_see,no_never,invest_all,weekly,retirement,536733,227818,13788,5,high,71.9
+3,wait_and_see,no_experience,save_half,quarterly,emergency fund,9345,2949,78,4,low,2.8
+30,buy_more,no_never,invest_all,monthly,retirement,748578,687990,11244,15,high,97.5
+10,wait_and_see,yes_sometimes,invest_all,weekly,retirement,760795,769209,1263,15,high,68.4
+1,wait_and_see,no_experience,save_half,quarterly,save for a car,17190,18146,193,2,medium,18.3
+2,wait_and_see,yes_always,save_all,rarely,emergency fund,20080,7092,806,2,medium,3.4
+5,sell_immediately,no_experience,save_half,monthly,save for a car,47014,13805,2807,2,medium,14.9
+5,buy_more,no_never,save_half,quarterly,wealth building,200871,101728,2739,7,medium,45.4
+5,buy_more,no_never,save_half,quarterly,retirement,646167,418581,3316,5,medium,44.8
+1,sell_immediately,yes_sometimes,spend_it,rarely,vacation,5740,2252,522,1,medium,7.4
+15,buy_more,no_never,invest_all,monthly,wealth building,77399,54125,532,15,medium,44.5
+8,buy_more,no_never,save_half,daily,wealth building,222419,176508,565,15,medium,43.8
+6,buy_more,no_experience,save_half,weekly,wealth building,734919,1072947,7673,12,high,64.7
+4,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,42892,33020,2160,4,high,14.0
+7,buy_more,yes_sometimes,save_half,monthly,wealth building,564915,205634,9737,7,high,61.7
+4,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,8885,2842,324,2,medium,8.0
+18,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,147301,48052,1531,10,medium,45.8
+7,wait_and_see,no_experience,save_half,monthly,retirement,3460687,5969539,18071,12,high,72.6
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,279343,520427,3618,5,high,72.7
+10,buy_more,yes_sometimes,invest_all,weekly,wealth building,707928,1020066,5543,15,high,76.4
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,5180,941,324,1,low,4.1
+18,buy_more,yes_sometimes,invest_all,daily,wealth building,1043825,1072480,3772,15,high,70.8
+1,sell_immediately,no_experience,save_half,monthly,emergency fund,5065,2592,138,2,low,4.1
+5,wait_and_see,no_never,save_half,quarterly,buy a house,557484,1086498,2665,12,high,33.5
+20,buy_more,no_never,invest_all,daily,wealth building,696957,1271870,4138,20,high,79.9
+4,wait_and_see,no_experience,invest_all,quarterly,wealth building,121445,166355,782,7,medium,37.9
+15,buy_more,no_never,invest_all,weekly,retirement,259260,222693,275,25,medium,56.8
+6,wait_and_see,no_experience,save_half,quarterly,buy a house,107443,78056,244,12,medium,25.3
+3,wait_and_see,no_experience,invest_all,monthly,retirement,1331140,2929643,19831,5,high,70.0
+0,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,16456,4733,173,3,low,1.0
+8,buy_more,yes_sometimes,save_half,weekly,wealth building,240653,207011,626,12,high,67.0
+5,sell_immediately,no_experience,save_all,quarterly,buy a house,350479,427468,9157,3,high,25.6
+20,buy_more,yes_sometimes,invest_all,daily,retirement,3504897,1142920,29140,15,high,78.2
+2,wait_and_see,yes_sometimes,save_half,monthly,save for a car,25347,48833,460,4,high,25.0
+2,sell_immediately,no_experience,save_all,monthly,emergency fund,16096,5320,192,2,low,1.0
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,13692,6417,749,1,low,4.4
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,178890,211006,625,10,medium,46.8
+18,wait_and_see,no_never,save_half,daily,retirement,950265,694196,7249,15,medium,49.2
+0,sell_immediately,yes_always,save_all,rarely,vacation,17444,13261,844,1,medium,6.5
+3,buy_more,no_experience,save_half,weekly,retirement,2597493,1593836,42430,5,high,68.2
+3,wait_and_see,no_experience,save_half,quarterly,buy a house,42271,4620,528,3,low,6.2
+4,buy_more,yes_sometimes,invest_all,quarterly,buy a house,127920,64870,2690,7,high,34.0
+1,sell_immediately,no_experience,save_half,rarely,buy a house,80876,49016,956,5,medium,13.0
+8,buy_more,no_never,save_half,monthly,wealth building,53151,39554,326,7,medium,40.0
+15,buy_more,no_never,save_half,monthly,retirement,2308082,5193400,7368,15,high,89.0
+4,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,90611,81272,2507,2,medium,18.9
+8,buy_more,no_never,save_half,weekly,buy a house,158970,195495,392,12,medium,29.5
+7,buy_more,no_experience,invest_all,monthly,buy a house,164917,113132,1382,7,medium,28.2
+8,buy_more,yes_sometimes,save_half,weekly,wealth building,259260,86925,1864,7,medium,39.9
+5,buy_more,yes_sometimes,invest_all,quarterly,buy a house,485739,801547,3853,5,high,31.2
+8,buy_more,no_never,invest_all,weekly,wealth building,99743,30139,539,10,medium,40.5
+5,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,208922,156838,1761,5,high,61.9
+3,wait_and_see,no_experience,invest_all,weekly,wealth building,206614,35862,1110,12,medium,35.9
+7,buy_more,no_never,save_half,quarterly,buy a house,77671,57864,335,7,medium,17.1
+2,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,17124,7438,514,2,medium,6.3
+2,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,29205,32969,903,2,medium,2.9
+18,buy_more,yes_sometimes,save_half,monthly,wealth building,845132,800262,16097,10,high,76.1
+2,sell_immediately,yes_always,save_all,quarterly,emergency fund,4725,3674,89,2,low,3.4
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,904002,816349,9117,20,high,74.1
+5,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,48180,16140,2361,2,high,13.7
+2,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,34982,25344,245,5,medium,9.1
+6,buy_more,yes_sometimes,save_half,monthly,retirement,647804,695666,5835,7,medium,52.7
+5,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,4308,1916,49,3,low,1.0
+15,buy_more,no_never,invest_all,daily,retirement,252076,160017,524,20,medium,52.0
+12,wait_and_see,no_never,save_half,weekly,wealth building,575580,817742,2258,10,high,74.6
+8,wait_and_see,no_never,invest_all,weekly,retirement,3046303,3258015,8833,10,high,75.9
+4,buy_more,yes_sometimes,save_half,monthly,retirement,299494,54494,6197,5,medium,39.4
+5,buy_more,yes_sometimes,invest_all,quarterly,wealth building,132891,18891,2191,5,medium,33.9
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,124492,62804,309,15,medium,42.0
+1,wait_and_see,yes_sometimes,save_all,monthly,save for a car,25871,48330,807,3,high,25.2
+6,buy_more,no_experience,save_half,monthly,buy a house,327694,342568,1412,10,high,35.2
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,908929,1986212,3048,20,high,82.4
+4,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,107290,62249,3548,3,medium,21.3
+6,wait_and_see,yes_sometimes,save_half,weekly,buy a house,159623,65360,733,7,medium,15.2
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,1700550,1925526,25755,15,high,95.3
+7,buy_more,yes_sometimes,save_half,weekly,retirement,3035134,1385889,14497,12,high,73.1
+4,sell_immediately,no_experience,save_half,rarely,buy a house,212785,326298,2648,4,high,26.2
+8,buy_more,no_experience,invest_all,quarterly,retirement,1469122,2125946,33944,7,high,90.1
+20,buy_more,no_never,invest_all,daily,wealth building,150351,142193,215,20,medium,46.9
+3,buy_more,no_experience,save_half,monthly,buy a house,408279,358852,5414,12,high,33.2
+0,wait_and_see,yes_always,save_all,quarterly,vacation,6937,4227,101,3,low,7.1
+8,buy_more,no_never,save_half,weekly,wealth building,238403,124321,1815,15,medium,38.2
+12,wait_and_see,no_never,save_half,weekly,retirement,1134304,1111052,5882,15,medium,49.1
+2,sell_immediately,yes_sometimes,save_all,rarely,vacation,14049,3386,480,2,medium,9.1
+15,buy_more,yes_sometimes,save_half,weekly,wealth building,1226292,1572377,9705,20,high,76.4
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,10606,10142,174,2,medium,9.8
+15,buy_more,no_never,invest_all,monthly,wealth building,276407,212077,324,30,medium,44.3
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,323593,325945,659,15,medium,43.1
+18,buy_more,yes_sometimes,save_half,monthly,wealth building,201228,171550,2491,10,medium,46.8
+3,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,331930,204491,1986,12,medium,36.4
+3,wait_and_see,no_never,invest_all,weekly,buy a house,85268,83085,638,12,high,30.1
+4,buy_more,yes_sometimes,save_half,weekly,buy a house,64626,20395,792,10,medium,22.5
+5,wait_and_see,no_never,save_half,monthly,wealth building,390703,213626,7240,12,high,58.9
+2,sell_immediately,no_experience,save_all,rarely,buy a house,264550,170335,7567,3,high,25.3
+2,wait_and_see,no_experience,save_half,quarterly,buy a house,97865,105426,758,5,medium,11.3
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,188322,54282,538,20,medium,34.8
+4,wait_and_see,no_experience,save_half,weekly,wealth building,382915,401969,7316,7,high,61.4
+2,wait_and_see,no_experience,save_all,monthly,buy a house,32276,14863,347,5,low,11.2
+8,buy_more,no_experience,invest_all,quarterly,wealth building,142143,44179,473,12,medium,43.9
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,1969562,4651123,9471,20,high,88.9
+3,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,9783,5550,67,5,low,6.1
+2,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,7072,2648,160,3,medium,9.7
+3,buy_more,no_never,save_half,monthly,wealth building,329770,750937,2336,10,high,62.7
+3,buy_more,yes_sometimes,save_half,weekly,wealth building,278739,106818,963,10,medium,35.9
+4,sell_immediately,no_experience,save_all,rarely,save for a car,23984,3555,603,3,medium,7.9
+18,wait_and_see,yes_sometimes,save_half,daily,wealth building,856415,1199732,3132,20,high,65.7
+5,wait_and_see,no_experience,save_half,quarterly,retirement,1858845,1608648,17571,7,high,61.3
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,545210,1130484,3850,20,high,85.7
+2,sell_immediately,yes_sometimes,save_all,quarterly,vacation,8601,4980,123,2,low,7.0
+1,wait_and_see,no_experience,save_all,quarterly,save for a car,95040,16730,3179,3,high,18.3
+4,buy_more,no_never,save_half,quarterly,buy a house,152949,142433,1637,5,medium,19.9
+4,buy_more,yes_sometimes,invest_all,quarterly,wealth building,736912,1532553,4601,7,high,61.4
+2,sell_immediately,no_experience,save_half,quarterly,save for a car,23952,2403,600,3,medium,21.3
+15,wait_and_see,yes_sometimes,save_half,weekly,wealth building,109200,292778,660,15,high,74.7
+3,sell_immediately,no_experience,save_half,quarterly,emergency fund,12071,9361,107,2,low,1.0
+10,wait_and_see,no_never,save_half,monthly,retirement,1830093,902295,27274,15,high,84.6
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,883350,1366723,6083,15,high,73.3
+20,buy_more,no_never,invest_all,monthly,wealth building,160827,126844,135,20,medium,47.9
+2,sell_immediately,yes_always,spend_it,quarterly,emergency fund,13674,8146,296,2,low,5.9
+2,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,76244,48064,3743,4,high,12.1
+7,wait_and_see,yes_sometimes,invest_all,monthly,retirement,556885,821544,2281,10,medium,48.9
+4,buy_more,yes_sometimes,invest_all,quarterly,buy a house,170529,68487,1977,10,medium,18.5
+1,wait_and_see,no_experience,save_half,quarterly,buy a house,69157,66024,1920,2,medium,18.5
+8,buy_more,no_never,save_half,weekly,retirement,1316066,805335,6752,15,high,81.8
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,74576,26779,608,15,medium,51.1
+15,buy_more,yes_sometimes,invest_all,daily,retirement,649125,270815,1917,25,medium,51.4
+15,buy_more,no_never,invest_all,daily,retirement,279880,63342,1541,30,medium,53.6
+8,wait_and_see,no_experience,save_half,monthly,buy a house,110207,91511,925,12,high,30.7
+1,wait_and_see,no_experience,save_all,quarterly,emergency fund,19238,5880,562,3,medium,10.6
+7,wait_and_see,no_experience,invest_all,quarterly,buy a house,185938,50296,1235,7,medium,17.1
+2,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,5946,2640,87,3,low,9.3
+15,buy_more,yes_sometimes,invest_all,daily,wealth building,557400,1028307,2904,15,high,67.0
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,105994,99611,164,30,medium,44.2
+2,sell_immediately,yes_sometimes,spend_it,rarely,vacation,7326,3603,186,2,low,2.1
+4,sell_immediately,no_experience,save_all,quarterly,save for a car,77026,51443,2615,2,high,26.7
+3,buy_more,no_never,invest_all,quarterly,retirement,965339,480385,27560,5,high,70.7
+4,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,40494,11749,805,2,low,7.0
+3,wait_and_see,no_experience,invest_all,quarterly,retirement,3477943,3739861,18146,10,high,65.1
+12,buy_more,no_never,save_half,weekly,wealth building,255210,204601,353,15,medium,46.9
+5,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,62017,5423,661,5,medium,14.6
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,928881,684946,1129,20,medium,42.6
+10,wait_and_see,no_never,save_half,monthly,wealth building,1173121,1003766,3543,20,high,70.4
+15,buy_more,yes_sometimes,save_half,weekly,retirement,471946,64537,3757,10,medium,48.8
+8,wait_and_see,no_experience,invest_all,monthly,buy a house,297013,273102,5564,7,high,34.9
+4,buy_more,yes_sometimes,save_half,weekly,retirement,2844262,2426852,8868,12,high,60.5
+4,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,36673,50486,1385,4,high,15.8
+25,buy_more,no_never,invest_all,weekly,wealth building,302583,164798,998,25,medium,51.2
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,2578346,1961331,49580,15,high,87.7
+5,sell_immediately,no_experience,save_all,monthly,emergency fund,3874,2260,92,2,low,1.0
+20,buy_more,no_never,invest_all,weekly,wealth building,211081,281903,579,25,medium,55.2
+3,sell_immediately,no_experience,save_half,monthly,emergency fund,20691,16954,97,4,medium,10.3
+3,buy_more,no_never,save_half,monthly,wealth building,229827,130750,1743,12,medium,47.7
+5,buy_more,yes_sometimes,save_half,quarterly,retirement,710432,516319,4104,12,medium,44.9
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,72972,39211,245,15,medium,39.0
+5,wait_and_see,no_experience,save_half,monthly,retirement,2468872,2527531,90976,5,high,71.1
+6,buy_more,no_never,invest_all,quarterly,retirement,256806,224401,4725,5,medium,48.4
+5,sell_immediately,yes_sometimes,save_all,monthly,save for a car,32299,25613,1142,2,medium,13.8
+4,buy_more,no_never,invest_all,monthly,retirement,3048519,5442447,28579,12,high,88.3
+18,buy_more,no_never,save_half,monthly,retirement,734556,860774,2135,20,medium,48.4
+18,wait_and_see,no_never,save_half,weekly,retirement,561074,627352,5241,10,medium,56.8
+7,buy_more,yes_sometimes,invest_all,quarterly,buy a house,141867,92578,3500,5,high,34.1
+2,wait_and_see,no_experience,save_all,rarely,save for a car,33377,6684,732,4,medium,14.6
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,2882719,3687049,21755,25,high,89.4
+12,buy_more,no_never,invest_all,daily,wealth building,69845,44841,47,20,medium,43.5
+15,wait_and_see,yes_sometimes,save_half,daily,retirement,1525852,1235994,18601,20,high,85.0
+6,wait_and_see,no_experience,save_half,weekly,buy a house,358487,282152,1715,10,high,27.5
+25,buy_more,no_never,invest_all,daily,retirement,485625,225255,2638,15,medium,54.2
+5,wait_and_see,no_experience,save_half,weekly,retirement,934403,276674,23803,5,high,68.5
+18,buy_more,yes_sometimes,invest_all,monthly,retirement,1936834,1204417,20096,20,high,90.2
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,6484,4202,100,2,low,10.7
+3,buy_more,yes_sometimes,save_half,weekly,buy a house,194588,74363,1415,12,medium,15.2
+1,wait_and_see,yes_always,save_all,quarterly,vacation,9260,5325,221,2,low,6.3
+20,buy_more,no_never,invest_all,weekly,retirement,1023825,336322,4856,25,medium,51.7
+6,buy_more,no_never,save_half,weekly,buy a house,84857,51665,1052,7,medium,27.8
+5,sell_immediately,no_experience,save_all,quarterly,emergency fund,26674,35324,761,4,high,14.4
+3,buy_more,no_never,save_half,quarterly,buy a house,586581,566725,7453,10,high,31.7
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,850362,134430,3698,25,medium,59.9
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,819890,204909,3519,20,medium,56.7
+5,buy_more,no_experience,save_half,quarterly,buy a house,469295,668819,3655,12,high,33.8
+1,wait_and_see,no_experience,save_half,quarterly,save for a car,99337,66412,2180,4,high,29.7
+8,wait_and_see,no_experience,invest_all,weekly,wealth building,695875,151892,8126,10,high,58.9
+8,wait_and_see,no_experience,invest_all,quarterly,retirement,895899,1109879,6306,10,medium,45.4
+1,sell_immediately,no_experience,save_all,monthly,buy a house,30769,8000,670,2,low,9.9
+5,wait_and_see,no_experience,save_all,quarterly,buy a house,130981,125693,2516,4,high,28.5
+1,wait_and_see,yes_always,save_all,quarterly,vacation,11611,3199,240,1,low,3.6
+4,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,180990,97395,461,12,medium,32.8
+1,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,5278,1210,174,1,low,8.5
+15,buy_more,no_never,invest_all,weekly,wealth building,300260,153588,294,30,medium,48.8
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,2254136,4636160,13383,15,high,90.6
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,54897,8057,753,5,low,6.1
+4,wait_and_see,yes_sometimes,save_half,monthly,buy a house,297945,101112,17433,4,high,32.7
+8,buy_more,no_never,invest_all,monthly,wealth building,126252,73457,3722,5,high,70.1
+10,buy_more,no_never,save_half,monthly,wealth building,1018028,333563,19996,10,high,67.3
+8,wait_and_see,no_experience,save_half,monthly,buy a house,432908,250872,2848,12,high,39.8
+2,wait_and_see,yes_always,spend_it,quarterly,vacation,5861,2316,121,3,low,6.4
+10,wait_and_see,yes_sometimes,invest_all,daily,retirement,3297480,1406745,21140,15,high,67.6
+2,wait_and_see,yes_sometimes,save_half,monthly,save for a car,86308,152979,963,5,high,21.6
+15,buy_more,no_never,invest_all,daily,retirement,3423481,2159599,46287,20,high,96.8
+5,buy_more,no_experience,invest_all,weekly,wealth building,62068,50064,257,10,medium,37.9
+15,buy_more,no_never,invest_all,weekly,retirement,693951,774513,10150,10,high,87.0
+7,wait_and_see,yes_sometimes,invest_all,quarterly,buy a house,455807,121119,9038,10,high,36.2
+0,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,31057,14266,430,2,medium,1.4
+18,buy_more,yes_sometimes,invest_all,daily,retirement,250243,60562,2040,15,medium,51.0
+2,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,66403,27870,3637,4,high,20.1
+2,wait_and_see,no_experience,save_all,monthly,buy a house,488865,216163,14962,3,high,28.2
+1,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,26397,27529,615,1,medium,4.8
+5,sell_immediately,yes_sometimes,save_all,monthly,buy a house,137325,114158,1882,5,medium,16.8
+8,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,177647,30982,1843,12,medium,47.4
+1,sell_immediately,yes_always,save_all,rarely,vacation,14844,7211,111,3,medium,6.7
+3,buy_more,no_experience,save_half,monthly,retirement,276239,41691,1738,12,medium,44.4
+30,buy_more,no_never,invest_all,weekly,retirement,1153467,544251,9714,30,high,96.7
+4,wait_and_see,no_experience,save_half,quarterly,retirement,2252523,769970,20512,10,high,62.8
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,24799,18773,998,2,medium,7.7
+5,wait_and_see,no_experience,save_half,weekly,buy a house,175858,394588,2143,7,high,34.4
+8,buy_more,no_never,invest_all,weekly,wealth building,1079236,1858139,10756,10,high,73.1
+12,buy_more,yes_sometimes,save_half,weekly,wealth building,225516,53189,1000,10,medium,37.4
+2,wait_and_see,no_experience,save_half,monthly,buy a house,37396,16417,351,2,low,10.7
+2,wait_and_see,yes_always,save_all,quarterly,vacation,6319,3846,99,1,medium,5.7
+1,wait_and_see,yes_always,spend_it,quarterly,emergency fund,17436,7661,316,2,low,8.0
+30,buy_more,yes_sometimes,invest_all,daily,wealth building,1209067,1386473,9067,30,high,85.7
+1,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,6889,4533,496,1,medium,8.5
+4,wait_and_see,no_never,invest_all,quarterly,retirement,1691092,546739,23982,7,high,70.2
+3,wait_and_see,no_experience,save_half,quarterly,buy a house,154242,39562,3000,4,medium,16.6
+8,wait_and_see,yes_sometimes,invest_all,monthly,retirement,964527,363138,8138,10,medium,41.5
+3,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,131997,67165,2177,5,medium,20.8
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,410506,294444,1364,10,medium,43.3
+4,sell_immediately,no_experience,save_half,monthly,save for a car,36006,46284,375,5,medium,17.7
+1,sell_immediately,yes_always,save_all,rarely,vacation,3281,1459,43,2,medium,11.6
+6,buy_more,no_never,invest_all,quarterly,wealth building,325869,365175,4050,5,high,68.1
+1,wait_and_see,yes_sometimes,save_half,monthly,save for a car,29998,51953,976,2,high,21.2
+5,sell_immediately,yes_sometimes,save_half,monthly,buy a house,124454,36457,2938,3,medium,8.7
+2,wait_and_see,yes_sometimes,save_half,rarely,emergency fund,19279,5569,80,3,low,1.0
+30,buy_more,no_never,invest_all,monthly,retirement,740299,1144827,1905,15,medium,59.8
+7,wait_and_see,no_never,save_half,weekly,retirement,1269989,2147055,10160,12,high,77.8
+0,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,5929,1540,44,3,low,1.0
+0,wait_and_see,yes_always,spend_it,quarterly,vacation,11823,2787,419,2,low,8.3
+5,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,27348,9370,59,5,low,1.9
+4,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,71461,59242,2530,3,high,14.0
+8,buy_more,yes_sometimes,invest_all,monthly,retirement,2342149,3382735,17535,15,high,89.7
+2,wait_and_see,yes_always,spend_it,rarely,emergency fund,13513,12538,282,2,medium,10.6
+8,wait_and_see,no_never,save_half,daily,wealth building,361806,183159,490,20,medium,40.2
+10,wait_and_see,no_never,save_half,weekly,retirement,3013705,2677057,29470,20,high,77.2
+12,wait_and_see,no_never,invest_all,daily,wealth building,128438,97684,735,15,medium,41.6
+3,buy_more,no_experience,invest_all,monthly,wealth building,564892,703572,1653,12,high,59.7
+4,buy_more,no_experience,save_half,weekly,wealth building,309751,62258,3432,10,medium,40.0
+4,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,444583,289985,8011,5,high,31.5
+12,buy_more,no_never,invest_all,weekly,wealth building,67237,51866,253,10,medium,48.4
+25,buy_more,no_never,invest_all,weekly,wealth building,261204,267247,576,25,high,80.0
+10,buy_more,yes_sometimes,save_half,weekly,wealth building,156371,117021,481,20,medium,38.5
+3,wait_and_see,no_experience,save_all,monthly,buy a house,132533,40009,1290,3,medium,15.9
+5,buy_more,no_experience,invest_all,monthly,retirement,2684246,582834,66895,5,high,74.5
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,594271,545359,1366,20,medium,41.5
+15,buy_more,yes_sometimes,invest_all,daily,retirement,1147253,616447,5153,20,medium,52.5
+3,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,157861,170128,591,10,medium,33.2
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,10967,5823,978,1,medium,10.6
+2,wait_and_see,yes_always,spend_it,rarely,vacation,7230,2724,77,3,low,5.8
+10,wait_and_see,yes_sometimes,save_half,daily,retirement,3184629,1003024,17934,20,high,69.2
+8,wait_and_see,no_never,save_half,monthly,wealth building,133623,220935,238,20,medium,41.2
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,183900,64118,5590,4,medium,23.4
+20,buy_more,no_never,invest_all,daily,wealth building,857924,811342,3365,30,high,77.3
+3,wait_and_see,yes_sometimes,save_half,monthly,save for a car,47764,22448,1638,2,medium,13.8
+20,buy_more,yes_sometimes,invest_all,monthly,retirement,2108108,894786,7482,30,high,85.2
+3,wait_and_see,no_experience,save_all,rarely,emergency fund,21789,17162,463,4,medium,3.2
+0,wait_and_see,yes_always,spend_it,quarterly,emergency fund,8798,3818,62,3,low,1.2
+8,buy_more,no_experience,save_half,weekly,wealth building,737051,157601,13235,7,high,66.3
+4,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,10593,9454,132,4,medium,3.4
+5,wait_and_see,no_experience,save_half,quarterly,emergency fund,14702,6071,36,4,low,1.0
+8,buy_more,no_never,save_half,quarterly,wealth building,174384,140181,3197,5,medium,43.6
+15,buy_more,no_never,invest_all,daily,wealth building,681620,1257917,2525,30,high,83.0
+10,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,768290,437116,2058,20,high,64.2
+6,wait_and_see,no_never,invest_all,weekly,buy a house,172657,79112,4019,7,high,39.5
+7,buy_more,yes_sometimes,save_half,quarterly,retirement,2597050,2268321,23359,12,high,73.2
+7,wait_and_see,yes_sometimes,save_half,monthly,wealth building,199761,36808,3576,5,medium,41.3
+8,wait_and_see,yes_sometimes,invest_all,monthly,buy a house,572487,183011,5020,10,high,25.2
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,14631,3620,255,1,low,1.0
+8,buy_more,no_experience,save_half,quarterly,retirement,3268579,2649359,34228,10,high,73.8
+4,wait_and_see,no_experience,save_all,monthly,buy a house,230708,184625,3662,4,high,29.0
+5,buy_more,yes_sometimes,save_half,monthly,wealth building,594713,332339,11167,12,high,63.6
+8,wait_and_see,no_never,save_half,weekly,retirement,4305779,2852757,15701,20,high,75.6
+5,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,120604,163693,3094,2,high,36.4
+1,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,18525,4493,1082,1,low,3.6
+2,sell_immediately,no_experience,save_half,monthly,emergency fund,18844,3377,357,4,low,1.0
+15,buy_more,yes_sometimes,invest_all,monthly,wealth building,170661,184867,992,15,medium,44.0
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,16415,7654,252,1,low,1.0
+1,wait_and_see,yes_sometimes,save_half,rarely,buy a house,73696,39793,441,2,low,9.1
+1,sell_immediately,no_experience,save_half,quarterly,emergency fund,8880,2110,43,4,low,1.1
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,6801,2316,268,1,low,3.1
+10,buy_more,no_never,save_half,weekly,wealth building,59656,44051,509,10,medium,41.5
+1,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,3108,399,46,2,low,6.3
+4,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,90324,33885,1189,3,low,9.6
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,31030,20419,442,5,medium,9.5
+2,wait_and_see,yes_sometimes,spend_it,rarely,vacation,7833,4192,455,1,low,9.3
+3,buy_more,no_experience,invest_all,quarterly,buy a house,543997,266680,7889,10,high,39.2
+1,sell_immediately,yes_sometimes,spend_it,rarely,emergency fund,8512,6454,351,1,medium,7.6
+0,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,17469,7818,348,1,low,1.0
+3,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,17129,6109,257,5,medium,2.8
+8,buy_more,no_never,invest_all,quarterly,buy a house,128025,60715,551,5,medium,28.7
+8,buy_more,no_experience,invest_all,monthly,wealth building,330995,222956,1274,12,medium,42.1
+5,sell_immediately,no_experience,save_all,quarterly,buy a house,50013,43089,300,3,low,10.1
+8,buy_more,no_never,save_half,weekly,wealth building,241369,428040,1158,20,high,74.6
+0,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,24760,3080,1707,1,medium,3.9
+4,sell_immediately,no_experience,save_all,monthly,save for a car,12922,1637,211,2,low,8.2
+4,sell_immediately,yes_sometimes,save_half,rarely,buy a house,102594,85730,880,4,medium,15.6
+5,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,11660,1393,82,5,low,1.0
+1,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,19218,5083,480,1,low,1.0
+2,sell_immediately,yes_sometimes,spend_it,rarely,emergency fund,12976,6932,549,1,low,1.0
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,136014,31586,452,15,medium,42.5
+25,buy_more,no_never,invest_all,daily,wealth building,436121,172673,2133,25,medium,56.9
+7,buy_more,no_experience,invest_all,weekly,buy a house,238831,297247,570,12,medium,25.8
+12,wait_and_see,yes_sometimes,save_half,daily,retirement,3180442,2971281,38556,10,high,67.2
+15,buy_more,no_never,invest_all,weekly,retirement,1135937,288571,10678,15,medium,57.8
+4,wait_and_see,yes_sometimes,save_half,monthly,retirement,3136909,2396899,25917,12,high,69.1
+4,sell_immediately,no_experience,save_half,monthly,save for a car,36246,41017,507,2,medium,13.8
+7,wait_and_see,no_experience,invest_all,monthly,retirement,765085,279785,4417,10,medium,42.6
+6,buy_more,no_never,invest_all,quarterly,wealth building,773545,656143,17386,7,high,73.4
+18,wait_and_see,no_never,invest_all,weekly,retirement,1099695,733609,3555,20,medium,48.8
+12,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,180501,110145,378,20,medium,36.2
+3,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,164342,176216,2092,3,medium,17.1
+4,sell_immediately,no_experience,save_all,rarely,save for a car,20654,5510,90,4,low,2.4
+1,wait_and_see,yes_always,spend_it,quarterly,vacation,13935,3249,1473,1,medium,15.3
+10,wait_and_see,yes_sometimes,invest_all,daily,wealth building,369887,176404,2240,15,high,62.1
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,243521,113250,553,20,medium,38.2
+2,sell_immediately,yes_sometimes,save_half,monthly,buy a house,69601,20171,1112,4,low,4.3
+12,wait_and_see,yes_sometimes,save_half,weekly,wealth building,720654,469472,10712,15,high,67.7
+4,buy_more,no_never,invest_all,weekly,wealth building,934905,1205772,8448,12,high,71.7
+6,wait_and_see,no_experience,save_half,monthly,retirement,1394495,1876085,22826,7,high,79.4
+1,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,5915,2338,689,1,medium,2.0
+8,wait_and_see,no_experience,save_half,monthly,buy a house,112513,206959,947,12,high,45.5
+1,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,45440,21261,1032,4,medium,10.0
+7,wait_and_see,no_experience,save_half,quarterly,buy a house,116606,35210,3260,5,medium,20.4
+6,buy_more,yes_sometimes,save_half,quarterly,wealth building,501777,253055,11074,7,high,67.6
+0,wait_and_see,yes_sometimes,save_all,rarely,vacation,11236,2302,431,3,medium,5.5
+1,wait_and_see,yes_always,save_all,quarterly,vacation,8531,8903,176,3,medium,14.1
+5,wait_and_see,yes_sometimes,invest_all,weekly,retirement,664095,709659,3609,10,medium,40.4
+6,wait_and_see,yes_sometimes,save_half,weekly,wealth building,416396,261598,5111,10,high,59.3
+15,buy_more,no_never,invest_all,weekly,retirement,2887780,6612341,10877,25,high,96.5
+5,buy_more,no_experience,invest_all,weekly,buy a house,122511,95774,791,7,medium,22.7
+5,sell_immediately,no_experience,save_half,monthly,emergency fund,22026,12180,81,5,medium,9.9
+10,wait_and_see,no_never,invest_all,daily,retirement,3400024,3611993,26699,20,high,73.7
+6,wait_and_see,no_experience,save_half,quarterly,retirement,828964,446147,7664,7,medium,37.5
+18,wait_and_see,yes_sometimes,save_half,monthly,wealth building,1075001,1723998,1954,20,high,56.9
+20,buy_more,no_never,invest_all,monthly,retirement,3185911,900876,40579,15,high,91.8
+5,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,51130,28026,5738,2,high,18.0
+18,buy_more,no_never,invest_all,weekly,wealth building,222682,259579,1372,15,medium,49.7
+1,sell_immediately,no_experience,save_half,monthly,save for a car,24810,19791,172,4,low,4.5
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,11357,1070,161,3,medium,2.4
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,1171201,1127155,4958,20,medium,47.3
+18,wait_and_see,yes_sometimes,save_half,weekly,retirement,768066,783839,4962,20,high,77.0
+7,wait_and_see,yes_sometimes,save_half,quarterly,retirement,2322933,1450669,33243,5,high,68.5
+2,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,17763,3475,1727,1,medium,1.3
+3,sell_immediately,yes_sometimes,save_all,rarely,save for a car,27750,15846,530,4,medium,16.6
+5,wait_and_see,yes_sometimes,save_half,weekly,wealth building,424210,333460,2550,5,high,55.5
+2,sell_immediately,no_experience,save_half,rarely,buy a house,63048,11847,1908,2,medium,6.1
+12,wait_and_see,no_never,invest_all,daily,retirement,1586613,319823,15849,10,high,75.2
+25,buy_more,no_never,invest_all,monthly,retirement,2400359,652608,14058,20,high,86.3
+0,sell_immediately,yes_sometimes,save_all,rarely,vacation,8494,3509,465,2,medium,8.5
+8,buy_more,no_never,invest_all,monthly,wealth building,343620,347883,491,15,medium,45.3
+5,buy_more,yes_sometimes,invest_all,quarterly,retirement,908316,754769,9525,10,high,66.2
+2,sell_immediately,yes_sometimes,save_half,monthly,save for a car,18742,7800,451,2,low,10.0
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,32890,6563,547,3,medium,6.8
+2,sell_immediately,no_experience,save_half,rarely,save for a car,12022,1031,91,4,low,2.1
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,15393,2477,313,2,low,5.8
+2,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,7793,5320,118,2,medium,1.0
+4,wait_and_see,yes_sometimes,invest_all,quarterly,wealth building,165429,147208,2373,5,medium,38.1
+5,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,14098,7747,129,2,medium,6.5
+4,wait_and_see,no_experience,save_half,monthly,emergency fund,12854,10730,90,3,high,8.8
+25,buy_more,no_never,invest_all,daily,wealth building,346963,378738,1941,15,medium,57.0
+20,buy_more,yes_sometimes,invest_all,daily,wealth building,262748,239835,675,20,medium,45.0
+7,buy_more,no_experience,invest_all,quarterly,retirement,3271692,1027473,29460,10,high,80.1
+15,buy_more,no_never,invest_all,daily,wealth building,195101,241290,340,15,medium,53.1
+2,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,11878,5022,239,2,low,1.9
+10,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1296324,1018980,6573,20,medium,37.7
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,55367,19111,1025,3,low,8.2
+5,buy_more,no_experience,save_half,quarterly,retirement,2691968,2313618,7302,12,high,66.5
+3,sell_immediately,no_experience,save_all,monthly,buy a house,478350,614295,13719,4,high,27.7
+2,sell_immediately,yes_sometimes,save_all,monthly,save for a car,29206,2333,530,2,low,1.0
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,7203,2741,485,1,low,6.8
+2,sell_immediately,yes_always,spend_it,quarterly,vacation,11629,6347,360,3,medium,7.4
+1,wait_and_see,yes_always,spend_it,quarterly,emergency fund,8236,4653,104,2,medium,4.6
+5,wait_and_see,yes_sometimes,save_half,monthly,wealth building,214157,90376,1125,7,medium,27.9
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,10180,6906,48,3,low,1.0
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,253486,279686,1168,10,medium,37.2
+1,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,21096,9264,679,2,medium,6.2
+30,buy_more,no_never,invest_all,daily,wealth building,214238,710751,592,30,high,85.1
+2,sell_immediately,no_experience,save_all,quarterly,buy a house,51067,9044,732,4,low,6.5
+4,wait_and_see,yes_sometimes,save_all,rarely,buy a house,138852,147149,1727,5,medium,15.1
+5,wait_and_see,no_never,save_half,quarterly,wealth building,90091,20780,661,7,medium,28.7
+4,sell_immediately,yes_sometimes,save_all,rarely,buy a house,307598,193505,6339,3,high,23.1
+1,sell_immediately,yes_sometimes,save_all,rarely,buy a house,81614,19725,2062,3,low,1.0
+0,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,8172,1722,175,3,low,1.0
+7,buy_more,yes_sometimes,save_half,weekly,wealth building,1090091,1430220,6011,12,high,66.4
+5,sell_immediately,no_experience,save_all,rarely,save for a car,15247,11694,151,3,low,7.2
+12,wait_and_see,no_never,save_half,monthly,wealth building,404734,290202,4668,20,high,73.6
+15,buy_more,yes_sometimes,save_half,daily,retirement,1003804,295185,3299,15,medium,47.0
+1,sell_immediately,yes_sometimes,save_half,monthly,buy a house,487023,266809,18298,2,high,23.6
+7,buy_more,no_never,save_half,quarterly,retirement,2673532,1112907,18424,12,high,73.4
+8,wait_and_see,yes_sometimes,save_half,weekly,retirement,1190295,1965783,11317,15,high,72.2
+1,sell_immediately,yes_always,spend_it,quarterly,emergency fund,14026,6963,336,3,medium,1.0
+1,wait_and_see,yes_always,save_all,rarely,vacation,8275,3917,92,2,low,13.2
+5,buy_more,no_experience,save_half,weekly,wealth building,736278,655348,4033,5,high,54.9
+18,buy_more,yes_sometimes,invest_all,daily,retirement,1190679,329805,6732,15,medium,56.4
+2,sell_immediately,no_experience,save_all,rarely,save for a car,34042,19763,257,5,medium,4.4
+1,sell_immediately,yes_sometimes,save_all,rarely,buy a house,353596,390828,16493,3,high,23.2
+3,wait_and_see,no_experience,save_all,monthly,buy a house,176285,46869,3034,5,high,33.3
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,31616,4477,1068,2,medium,1.0
+1,sell_immediately,yes_always,spend_it,quarterly,emergency fund,5431,2155,317,1,medium,3.2
+20,buy_more,no_never,invest_all,monthly,wealth building,408629,204018,1216,20,medium,36.2
+5,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,28426,27452,203,5,high,8.6
+25,buy_more,no_never,invest_all,daily,retirement,849946,379295,7060,20,medium,61.3
+2,sell_immediately,yes_sometimes,spend_it,rarely,vacation,9368,5103,394,2,medium,9.7
+5,buy_more,yes_sometimes,invest_all,weekly,retirement,304224,47617,1536,12,medium,41.2
+8,buy_more,no_experience,invest_all,quarterly,buy a house,521181,350954,5331,10,high,41.7
+1,wait_and_see,yes_always,spend_it,rarely,vacation,5287,1449,70,3,low,7.2
+6,wait_and_see,no_never,invest_all,monthly,buy a house,93119,25256,1285,7,medium,22.6
+4,wait_and_see,yes_sometimes,save_half,monthly,retirement,590102,98588,7880,5,medium,36.3
+12,buy_more,no_never,save_half,monthly,wealth building,379740,271548,501,20,medium,47.8
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,11645,1378,308,1,low,6.9
+5,buy_more,no_never,invest_all,weekly,retirement,280180,221623,686,12,medium,48.3
+25,buy_more,no_never,invest_all,daily,wealth building,514153,280700,5648,20,high,86.2
+8,buy_more,no_experience,invest_all,monthly,wealth building,87222,15882,1481,5,medium,36.2
+8,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,61818,46099,274,12,medium,23.0
+3,sell_immediately,no_experience,save_all,monthly,emergency fund,9193,999,143,4,medium,3.3
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,227030,112659,1383,20,medium,48.2
+7,wait_and_see,no_experience,save_half,weekly,retirement,807452,1029608,5549,10,high,77.0
+8,buy_more,no_experience,invest_all,weekly,wealth building,289483,184528,1593,7,medium,40.1
+15,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,510803,556253,5295,10,high,67.4
+3,wait_and_see,no_experience,save_all,rarely,save for a car,44485,37173,1506,3,high,25.4
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1003537,193724,5721,15,medium,43.5
+4,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,110079,92804,397,12,high,35.2
+4,sell_immediately,yes_sometimes,save_all,rarely,save for a car,46021,10003,942,4,medium,18.3
+8,wait_and_see,yes_sometimes,save_half,weekly,buy a house,148333,30357,3351,5,high,38.7
+1,wait_and_see,no_experience,save_half,monthly,emergency fund,34774,22074,407,3,medium,6.3
+3,buy_more,yes_sometimes,save_half,quarterly,buy a house,379893,746644,7429,5,high,35.2
+5,buy_more,no_never,save_half,weekly,wealth building,217869,111531,2602,7,medium,33.9
+3,buy_more,yes_sometimes,invest_all,monthly,retirement,292066,73887,896,12,medium,41.9
+18,buy_more,no_never,invest_all,weekly,retirement,607485,605055,4740,10,high,93.3
+4,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,6408,1271,32,4,low,1.0
+6,wait_and_see,no_never,invest_all,weekly,wealth building,295911,156200,861,10,medium,42.6
+4,wait_and_see,no_never,invest_all,monthly,buy a house,70879,75180,443,7,medium,14.0
+3,wait_and_see,no_experience,invest_all,weekly,wealth building,150782,169923,387,12,medium,33.3
+5,wait_and_see,yes_sometimes,save_all,monthly,buy a house,497538,293573,24586,3,high,33.3
+0,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,3375,439,47,2,low,4.8
+8,buy_more,no_never,invest_all,weekly,wealth building,287779,434509,2561,15,high,77.1
+5,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,14463,5686,317,3,low,8.8
+5,sell_immediately,no_experience,save_half,rarely,save for a car,25966,4360,560,4,medium,9.4
+12,buy_more,no_never,invest_all,daily,retirement,418207,544249,941,15,medium,52.5
+8,buy_more,yes_sometimes,save_half,monthly,retirement,231743,121445,924,10,medium,39.7
+7,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,488817,311324,11660,7,high,60.9
+2,sell_immediately,yes_sometimes,spend_it,rarely,vacation,16662,21597,272,2,medium,15.1
+1,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,31129,7748,517,3,medium,7.2
+10,wait_and_see,no_never,save_half,monthly,wealth building,50202,69204,250,10,medium,41.3
+4,wait_and_see,yes_sometimes,save_all,rarely,buy a house,32558,21346,675,2,low,20.1
+7,buy_more,no_experience,save_half,weekly,buy a house,172859,25278,1210,7,medium,28.9
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,32124,6227,1024,2,medium,4.9
+3,wait_and_see,yes_sometimes,save_all,rarely,save for a car,16079,4366,65,5,low,7.4
+10,buy_more,no_never,save_half,daily,retirement,1150932,1064863,2787,20,medium,42.1
+3,wait_and_see,no_experience,save_half,monthly,save for a car,17491,2448,371,3,medium,12.7
+7,buy_more,yes_sometimes,save_half,monthly,wealth building,120619,47504,1164,5,medium,36.7
+5,buy_more,no_experience,invest_all,monthly,wealth building,54501,5311,400,7,medium,39.3
+6,wait_and_see,yes_sometimes,save_half,quarterly,retirement,2614803,4103220,59066,5,high,69.4
+5,wait_and_see,yes_sometimes,invest_all,monthly,retirement,856958,1041764,6241,7,medium,40.8
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,329549,106714,1571,10,medium,40.8
+25,buy_more,yes_sometimes,invest_all,monthly,wealth building,931879,1779580,2632,15,high,68.5
+10,buy_more,yes_sometimes,invest_all,daily,wealth building,280846,285711,1192,15,high,68.5
+4,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,172907,242873,11320,2,high,31.7
+3,buy_more,yes_sometimes,invest_all,weekly,wealth building,143324,107767,430,12,medium,35.1
+2,wait_and_see,yes_always,spend_it,rarely,emergency fund,6359,5546,499,1,medium,10.4
+12,buy_more,yes_sometimes,invest_all,weekly,wealth building,471694,407883,4462,20,high,78.8
+0,wait_and_see,yes_always,spend_it,rarely,vacation,7759,5175,115,1,medium,14.9
+2,sell_immediately,yes_sometimes,save_all,monthly,save for a car,71189,84185,860,4,high,22.8
+5,wait_and_see,no_never,invest_all,weekly,retirement,215110,192189,623,12,medium,48.2
+8,wait_and_see,no_experience,invest_all,weekly,wealth building,205585,273183,1962,5,medium,40.7
+7,buy_more,no_experience,save_half,monthly,buy a house,314182,323885,1136,12,high,40.7
+1,wait_and_see,no_experience,save_half,monthly,emergency fund,12315,4417,363,2,low,3.6
+2,wait_and_see,yes_always,save_all,rarely,emergency fund,27636,13152,153,3,medium,3.0
+25,buy_more,no_never,invest_all,daily,wealth building,305109,189712,1478,25,medium,58.9
+10,wait_and_see,yes_sometimes,save_half,monthly,retirement,651294,740717,2397,15,medium,44.6
+5,buy_more,no_never,save_half,quarterly,buy a house,141764,53934,309,12,medium,26.2
+6,wait_and_see,no_never,invest_all,monthly,buy a house,115527,19653,1425,5,medium,25.9
+8,wait_and_see,no_never,save_half,weekly,wealth building,1413642,2200943,4185,20,high,70.7
+3,wait_and_see,yes_sometimes,invest_all,weekly,retirement,1661113,1181699,9826,10,high,63.5
+5,sell_immediately,yes_sometimes,save_all,monthly,buy a house,75073,7489,979,5,low,6.8
+7,wait_and_see,yes_sometimes,invest_all,quarterly,buy a house,143731,78690,609,7,medium,23.3
+8,wait_and_see,no_experience,save_half,monthly,wealth building,126563,78084,557,10,medium,32.1
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,11905,4421,214,2,low,1.0
+12,buy_more,no_never,invest_all,weekly,retirement,335790,121360,1071,20,medium,55.1
+18,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,318682,169164,3707,20,high,76.0
+4,buy_more,no_never,invest_all,weekly,wealth building,385495,358784,6298,10,high,72.6
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,25164,20802,1720,1,medium,1.8
+2,wait_and_see,yes_sometimes,save_all,monthly,buy a house,84766,29913,1432,2,low,7.8
+5,buy_more,yes_sometimes,save_half,weekly,wealth building,240120,94404,956,12,medium,35.0
+3,wait_and_see,no_never,save_half,weekly,wealth building,155520,68649,989,12,medium,30.4
+2,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,34870,9537,1099,3,medium,6.3
+0,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,21280,26227,864,1,medium,1.0
+2,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,12933,10752,694,1,medium,10.3
+18,buy_more,yes_sometimes,save_half,weekly,retirement,1217424,1825134,6427,20,high,83.3
+20,buy_more,no_never,invest_all,monthly,retirement,205443,67941,755,25,medium,55.2
+6,buy_more,yes_sometimes,invest_all,quarterly,buy a house,194761,57764,818,12,medium,21.6
+15,wait_and_see,yes_sometimes,save_half,daily,retirement,2295874,5353854,19766,10,high,72.7
+8,wait_and_see,no_experience,save_half,quarterly,retirement,688180,269452,9728,5,medium,41.7
+25,buy_more,no_never,invest_all,daily,retirement,1197637,1823425,8651,25,high,93.8
+12,buy_more,no_never,save_half,monthly,retirement,3336688,6712057,15732,10,high,88.9
+2,wait_and_see,yes_always,spend_it,rarely,vacation,13973,3338,247,2,medium,8.7
+12,buy_more,no_never,invest_all,monthly,retirement,820473,206005,5712,15,medium,50.9
+5,sell_immediately,no_experience,save_half,rarely,buy a house,169672,103795,5141,3,medium,21.1
+0,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,13545,9782,161,2,medium,5.4
+1,wait_and_see,no_experience,save_all,quarterly,buy a house,180730,121902,4368,3,medium,16.1
+8,wait_and_see,no_never,save_half,quarterly,wealth building,544791,505617,22412,5,high,65.9
+10,wait_and_see,no_never,save_half,monthly,retirement,1725303,1181338,13978,10,high,71.1
+18,buy_more,no_never,save_half,monthly,retirement,1675025,2227235,26821,10,high,93.0
+18,wait_and_see,no_never,save_half,monthly,wealth building,156053,47719,653,15,medium,39.1
+1,sell_immediately,no_experience,save_half,quarterly,buy a house,110323,89301,1816,2,high,27.9
+10,buy_more,no_never,invest_all,monthly,wealth building,288529,170070,1982,15,medium,50.2
+12,buy_more,no_never,invest_all,weekly,retirement,783190,461808,9234,10,medium,47.7
+8,wait_and_see,no_never,invest_all,monthly,retirement,2704226,1234249,123653,5,high,78.0
+5,wait_and_see,yes_sometimes,save_half,monthly,buy a house,83963,6856,949,5,low,14.9
+7,buy_more,no_experience,invest_all,weekly,wealth building,172931,160813,576,10,medium,46.9
+5,wait_and_see,no_experience,save_half,quarterly,buy a house,482128,135878,8497,7,high,28.3
+15,buy_more,yes_sometimes,invest_all,daily,retirement,1033255,462202,4986,25,medium,58.0
+1,wait_and_see,yes_always,spend_it,quarterly,vacation,5560,4218,99,2,low,6.2
+6,wait_and_see,yes_sometimes,save_half,quarterly,retirement,2185325,1218615,18064,7,high,70.8
+7,wait_and_see,no_experience,invest_all,quarterly,wealth building,872484,875948,3101,12,high,67.2
+18,wait_and_see,yes_sometimes,invest_all,daily,retirement,924538,451059,5613,20,medium,50.1
+30,buy_more,no_never,invest_all,weekly,retirement,806036,335234,3961,20,medium,58.9
+3,wait_and_see,no_never,save_half,weekly,retirement,965291,300231,17748,7,medium,38.0
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,26242,23112,485,2,medium,8.9
+30,buy_more,yes_sometimes,invest_all,weekly,retirement,1105729,531911,19703,20,high,100.0
+5,sell_immediately,no_experience,save_all,quarterly,save for a car,84989,59939,1205,4,high,22.7
+4,wait_and_see,no_never,invest_all,weekly,retirement,2838221,1614562,30235,12,high,68.0
+7,buy_more,yes_sometimes,invest_all,monthly,buy a house,177863,35589,2367,10,medium,20.0
+1,sell_immediately,yes_always,spend_it,quarterly,emergency fund,21485,10085,625,3,medium,4.5
+20,buy_more,no_never,invest_all,daily,retirement,1147692,1129356,5444,30,high,84.6
+0,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,10051,4614,125,1,low,2.1
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,63416,75714,2431,3,high,24.1
+5,sell_immediately,no_experience,save_half,rarely,save for a car,13483,4579,256,3,low,2.9
+3,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,7871,5872,72,5,medium,7.9
+8,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,195997,27380,1455,10,medium,36.9
+1,wait_and_see,no_experience,save_all,quarterly,save for a car,27899,8730,421,3,low,7.4
+18,wait_and_see,no_never,save_half,daily,wealth building,1094795,580725,7769,15,high,71.1
+30,buy_more,yes_sometimes,invest_all,daily,wealth building,134042,226297,415,25,medium,54.6
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,436933,373045,2733,15,medium,50.3
+1,wait_and_see,no_experience,save_all,rarely,buy a house,140003,82236,1953,4,medium,19.4
+4,wait_and_see,yes_sometimes,save_half,monthly,buy a house,147772,71797,2438,5,high,37.5
+10,buy_more,yes_sometimes,save_half,weekly,retirement,3588088,3249923,31919,15,high,78.3
+15,buy_more,no_never,invest_all,monthly,wealth building,174218,22025,649,15,medium,42.3
+4,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,26576,4791,245,5,medium,5.8
+4,wait_and_see,no_never,save_half,monthly,retirement,2646910,3100507,64008,5,high,69.7
+4,sell_immediately,yes_sometimes,save_all,monthly,emergency fund,51905,20149,1742,5,high,7.1
+4,sell_immediately,no_experience,save_all,quarterly,emergency fund,58495,52315,1154,2,high,10.5
+18,buy_more,yes_sometimes,save_half,daily,retirement,372523,183080,1393,10,medium,38.0
+3,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,11605,8781,37,5,medium,6.3
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,560474,542810,3204,15,medium,47.0
+0,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,7508,1940,126,2,low,6.4
+10,buy_more,yes_sometimes,invest_all,daily,wealth building,448872,188985,2610,20,medium,47.6
+7,wait_and_see,no_experience,invest_all,monthly,wealth building,279293,125273,13769,5,high,65.7
+3,buy_more,no_experience,save_half,monthly,buy a house,315385,167246,4274,5,high,35.9
+4,wait_and_see,no_never,save_half,monthly,retirement,367321,518595,918,12,medium,43.9
+3,wait_and_see,no_experience,save_half,rarely,save for a car,18658,3633,489,2,low,14.1
+8,wait_and_see,no_experience,save_half,weekly,retirement,2628428,2643876,36070,12,high,75.5
+2,wait_and_see,yes_sometimes,spend_it,rarely,vacation,9192,8583,176,2,medium,9.9
+3,buy_more,no_experience,invest_all,monthly,buy a house,108409,58368,1030,10,high,25.4
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,11179,2335,121,3,low,3.7
+6,buy_more,no_experience,save_half,quarterly,buy a house,77922,54977,542,12,medium,28.7
+8,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1601692,1355952,18963,12,high,78.2
+1,sell_immediately,yes_sometimes,save_all,monthly,save for a car,18835,6174,156,2,low,9.3
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,18642,6500,298,4,low,9.6
+7,buy_more,no_experience,invest_all,weekly,retirement,266009,27082,1445,12,medium,40.5
+8,wait_and_see,yes_sometimes,save_half,weekly,retirement,2771367,3722893,44261,10,high,72.3
+8,buy_more,no_never,save_half,weekly,wealth building,109964,19773,737,10,medium,37.3
+30,buy_more,yes_sometimes,invest_all,weekly,wealth building,705584,1238310,5629,15,high,83.0
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,326040,259770,2497,25,high,91.2
+5,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,37224,20195,1947,4,high,6.6
+15,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,248866,90840,1225,10,medium,41.2
+18,buy_more,yes_sometimes,invest_all,monthly,retirement,2869495,2545482,27945,10,high,87.4
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,902107,421088,1691,15,medium,53.2
+5,buy_more,yes_sometimes,invest_all,monthly,buy a house,67173,75309,229,7,medium,17.8
+15,buy_more,no_never,invest_all,weekly,retirement,913534,994367,2966,30,medium,63.5
+7,wait_and_see,no_experience,invest_all,monthly,buy a house,172118,43885,1249,5,medium,17.9
+2,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,15329,17277,614,3,high,10.4
+4,buy_more,yes_sometimes,save_half,monthly,buy a house,231953,303039,1461,12,high,36.5
+0,wait_and_see,yes_always,save_all,rarely,emergency fund,13140,7961,253,3,medium,1.0
+0,sell_immediately,yes_always,spend_it,rarely,vacation,10753,9080,284,3,medium,5.9
+5,buy_more,no_never,save_half,weekly,wealth building,918298,1735696,8484,7,high,64.6
+3,sell_immediately,no_experience,save_all,rarely,save for a car,99073,141384,1582,5,high,18.2
+10,wait_and_see,no_never,save_half,monthly,wealth building,156219,230795,702,10,medium,41.6
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,3206,1329,69,2,low,1.0
+4,wait_and_see,no_experience,save_all,monthly,buy a house,82241,36033,1109,5,medium,18.5
+4,buy_more,yes_sometimes,invest_all,weekly,wealth building,970331,899580,6227,7,high,66.4
+5,buy_more,no_never,save_half,monthly,retirement,1504447,1457911,10249,5,high,79.7
+3,buy_more,no_experience,save_half,quarterly,wealth building,1063471,346508,8331,10,high,58.4
+5,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,14740,17901,175,5,medium,6.8
+4,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,29090,26244,497,5,medium,1.0
+15,buy_more,no_never,invest_all,weekly,retirement,1238252,1320587,5708,20,medium,61.1
+7,buy_more,no_never,save_half,quarterly,buy a house,347194,254785,6152,7,high,38.1
+10,wait_and_see,no_never,save_half,monthly,wealth building,713450,787950,3220,20,high,65.3
+5,wait_and_see,no_experience,save_all,quarterly,save for a car,40426,93760,1496,2,high,29.1
+6,wait_and_see,no_experience,invest_all,monthly,retirement,1269966,1111011,5059,10,high,67.9
+3,sell_immediately,yes_sometimes,save_all,rarely,buy a house,87273,83723,1325,5,medium,21.7
+1,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,7661,1764,291,3,medium,3.4
+8,buy_more,no_never,save_half,quarterly,buy a house,143139,63679,766,7,medium,27.4
+1,wait_and_see,yes_always,save_all,quarterly,vacation,4660,3321,194,2,medium,14.8
+8,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,1112821,1982783,3214,20,high,72.1
+4,buy_more,no_experience,invest_all,quarterly,retirement,2656601,5093931,28407,5,high,74.2
+15,buy_more,yes_sometimes,invest_all,monthly,wealth building,58826,23887,401,20,medium,43.4
+15,buy_more,yes_sometimes,save_half,daily,retirement,238938,88589,623,15,medium,48.4
+7,buy_more,no_experience,save_half,quarterly,retirement,3077257,5608153,40105,10,high,79.2
+18,wait_and_see,yes_sometimes,save_half,weekly,wealth building,311987,306424,3607,10,medium,37.9
+10,wait_and_see,yes_sometimes,invest_all,weekly,retirement,2510780,683686,41140,10,high,78.8
+1,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,15777,12544,179,3,medium,1.0
+10,buy_more,no_never,invest_all,weekly,retirement,676634,864830,2524,10,high,77.1
+2,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,6604,3222,77,2,low,4.4
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,2306701,3364667,8733,10,high,66.1
+6,buy_more,no_experience,save_half,monthly,retirement,1628098,2941526,19888,5,high,80.4
+20,buy_more,no_never,invest_all,weekly,wealth building,900250,2499264,2739,25,high,89.4
+6,wait_and_see,yes_sometimes,save_half,monthly,retirement,845122,631001,2756,7,medium,37.0
+15,buy_more,no_never,invest_all,monthly,wealth building,416907,283587,1799,20,medium,43.4
+6,wait_and_see,no_never,save_half,weekly,retirement,2827913,1755517,38556,12,high,78.4
+15,buy_more,no_never,invest_all,monthly,wealth building,635897,874353,1748,25,high,79.0
+2,wait_and_see,yes_always,spend_it,rarely,vacation,3349,430,68,3,medium,7.1
+10,buy_more,no_never,save_half,weekly,wealth building,162035,123499,1237,15,medium,43.9
+20,buy_more,yes_sometimes,invest_all,weekly,wealth building,530879,894796,1389,30,high,81.4
+6,wait_and_see,yes_sometimes,invest_all,weekly,retirement,918331,354597,3190,10,medium,36.5
+4,wait_and_see,no_never,invest_all,quarterly,retirement,1392802,432438,26087,5,high,69.6
+1,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,114811,53281,3542,2,medium,10.3
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,26437,14327,556,1,medium,1.0
+5,buy_more,no_experience,save_half,monthly,buy a house,160196,108709,1246,12,medium,29.2
+18,wait_and_see,yes_sometimes,save_half,weekly,wealth building,258093,438181,938,15,medium,40.8
+15,buy_more,no_never,invest_all,daily,wealth building,1132330,236085,11475,10,high,69.1
+3,sell_immediately,no_experience,save_half,monthly,emergency fund,12889,17790,872,2,high,9.4
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,9006,556,328,1,low,1.0
+7,wait_and_see,no_experience,invest_all,quarterly,retirement,723434,408007,6239,7,medium,41.6
+5,buy_more,yes_sometimes,save_half,quarterly,wealth building,226506,225022,762,10,medium,37.9
+25,buy_more,yes_sometimes,invest_all,daily,retirement,1013386,504839,5851,25,medium,55.4
+4,buy_more,yes_sometimes,invest_all,quarterly,wealth building,136575,87556,1438,10,medium,43.0
+1,wait_and_see,yes_always,save_all,rarely,emergency fund,18408,4631,672,2,low,9.3
+0,wait_and_see,yes_sometimes,save_all,rarely,vacation,5659,968,330,1,medium,10.5
+5,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,230861,42950,2049,7,medium,32.8
+2,sell_immediately,no_experience,save_half,quarterly,emergency fund,19507,3192,595,2,low,2.2
+10,buy_more,yes_sometimes,save_half,weekly,retirement,4215438,2041021,23793,20,high,67.8
+3,buy_more,yes_sometimes,save_half,monthly,wealth building,248213,64083,4577,5,medium,35.8
+3,sell_immediately,no_experience,save_half,monthly,emergency fund,4130,704,79,2,low,5.4
+5,sell_immediately,yes_sometimes,save_half,monthly,buy a house,461793,574335,26192,2,high,26.7
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,2841,1192,94,1,low,10.7
+4,wait_and_see,no_experience,save_half,rarely,emergency fund,56547,38830,5633,2,high,12.5
+15,wait_and_see,no_never,invest_all,monthly,retirement,763997,774962,3963,20,medium,46.3
+4,wait_and_see,no_never,invest_all,monthly,wealth building,112877,142105,748,12,high,58.2
+12,wait_and_see,no_never,save_half,weekly,wealth building,240690,132601,593,15,medium,41.4
+1,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,77306,40598,4389,2,high,25.8
+4,buy_more,no_experience,save_half,weekly,buy a house,259577,397434,975,12,high,38.5
+20,buy_more,yes_sometimes,invest_all,weekly,retirement,308044,59503,1530,15,medium,59.9
+7,buy_more,no_never,invest_all,weekly,buy a house,325007,120119,2167,12,high,40.2
+4,sell_immediately,no_experience,save_half,quarterly,buy a house,38987,13400,692,2,low,10.3
+8,buy_more,no_never,save_half,monthly,wealth building,62977,9799,333,20,medium,44.3
+0,wait_and_see,yes_sometimes,save_all,quarterly,vacation,9994,5314,156,2,low,6.1
+0,wait_and_see,yes_always,save_all,rarely,emergency fund,4904,1256,138,1,low,4.0
+5,wait_and_see,no_experience,save_all,monthly,save for a car,24551,7688,911,3,medium,14.4
+5,wait_and_see,yes_sometimes,save_half,rarely,save for a car,52827,28639,1232,2,high,20.4
+10,wait_and_see,no_never,save_half,weekly,wealth building,193048,136898,1315,20,high,74.7
+1,wait_and_see,yes_sometimes,save_half,rarely,emergency fund,45361,69467,1558,3,high,11.9
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,431826,43522,1184,25,medium,46.1
+6,buy_more,yes_sometimes,invest_all,monthly,buy a house,112951,226443,1723,5,high,48.2
+5,buy_more,no_never,invest_all,monthly,buy a house,90050,185058,915,10,high,36.1
+3,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,75514,11951,1007,5,low,5.7
+3,wait_and_see,no_never,save_half,monthly,retirement,519228,286658,2913,5,medium,36.8
+15,buy_more,yes_sometimes,save_half,daily,retirement,934151,1577576,2635,15,medium,49.1
+1,sell_immediately,yes_always,spend_it,rarely,emergency fund,4504,308,148,1,low,1.0
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,34197,37788,706,2,medium,11.0
+6,wait_and_see,yes_sometimes,save_half,weekly,buy a house,410769,212454,2994,12,high,35.8
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,12465,1714,217,3,low,1.0
+20,buy_more,no_never,invest_all,daily,wealth building,197151,231966,849,30,high,82.2
+8,wait_and_see,no_never,invest_all,monthly,wealth building,267679,78719,828,20,medium,40.1
+3,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,170384,80250,14221,2,high,25.6
+8,buy_more,no_never,invest_all,monthly,retirement,434203,93621,1391,15,medium,46.3
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,1698791,2200749,3293,15,high,82.7
+6,wait_and_see,no_never,invest_all,weekly,retirement,824505,706610,5556,5,medium,48.4
+8,wait_and_see,no_experience,save_half,weekly,wealth building,311019,231636,3380,10,medium,42.2
+0,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,9607,2506,343,2,low,10.9
+1,sell_immediately,yes_always,spend_it,quarterly,vacation,3198,1801,30,3,low,6.7
+1,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,26846,2940,718,2,medium,8.1
+5,sell_immediately,no_experience,save_half,monthly,buy a house,377672,94368,14534,4,high,32.0
+15,wait_and_see,no_never,save_half,daily,retirement,902146,677374,3583,10,medium,45.8
+2,sell_immediately,yes_always,spend_it,rarely,vacation,10952,3420,250,3,low,1.0
+8,buy_more,no_never,invest_all,quarterly,buy a house,150187,53893,1131,5,medium,23.1
+2,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,11495,5989,77,2,low,7.4
+3,buy_more,yes_sometimes,invest_all,weekly,retirement,845354,624253,4828,7,medium,48.0
+25,buy_more,no_never,invest_all,monthly,retirement,2692580,5985474,11937,25,high,95.9
+18,wait_and_see,no_never,save_half,monthly,retirement,1011998,161231,5594,20,medium,56.4
+1,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,15476,6203,345,3,medium,9.4
+5,sell_immediately,yes_sometimes,save_all,rarely,buy a house,333323,580216,3005,5,high,27.9
+7,wait_and_see,yes_sometimes,save_half,weekly,buy a house,141501,139174,1014,7,medium,25.0
+30,buy_more,no_never,invest_all,weekly,retirement,2759711,4068957,46981,15,high,95.4
+2,sell_immediately,yes_always,save_all,quarterly,vacation,9951,2153,211,2,low,3.1
+8,wait_and_see,no_never,invest_all,weekly,buy a house,158162,208709,4199,5,high,40.5
+10,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,539470,559640,3856,10,high,65.0
+3,wait_and_see,no_experience,invest_all,quarterly,wealth building,226497,34959,3469,7,high,53.9
+1,sell_immediately,no_experience,save_half,monthly,buy a house,31654,11415,88,3,low,12.9
+4,wait_and_see,no_experience,save_half,rarely,save for a car,23771,5356,164,3,low,13.0
+2,sell_immediately,yes_sometimes,spend_it,quarterly,emergency fund,6620,3268,389,1,low,6.2
+8,wait_and_see,no_never,save_half,monthly,buy a house,517805,205631,9965,10,high,38.1
+6,wait_and_see,yes_sometimes,save_half,weekly,retirement,1979242,303100,33461,5,high,62.1
+5,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,25827,5925,594,5,high,29.4
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,6268,6817,223,1,medium,6.1
+2,sell_immediately,no_experience,save_all,monthly,save for a car,50164,31190,256,3,medium,8.0
+10,buy_more,yes_sometimes,save_half,weekly,wealth building,281156,212794,1030,20,medium,44.0
+5,wait_and_see,no_experience,save_half,quarterly,emergency fund,18108,1798,231,3,low,6.0
+15,buy_more,no_never,save_half,monthly,wealth building,70517,64647,112,20,medium,41.6
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,373136,437804,1703,20,medium,64.8
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,840225,366711,2998,25,high,94.9
+0,sell_immediately,yes_sometimes,save_all,quarterly,vacation,10137,8816,97,2,low,6.6
+1,sell_immediately,no_experience,save_all,rarely,save for a car,91283,59905,2189,2,high,17.7
+5,sell_immediately,no_experience,save_half,quarterly,emergency fund,34845,5651,503,4,medium,5.6
+3,wait_and_see,yes_sometimes,save_half,quarterly,emergency fund,44773,64590,1503,2,high,4.9
+4,sell_immediately,yes_sometimes,save_all,monthly,save for a car,25930,6301,395,5,medium,18.6
+4,buy_more,no_experience,save_half,monthly,buy a house,131686,131105,507,12,medium,24.7
+7,buy_more,no_experience,invest_all,quarterly,buy a house,217840,350294,1321,7,high,35.6
+8,wait_and_see,yes_sometimes,invest_all,weekly,retirement,2051114,3721641,8574,15,high,82.3
+8,buy_more,no_never,invest_all,daily,wealth building,353976,135444,1209,15,medium,42.4
+4,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,102330,60850,1294,5,medium,15.8
+2,wait_and_see,yes_sometimes,save_all,monthly,save for a car,54141,89277,1440,3,high,18.9
+18,buy_more,no_never,invest_all,daily,wealth building,232389,124608,941,10,medium,45.6
+2,sell_immediately,no_experience,save_all,quarterly,save for a car,12119,8306,108,3,low,7.1
+15,wait_and_see,no_never,save_half,daily,retirement,1945560,4598109,11076,15,high,83.6
+5,sell_immediately,no_experience,save_half,monthly,buy a house,181514,36319,5488,3,medium,17.7
+8,buy_more,no_never,invest_all,monthly,retirement,1353393,2013202,5640,15,high,87.0
+6,wait_and_see,no_experience,invest_all,monthly,retirement,856485,1259548,20618,5,high,73.3
+1,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,53166,33615,1359,4,high,7.2
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,3584,1202,187,1,low,1.9
+20,buy_more,no_never,invest_all,monthly,retirement,1486356,2717123,3076,25,medium,59.3
+8,buy_more,yes_sometimes,invest_all,weekly,buy a house,93622,120978,261,10,high,33.6
+12,wait_and_see,no_never,invest_all,daily,wealth building,1088225,1284513,13047,10,high,76.6
+5,buy_more,no_never,invest_all,weekly,buy a house,58487,73571,670,5,medium,26.0
+0,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,6182,2722,67,2,low,11.5
+7,wait_and_see,no_never,invest_all,weekly,buy a house,61529,43268,338,7,medium,28.7
+10,wait_and_see,yes_sometimes,invest_all,monthly,retirement,758944,123702,3470,20,medium,44.6
+15,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,526054,186799,4337,10,high,64.9
+20,buy_more,no_never,invest_all,monthly,retirement,3418570,4494483,27978,15,high,90.8
+5,sell_immediately,yes_sometimes,save_half,monthly,save for a car,99784,148956,3149,3,high,24.2
+25,buy_more,no_never,invest_all,weekly,retirement,658565,341609,3623,15,high,90.9
+2,wait_and_see,yes_sometimes,save_half,quarterly,emergency fund,15994,3228,57,5,low,1.0
+3,buy_more,no_experience,save_half,monthly,wealth building,1046153,989785,10411,10,high,60.4
+4,wait_and_see,no_never,invest_all,quarterly,buy a house,418060,209512,8612,5,high,35.6
+4,wait_and_see,no_never,invest_all,monthly,wealth building,962135,1133068,2663,10,high,59.8
+12,buy_more,yes_sometimes,save_half,daily,wealth building,322592,267904,1820,15,medium,41.8
+1,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,95771,42208,2017,3,high,16.9
+6,wait_and_see,no_experience,invest_all,quarterly,buy a house,171668,60060,3078,5,medium,16.2
+18,wait_and_see,no_never,invest_all,weekly,wealth building,864105,2079693,7011,10,high,73.8
+0,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,20340,24218,327,3,medium,11.2
+1,wait_and_see,no_experience,save_all,monthly,buy a house,162494,133229,1375,3,medium,16.0
+1,sell_immediately,no_experience,save_all,monthly,save for a car,14629,3142,301,2,low,11.4
+3,wait_and_see,no_experience,invest_all,weekly,buy a house,111450,134598,895,7,medium,19.3
+1,wait_and_see,no_experience,save_all,rarely,buy a house,52892,12071,841,5,low,13.6
+3,wait_and_see,yes_sometimes,save_half,monthly,buy a house,407537,193739,11062,5,high,31.9
+3,buy_more,yes_sometimes,save_half,quarterly,wealth building,100340,44845,446,5,medium,29.5
+8,wait_and_see,no_never,save_half,monthly,wealth building,63063,37805,232,20,medium,47.6
+3,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,19864,10534,166,4,medium,4.3
+15,buy_more,no_never,invest_all,weekly,retirement,826571,1089585,8731,15,high,94.4
+8,wait_and_see,no_experience,save_half,monthly,buy a house,405076,315037,9376,7,high,37.6
+15,buy_more,yes_sometimes,invest_all,daily,wealth building,158878,33971,1050,10,medium,36.7
+1,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,39581,17560,778,3,low,14.1
+8,buy_more,no_never,invest_all,monthly,retirement,468174,500330,1367,15,medium,50.6
+4,wait_and_see,yes_sometimes,save_half,quarterly,save for a car,31608,2320,461,3,low,10.7
+1,wait_and_see,yes_always,save_all,quarterly,emergency fund,14083,4721,161,1,low,5.7
+3,buy_more,no_never,invest_all,weekly,retirement,1427931,2821985,25600,5,high,88.3
+8,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,309507,127431,1397,15,medium,42.8
+4,sell_immediately,no_experience,save_half,monthly,save for a car,51494,19244,608,4,medium,16.3
+2,sell_immediately,no_experience,save_half,monthly,save for a car,15549,2243,166,5,low,7.8
+0,sell_immediately,yes_always,save_all,rarely,emergency fund,4419,1264,69,2,low,7.5
+20,buy_more,yes_sometimes,invest_all,daily,retirement,1187317,1402235,4663,30,high,81.6
+5,sell_immediately,no_experience,save_all,monthly,emergency fund,17591,10818,456,4,medium,1.4
+8,buy_more,yes_sometimes,save_half,daily,retirement,1097919,232723,3159,15,medium,47.4
+4,wait_and_see,yes_sometimes,save_all,monthly,save for a car,17614,8967,293,2,medium,15.8
+2,wait_and_see,no_experience,save_all,monthly,save for a car,25197,8525,434,2,low,10.7
+5,wait_and_see,no_never,invest_all,weekly,buy a house,198771,80555,897,5,medium,16.4
+4,wait_and_see,no_experience,save_half,quarterly,emergency fund,11472,9332,79,3,low,7.3
+3,wait_and_see,no_experience,save_all,monthly,emergency fund,19058,18829,216,2,low,3.9
+4,wait_and_see,no_experience,save_half,rarely,buy a house,269973,540558,13283,2,high,34.2
+25,buy_more,no_never,invest_all,monthly,retirement,2083748,4187867,13725,30,high,93.3
+1,sell_immediately,yes_always,spend_it,quarterly,vacation,7111,3486,391,2,medium,19.6
+6,buy_more,yes_sometimes,invest_all,monthly,wealth building,163024,96950,199,12,medium,47.3
+4,sell_immediately,no_experience,save_half,quarterly,save for a car,25390,4813,576,5,medium,9.5
+3,buy_more,yes_sometimes,invest_all,weekly,retirement,313303,89077,901,12,medium,47.7
+4,wait_and_see,yes_sometimes,save_half,monthly,buy a house,195822,40860,2362,7,high,29.4
+7,wait_and_see,no_experience,invest_all,monthly,wealth building,275485,173419,2732,7,medium,33.9
+1,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,5755,1155,47,3,low,6.6
+2,wait_and_see,yes_always,save_all,rarely,vacation,15790,7419,559,2,medium,5.5
+5,sell_immediately,yes_sometimes,save_all,monthly,buy a house,195170,185053,11111,3,high,35.8
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,776981,174082,5269,15,medium,53.4
+1,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,8827,3076,89,3,medium,11.3
+25,buy_more,yes_sometimes,invest_all,daily,retirement,1239718,828643,1351,25,medium,56.7
+6,buy_more,no_experience,invest_all,quarterly,buy a house,113409,69717,2139,5,medium,19.2
+0,sell_immediately,yes_sometimes,save_all,quarterly,vacation,6374,3007,68,2,low,10.6
+15,buy_more,no_never,invest_all,daily,wealth building,603721,1718040,4503,10,high,78.2
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,405346,170183,15450,4,high,24.6
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,909889,2011689,4247,20,high,79.3
+25,buy_more,yes_sometimes,invest_all,monthly,wealth building,153564,102736,716,15,high,74.0
+15,buy_more,no_never,invest_all,monthly,wealth building,923188,544717,3207,25,high,70.1
+5,wait_and_see,no_experience,save_all,rarely,buy a house,376719,73398,14195,3,high,24.7
+1,sell_immediately,no_experience,save_half,rarely,buy a house,174332,17242,2721,4,medium,14.6
+18,buy_more,yes_sometimes,save_half,weekly,retirement,790707,595435,3903,15,high,82.8
+3,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,44075,46496,1283,5,high,14.1
+4,buy_more,yes_sometimes,invest_all,weekly,retirement,914424,736402,6401,12,medium,48.4
+20,buy_more,yes_sometimes,invest_all,daily,wealth building,121612,156355,409,25,medium,49.6
+4,wait_and_see,no_never,save_half,monthly,retirement,2940899,2822535,20741,12,high,78.5
+5,wait_and_see,no_never,save_half,weekly,buy a house,149969,124362,735,7,medium,18.9
+2,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,26778,17562,2312,1,medium,7.8
+4,wait_and_see,no_experience,save_half,quarterly,buy a house,342036,681030,4138,4,high,36.6
+6,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,286447,196595,2696,12,high,36.9
+3,buy_more,no_never,save_half,monthly,buy a house,183538,38388,1176,7,medium,21.5
+30,buy_more,yes_sometimes,invest_all,weekly,wealth building,275557,417707,436,30,medium,46.6
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,7032,3057,108,2,low,2.6
+30,buy_more,no_never,invest_all,weekly,wealth building,237210,172295,1371,20,high,89.5
+18,buy_more,yes_sometimes,invest_all,weekly,retirement,1108899,2034725,11784,10,high,88.7
+15,buy_more,no_never,invest_all,weekly,wealth building,389983,171962,2043,30,medium,49.6
+8,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,731344,774029,4942,15,high,65.4
+3,wait_and_see,no_experience,save_all,monthly,save for a car,15003,1403,404,2,low,11.4
+2,wait_and_see,yes_sometimes,save_all,monthly,buy a house,83536,26882,1197,5,low,8.5
+7,buy_more,no_never,invest_all,quarterly,wealth building,258870,146152,544,7,medium,41.1
+5,wait_and_see,yes_sometimes,save_half,monthly,buy a house,73249,6376,609,4,low,18.6
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,3567298,3294573,23753,10,high,68.7
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1241081,1009967,14186,20,high,79.8
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,12261,7311,413,1,medium,4.9
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,741336,477168,8526,5,high,58.7
+3,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,25233,54671,364,5,high,13.4
+5,sell_immediately,no_experience,save_half,rarely,emergency fund,20977,14183,250,5,medium,5.4
+5,buy_more,no_never,invest_all,monthly,buy a house,167273,169304,1588,7,medium,21.6
+20,buy_more,no_never,invest_all,weekly,wealth building,226733,60339,474,25,medium,47.8
+6,wait_and_see,no_never,save_half,quarterly,wealth building,321943,208128,6562,7,high,71.9
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,3822491,2552159,15478,20,high,80.5
+1,wait_and_see,yes_sometimes,save_all,quarterly,vacation,3156,2973,48,3,medium,14.7
+7,wait_and_see,no_experience,save_half,weekly,wealth building,218115,44382,2577,7,medium,37.9
+3,wait_and_see,yes_sometimes,invest_all,quarterly,buy a house,234725,160431,1761,10,high,38.8
+5,wait_and_see,no_never,save_half,weekly,wealth building,289048,113510,1510,10,medium,30.5
+7,buy_more,no_experience,save_half,quarterly,wealth building,52215,42962,361,7,medium,36.4
+1,sell_immediately,yes_always,spend_it,rarely,vacation,6338,858,98,2,low,4.0
+3,wait_and_see,yes_sometimes,invest_all,quarterly,retirement,1289068,212015,24997,5,high,65.2
+8,buy_more,yes_sometimes,save_half,weekly,buy a house,146741,71911,2956,7,high,41.2
+4,sell_immediately,no_experience,save_all,rarely,save for a car,45027,76415,1122,3,high,25.1
+6,buy_more,no_never,invest_all,monthly,wealth building,862354,1091754,6316,7,high,74.3
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,752807,570916,12992,15,high,82.0
+18,wait_and_see,no_never,invest_all,weekly,wealth building,490387,151571,5285,10,high,69.2
+25,buy_more,no_never,invest_all,weekly,retirement,3189002,2204325,12494,20,high,95.9
+30,buy_more,no_never,invest_all,daily,retirement,863824,972311,5940,15,medium,54.6
+7,buy_more,yes_sometimes,invest_all,quarterly,wealth building,699746,495932,8334,5,high,61.0
+3,wait_and_see,no_experience,invest_all,monthly,buy a house,74455,52118,603,7,medium,19.5
+3,wait_and_see,yes_sometimes,save_half,rarely,emergency fund,26422,9283,334,2,medium,3.6
+3,buy_more,no_experience,invest_all,quarterly,wealth building,115718,68557,1159,10,medium,36.4
+7,buy_more,no_experience,invest_all,quarterly,wealth building,51307,43700,388,5,medium,45.9
+15,buy_more,yes_sometimes,invest_all,daily,retirement,1101448,1591610,2134,25,medium,57.1
+1,wait_and_see,no_experience,save_half,quarterly,buy a house,56819,7726,378,5,low,12.7
+8,wait_and_see,no_experience,save_half,monthly,wealth building,1096757,2120688,13802,10,high,64.3
+10,buy_more,yes_sometimes,invest_all,weekly,wealth building,489698,186235,2943,15,high,69.6
+1,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,5285,1840,24,3,low,1.4
+5,buy_more,yes_sometimes,invest_all,weekly,retirement,971223,215618,12099,7,medium,43.3
+7,wait_and_see,no_never,save_half,weekly,wealth building,156387,161613,1607,7,high,65.1
+6,buy_more,no_never,invest_all,monthly,retirement,467402,447489,1381,10,medium,54.1
+5,sell_immediately,no_experience,save_half,rarely,emergency fund,13227,3626,323,2,low,3.9
+12,buy_more,yes_sometimes,save_half,monthly,retirement,949713,208994,3564,20,medium,49.8
+5,wait_and_see,no_never,invest_all,quarterly,buy a house,74823,48162,510,12,medium,20.1
+3,wait_and_see,no_experience,save_half,quarterly,buy a house,66335,10656,565,4,low,8.8
+4,buy_more,yes_sometimes,save_half,quarterly,retirement,670561,548635,3903,7,medium,47.8
+1,sell_immediately,yes_always,spend_it,rarely,emergency fund,33518,31068,581,2,medium,12.0
+5,sell_immediately,no_experience,save_half,rarely,buy a house,127222,25070,4228,4,medium,21.0
+30,buy_more,no_never,invest_all,weekly,wealth building,181991,94654,1996,30,high,89.1
+3,wait_and_see,yes_sometimes,save_half,rarely,save for a car,46948,38342,452,3,medium,20.4
+3,wait_and_see,no_experience,save_half,weekly,wealth building,177090,51874,1251,7,medium,36.2
+4,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,55144,40670,4265,2,high,22.4
+5,wait_and_see,no_never,save_half,quarterly,retirement,1039351,853187,15674,7,high,71.1
+4,sell_immediately,yes_sometimes,save_half,rarely,save for a car,55063,105912,731,5,high,29.1
+2,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,14762,4861,460,2,low,1.0
+0,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,12958,4555,1244,1,medium,8.8
+10,buy_more,no_never,invest_all,weekly,wealth building,108193,69610,851,15,medium,49.6
+4,wait_and_see,yes_sometimes,save_all,rarely,save for a car,13313,3563,338,3,low,18.5
+18,buy_more,yes_sometimes,save_half,monthly,wealth building,121103,61195,1643,10,medium,36.2
+8,wait_and_see,no_never,invest_all,quarterly,wealth building,174115,68508,3093,5,medium,38.1
+4,wait_and_see,no_experience,save_half,rarely,save for a car,49744,48357,961,2,medium,18.1
+18,buy_more,yes_sometimes,save_half,monthly,retirement,283524,240357,1813,15,medium,52.8
+8,wait_and_see,no_never,save_half,monthly,buy a house,63063,9477,935,7,medium,18.4
+18,buy_more,yes_sometimes,invest_all,daily,retirement,763820,1155058,4106,10,high,79.2
+1,sell_immediately,yes_sometimes,spend_it,rarely,vacation,18983,20980,329,2,medium,1.8
+30,buy_more,yes_sometimes,invest_all,weekly,wealth building,541335,633095,5333,25,high,86.8
+4,buy_more,no_never,save_half,monthly,retirement,680890,288380,1918,12,medium,39.5
+15,buy_more,yes_sometimes,save_half,weekly,retirement,550819,123710,1919,15,medium,51.5
+0,wait_and_see,yes_always,save_all,rarely,emergency fund,33908,39430,1762,1,medium,3.1
+15,buy_more,no_never,save_half,daily,wealth building,308032,377195,1340,15,medium,43.9
+4,buy_more,yes_sometimes,save_half,quarterly,retirement,923973,448504,1562,12,medium,38.5
+4,buy_more,yes_sometimes,invest_all,quarterly,retirement,816783,240379,9717,10,medium,43.1
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,8374,830,239,2,low,13.4
+30,buy_more,yes_sometimes,invest_all,daily,retirement,1610233,1136342,10530,15,high,85.8
+10,wait_and_see,yes_sometimes,save_half,monthly,retirement,547518,74742,4338,10,medium,41.6
+4,wait_and_see,no_experience,invest_all,weekly,wealth building,57888,8726,367,10,medium,32.1
+20,buy_more,no_never,invest_all,weekly,wealth building,1469508,737633,6562,30,high,73.2
+15,buy_more,yes_sometimes,save_half,weekly,wealth building,478353,515099,1160,15,high,72.4
+2,sell_immediately,no_experience,save_all,quarterly,buy a house,41723,12786,454,3,low,8.4
+12,buy_more,no_never,invest_all,weekly,wealth building,55618,11214,480,10,medium,46.7
+4,sell_immediately,no_experience,save_all,quarterly,buy a house,293136,549098,4799,5,high,31.2
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,25373,17925,2282,1,medium,7.7
+4,wait_and_see,no_experience,invest_all,quarterly,wealth building,404594,410799,5736,10,high,58.9
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,3523563,1527725,25007,15,high,78.6
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,17560,9837,202,2,low,12.1
+3,wait_and_see,yes_sometimes,invest_all,quarterly,retirement,279406,294356,1601,12,medium,37.4
+1,sell_immediately,no_experience,save_half,rarely,buy a house,303842,197176,6291,5,high,20.9
+3,sell_immediately,no_experience,save_all,monthly,emergency fund,15053,7180,105,4,low,4.1
+7,buy_more,no_experience,invest_all,weekly,retirement,571112,133832,5138,12,medium,49.8
+7,wait_and_see,no_never,invest_all,quarterly,wealth building,199648,156933,6950,5,high,69.9
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,16199,2806,241,2,low,1.0
+18,buy_more,no_never,invest_all,weekly,retirement,1282808,650862,7684,20,medium,56.8
+2,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,34599,13165,494,5,low,3.7
+6,wait_and_see,yes_sometimes,save_half,monthly,buy a house,88766,59412,583,10,medium,18.8
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,10093,3977,127,2,low,6.3
+10,wait_and_see,yes_sometimes,invest_all,daily,wealth building,312690,62986,2684,15,medium,38.4
+5,buy_more,no_experience,invest_all,monthly,buy a house,565009,1007459,3822,12,high,33.5
+5,buy_more,no_never,invest_all,quarterly,buy a house,206759,110497,623,12,medium,25.5
+20,buy_more,yes_sometimes,invest_all,weekly,retirement,216766,210161,776,30,medium,51.6
+30,buy_more,yes_sometimes,invest_all,monthly,retirement,4302131,6148828,11846,30,high,90.1
+12,buy_more,no_never,save_half,weekly,wealth building,118251,148970,1096,10,high,74.4
+4,buy_more,yes_sometimes,invest_all,quarterly,retirement,2022396,2108529,9096,10,high,68.2
+15,wait_and_see,no_never,invest_all,monthly,retirement,620835,119080,5391,15,high,77.3
+3,wait_and_see,yes_sometimes,invest_all,quarterly,buy a house,208353,155997,8260,5,high,31.7
+12,buy_more,yes_sometimes,save_half,monthly,retirement,278939,404430,914,10,medium,43.3
+2,wait_and_see,no_experience,save_all,quarterly,emergency fund,29674,27159,582,4,medium,6.9
+5,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,78711,63696,503,5,high,19.5
+5,wait_and_see,no_experience,save_half,rarely,emergency fund,34598,23134,630,2,medium,6.9
+6,wait_and_see,no_never,save_half,weekly,buy a house,134789,179160,2163,10,high,44.1
+2,wait_and_see,no_experience,save_half,rarely,emergency fund,19534,33336,399,5,high,12.2
+2,wait_and_see,no_experience,save_all,monthly,emergency fund,23201,17301,442,3,medium,1.4
+5,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,53647,64164,1093,5,high,13.8
+2,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,11886,2231,265,3,medium,7.4
+20,buy_more,no_never,invest_all,weekly,wealth building,320586,177873,832,15,medium,49.4
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,2802373,6857038,8837,25,high,84.0
+1,sell_immediately,no_experience,save_half,monthly,emergency fund,15829,9741,153,5,medium,1.0
+0,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,19151,5088,706,1,medium,5.2
+0,wait_and_see,yes_always,save_all,rarely,vacation,16511,2806,1897,1,medium,20.4
+1,wait_and_see,no_experience,save_all,monthly,buy a house,67596,26638,1279,3,medium,16.8
+18,buy_more,yes_sometimes,invest_all,weekly,wealth building,377496,138166,2253,20,medium,45.2
+3,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,12191,10833,56,5,low,9.5
+7,buy_more,yes_sometimes,save_half,monthly,buy a house,50825,60258,689,5,medium,27.4
+5,buy_more,no_never,save_half,quarterly,wealth building,656892,1132571,6346,10,high,69.0
+10,buy_more,no_never,save_half,weekly,retirement,1192581,833372,6000,15,medium,48.9
+5,wait_and_see,yes_sometimes,save_all,monthly,buy a house,412103,578141,12025,3,high,23.0
+8,buy_more,no_never,save_half,monthly,wealth building,81559,27742,963,10,medium,36.3
+7,wait_and_see,no_never,invest_all,weekly,retirement,2685100,2356974,9628,12,high,77.8
+15,wait_and_see,yes_sometimes,save_half,daily,wealth building,350103,179518,2626,10,medium,39.0
+3,wait_and_see,no_never,save_half,monthly,buy a house,51717,45109,150,10,medium,22.2
+2,wait_and_see,yes_sometimes,spend_it,quarterly,vacation,9407,2684,59,3,low,6.2
+7,buy_more,yes_sometimes,invest_all,weekly,wealth building,179683,32862,657,12,medium,42.1
+5,sell_immediately,no_experience,save_half,quarterly,buy a house,84090,54919,895,2,medium,15.7
+10,wait_and_see,yes_sometimes,invest_all,daily,wealth building,773014,322012,13634,10,high,66.8
+4,sell_immediately,yes_sometimes,save_all,monthly,buy a house,98683,67614,643,5,low,3.4
+2,wait_and_see,yes_sometimes,save_all,quarterly,vacation,4429,4251,77,3,medium,9.7
+10,buy_more,no_never,invest_all,daily,wealth building,1085258,1794051,11594,10,high,74.1
+3,sell_immediately,no_experience,save_half,rarely,buy a house,172878,50084,9315,2,medium,14.6
+18,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,899764,809373,7752,20,high,71.4
+15,buy_more,no_never,save_half,weekly,wealth building,203119,43861,1379,20,medium,44.7
+1,wait_and_see,no_experience,save_all,rarely,buy a house,93945,179721,1444,4,high,28.4
+2,wait_and_see,yes_sometimes,save_half,rarely,emergency fund,30542,11653,341,4,medium,5.7
+1,sell_immediately,yes_always,save_all,rarely,emergency fund,6775,1655,378,1,low,3.7
+5,wait_and_see,no_experience,invest_all,monthly,retirement,3425474,5395468,9542,12,high,69.6
+0,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,6170,3527,101,2,low,6.6
+12,wait_and_see,yes_sometimes,invest_all,daily,retirement,1020322,552630,10893,20,high,80.7
+15,wait_and_see,yes_sometimes,invest_all,daily,retirement,2556381,6134328,11703,20,high,85.4
+15,buy_more,no_never,invest_all,monthly,retirement,718261,322685,4105,25,high,97.1
+20,buy_more,yes_sometimes,invest_all,weekly,retirement,1827886,4092231,4833,25,high,89.7
+18,buy_more,yes_sometimes,save_half,weekly,retirement,230463,210320,1796,15,medium,49.2
+5,sell_immediately,no_experience,save_all,quarterly,emergency fund,18300,11811,145,4,low,2.3
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,3291,823,166,1,low,1.0
+6,wait_and_see,yes_sometimes,invest_all,monthly,buy a house,226553,201789,1270,12,medium,20.0
+10,buy_more,yes_sometimes,invest_all,monthly,wealth building,211284,92313,1314,20,medium,48.7
+12,wait_and_see,yes_sometimes,save_half,daily,wealth building,834536,1445186,8151,15,high,76.9
+4,buy_more,no_experience,save_half,weekly,wealth building,94291,90760,443,12,medium,35.0
+25,buy_more,no_never,invest_all,daily,retirement,2725858,3488869,11673,30,high,92.8
+6,wait_and_see,yes_sometimes,invest_all,weekly,retirement,659664,750115,2089,10,medium,41.3
+20,buy_more,yes_sometimes,invest_all,daily,wealth building,514856,236288,2412,30,high,78.0
+12,wait_and_see,no_never,invest_all,weekly,wealth building,65756,96785,158,20,medium,45.6
+25,buy_more,yes_sometimes,invest_all,monthly,wealth building,154533,84955,963,25,medium,56.9
+8,wait_and_see,no_experience,save_half,monthly,wealth building,205165,36825,1306,7,medium,32.7
+20,buy_more,no_never,invest_all,daily,retirement,903447,713501,525,30,medium,47.5
+1,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,4363,1351,137,2,low,1.0
+0,wait_and_see,yes_always,spend_it,rarely,vacation,4969,463,71,3,medium,5.9
+4,wait_and_see,no_never,invest_all,monthly,retirement,2321516,1575545,36336,12,high,78.8
+2,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,25498,10270,343,5,medium,1.0
+4,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,15462,1995,226,4,low,5.7
+5,wait_and_see,no_experience,save_half,quarterly,buy a house,177417,265911,5244,5,high,39.9
+2,sell_immediately,yes_sometimes,spend_it,rarely,vacation,5408,1914,128,3,low,11.6
+18,buy_more,no_never,save_half,monthly,wealth building,337203,98914,5515,10,medium,43.9
+1,wait_and_see,yes_sometimes,save_all,monthly,buy a house,157856,94383,1483,4,medium,17.7
+3,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,11273,606,202,2,low,1.0
+18,wait_and_see,yes_sometimes,save_half,monthly,retirement,223707,121965,2003,10,medium,42.8
+5,buy_more,no_never,invest_all,monthly,retirement,1794901,2054464,10261,5,high,71.0
+3,buy_more,no_experience,invest_all,quarterly,retirement,806731,727230,4307,12,medium,42.9
+7,wait_and_see,yes_sometimes,save_half,weekly,buy a house,187936,257565,924,10,medium,21.2
+3,wait_and_see,no_experience,save_half,rarely,emergency fund,10011,3741,312,2,medium,9.7
+12,buy_more,no_never,save_half,monthly,wealth building,115345,125885,913,10,medium,45.0
+30,buy_more,no_never,invest_all,monthly,retirement,280653,572393,569,30,medium,61.5
+8,buy_more,yes_sometimes,save_half,daily,wealth building,765834,882667,1993,20,high,60.6
+1,sell_immediately,yes_always,save_all,rarely,emergency fund,5430,742,119,2,low,4.8
+5,buy_more,no_experience,save_half,quarterly,buy a house,574238,756105,3035,10,high,27.9
+2,sell_immediately,yes_sometimes,save_all,monthly,buy a house,225980,76425,8165,4,high,24.2
+2,wait_and_see,no_experience,save_half,rarely,buy a house,114284,219866,1801,4,high,26.2
+2,wait_and_see,no_experience,save_all,rarely,buy a house,90823,25913,2524,2,low,6.9
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,666208,446126,1126,25,medium,49.7
+6,wait_and_see,no_never,save_half,weekly,retirement,3224834,2038673,22038,10,high,75.0
+10,buy_more,yes_sometimes,invest_all,daily,wealth building,1050876,1122343,10538,15,high,79.1
+1,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,7091,4131,72,5,low,3.9
+1,sell_immediately,yes_sometimes,save_all,quarterly,vacation,10287,4039,154,3,low,1.0
+6,wait_and_see,no_never,save_half,quarterly,buy a house,100518,152028,1000,10,high,33.0
+2,wait_and_see,yes_sometimes,save_half,monthly,save for a car,24757,7518,708,2,low,11.4
+2,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,33618,11145,516,4,low,17.3
+10,buy_more,no_never,invest_all,weekly,wealth building,858465,596901,2409,20,high,75.5
+10,wait_and_see,no_never,invest_all,monthly,retirement,1941529,1058825,13500,15,high,78.5
+3,wait_and_see,yes_sometimes,invest_all,quarterly,wealth building,258537,112149,1607,10,medium,30.0
+5,buy_more,no_never,invest_all,monthly,buy a house,291295,178308,8076,5,high,47.6
+1,sell_immediately,yes_sometimes,spend_it,rarely,vacation,18428,9384,308,2,medium,6.5
+6,wait_and_see,yes_sometimes,save_half,monthly,retirement,725424,547839,6060,5,medium,40.3
+2,sell_immediately,yes_always,save_all,quarterly,vacation,7836,3294,38,3,low,1.0
+18,wait_and_see,no_never,save_half,daily,retirement,4133738,11710807,13866,20,high,81.4
+8,buy_more,no_never,invest_all,weekly,wealth building,1052134,774595,7394,12,high,72.2
+3,sell_immediately,yes_sometimes,save_half,monthly,buy a house,166976,128291,3794,4,medium,18.3
+4,sell_immediately,no_experience,save_all,rarely,buy a house,427565,948300,6967,5,high,33.0
+3,wait_and_see,no_experience,save_half,monthly,save for a car,31113,13609,235,5,low,9.6
+1,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,16089,7013,218,3,low,5.4
+8,buy_more,no_never,invest_all,quarterly,wealth building,67114,13684,752,7,medium,48.6
+3,buy_more,no_experience,invest_all,monthly,buy a house,567147,426158,3885,10,high,35.0
+4,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,273426,355427,6503,5,high,25.5
+4,buy_more,yes_sometimes,invest_all,quarterly,buy a house,196402,258507,1846,5,medium,27.6
+5,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,122596,133998,10244,2,high,34.7
+30,buy_more,no_never,invest_all,daily,wealth building,286213,254369,1339,25,high,87.7
+4,wait_and_see,yes_sometimes,save_half,quarterly,wealth building,483702,940938,2324,10,high,56.9
+15,buy_more,no_never,invest_all,weekly,retirement,683294,188968,2337,15,medium,42.3
+1,sell_immediately,no_experience,save_all,monthly,buy a house,32376,9700,288,5,low,8.8
+7,buy_more,no_never,invest_all,quarterly,wealth building,222101,165996,4323,5,medium,47.0
+2,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,5651,560,347,1,low,3.8
+4,sell_immediately,no_experience,save_half,rarely,save for a car,38586,27980,446,3,high,18.3
+4,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,17417,5362,884,3,high,9.7
+12,wait_and_see,no_never,save_half,daily,retirement,938866,485276,12388,10,medium,45.8
+6,buy_more,yes_sometimes,save_half,weekly,buy a house,110118,69386,2214,7,high,43.2
+1,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,16732,6935,318,5,medium,7.4
+30,buy_more,yes_sometimes,invest_all,daily,wealth building,634995,791956,9004,20,high,76.2
+5,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,98885,76427,863,3,low,11.2
+6,wait_and_see,no_never,invest_all,weekly,wealth building,201976,164185,1024,5,medium,43.6
+3,buy_more,no_experience,invest_all,monthly,buy a house,119233,44247,1271,5,medium,22.8
+3,wait_and_see,yes_sometimes,save_half,weekly,wealth building,526428,228035,8418,5,high,53.2
+0,sell_immediately,yes_always,save_all,rarely,vacation,5850,1649,19,3,low,7.0
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,500122,539299,4298,25,high,92.1
+2,wait_and_see,no_experience,save_half,rarely,buy a house,85056,37627,2465,4,medium,21.2
+10,buy_more,no_never,invest_all,daily,wealth building,766201,1223562,3910,15,high,73.9
+5,sell_immediately,yes_sometimes,save_all,quarterly,save for a car,51833,14996,348,5,medium,17.3
+8,buy_more,no_never,invest_all,weekly,wealth building,71733,38246,127,15,medium,48.3
+8,wait_and_see,no_never,save_half,monthly,wealth building,446043,502493,707,20,medium,35.5
+3,wait_and_see,no_experience,save_half,quarterly,emergency fund,11368,5850,124,4,low,3.0
+1,wait_and_see,yes_sometimes,save_all,rarely,vacation,2514,768,69,2,low,8.3
+6,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,140463,29409,2099,5,medium,36.4
+12,wait_and_see,no_never,invest_all,monthly,retirement,613172,148128,4472,15,medium,55.2
+2,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,31515,19088,1716,2,high,6.6
+6,buy_more,no_experience,save_half,monthly,wealth building,143832,96983,427,7,medium,42.2
+2,sell_immediately,yes_sometimes,save_all,quarterly,vacation,19361,16488,647,2,medium,10.0
+5,wait_and_see,yes_sometimes,save_all,monthly,save for a car,81453,21227,3495,3,high,31.7
+1,sell_immediately,no_experience,save_half,monthly,emergency fund,16800,5598,77,4,low,1.0
+0,wait_and_see,yes_always,save_all,quarterly,emergency fund,34097,17063,790,2,medium,5.8
+12,buy_more,no_never,invest_all,weekly,retirement,705508,573839,4049,10,medium,48.8
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,205490,214456,427,30,medium,39.8
+5,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,16516,13675,173,2,medium,9.0
+2,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,163290,76675,3101,5,medium,16.8
+15,buy_more,no_never,invest_all,daily,retirement,2593605,2021139,17926,20,high,92.0
+4,buy_more,yes_sometimes,save_half,weekly,retirement,1426049,1529697,8300,12,high,74.7
+7,wait_and_see,yes_sometimes,save_half,weekly,retirement,388024,350964,673,12,medium,47.5
+4,wait_and_see,no_experience,save_half,weekly,wealth building,322670,231013,1392,10,medium,31.4
+3,buy_more,yes_sometimes,invest_all,monthly,retirement,3320823,4738258,37383,10,high,79.2
+18,buy_more,yes_sometimes,invest_all,monthly,wealth building,827955,1377104,6411,10,high,73.2
+3,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,24761,19250,894,2,medium,18.0
+8,buy_more,yes_sometimes,save_half,monthly,wealth building,120221,45850,353,15,medium,32.7
+10,buy_more,yes_sometimes,save_half,monthly,wealth building,69160,48603,241,15,medium,35.1
+8,buy_more,no_never,save_half,monthly,buy a house,69359,29680,751,10,medium,28.7
+6,buy_more,no_never,invest_all,weekly,buy a house,125588,58082,650,10,medium,19.1
+3,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,344664,161657,856,12,medium,39.8
+2,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,42840,10908,940,4,medium,13.9
+5,wait_and_see,no_experience,save_half,rarely,buy a house,88683,79210,2537,3,medium,20.9
+7,buy_more,no_experience,save_half,monthly,buy a house,102500,11311,702,10,medium,19.6
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,3197,379,31,3,low,5.1
+1,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,8745,616,91,3,low,3.7
+5,wait_and_see,no_experience,save_half,rarely,save for a car,66563,18936,2810,3,high,28.2
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,4652,3051,159,2,medium,18.1
+5,buy_more,no_never,save_half,weekly,buy a house,118699,120078,1779,5,medium,25.4
+10,wait_and_see,no_never,invest_all,monthly,wealth building,1138298,378520,8403,20,high,56.4
+4,sell_immediately,yes_sometimes,save_half,monthly,buy a house,90754,14056,2712,3,low,11.5
+3,sell_immediately,yes_sometimes,save_half,rarely,save for a car,20308,10310,482,3,medium,10.2
+2,wait_and_see,no_experience,save_half,quarterly,save for a car,84956,34924,5921,2,high,20.6
+15,wait_and_see,no_never,invest_all,weekly,retirement,976442,1768241,10412,15,high,82.3
+15,buy_more,yes_sometimes,invest_all,monthly,retirement,575468,64205,3059,15,medium,48.0
+2,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,22724,4205,1917,1,medium,6.0
+4,buy_more,no_never,invest_all,monthly,wealth building,139644,27943,1176,7,medium,32.1
+2,wait_and_see,no_experience,save_half,quarterly,save for a car,23730,24923,189,3,medium,13.4
+12,buy_more,no_never,invest_all,monthly,wealth building,1004619,1149438,9666,10,high,75.5
+6,buy_more,no_never,invest_all,quarterly,wealth building,619742,674082,1765,10,high,67.6
+0,sell_immediately,yes_always,save_all,rarely,vacation,18245,15049,200,3,medium,5.8
+5,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,159075,96746,2291,5,medium,14.9
+12,wait_and_see,yes_sometimes,invest_all,daily,wealth building,396440,214064,2082,20,medium,40.6
+15,buy_more,yes_sometimes,invest_all,weekly,retirement,822461,949257,1625,20,high,87.4
+7,buy_more,yes_sometimes,invest_all,monthly,buy a house,126854,46629,1324,5,medium,25.6
+0,sell_immediately,yes_always,spend_it,rarely,vacation,10172,8974,264,1,low,9.7
+12,buy_more,yes_sometimes,save_half,daily,retirement,3598628,1406859,27406,10,high,69.1
+18,buy_more,no_never,save_half,monthly,wealth building,222632,44808,3212,10,medium,47.2
+2,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,282239,133381,16163,3,high,31.0
+3,buy_more,no_experience,save_half,weekly,wealth building,98465,21387,785,5,medium,36.0
+2,wait_and_see,yes_always,spend_it,rarely,emergency fund,16896,10159,1699,1,medium,9.1
+5,wait_and_see,no_never,invest_all,quarterly,buy a house,343168,181565,8976,5,high,43.0
+3,buy_more,no_experience,save_half,quarterly,buy a house,72117,41214,573,7,medium,22.9
+15,wait_and_see,no_never,invest_all,weekly,wealth building,437226,223699,3122,20,medium,47.3
+3,wait_and_see,yes_sometimes,save_all,quarterly,save for a car,31119,10132,465,3,low,11.4
+15,wait_and_see,no_never,invest_all,monthly,retirement,629937,293636,7605,10,high,76.4
+5,buy_more,no_experience,save_half,weekly,wealth building,53025,22604,1277,5,medium,43.8
+2,sell_immediately,no_experience,save_all,quarterly,buy a house,60413,33938,397,5,medium,10.3
+8,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1022108,429668,3806,20,medium,43.4
+18,buy_more,yes_sometimes,save_half,monthly,retirement,258495,101148,571,20,medium,47.9
+12,buy_more,yes_sometimes,invest_all,monthly,wealth building,406163,106203,824,20,medium,43.6
+25,buy_more,no_never,invest_all,daily,retirement,2267889,2922789,29362,15,high,90.1
+2,wait_and_see,no_experience,save_half,monthly,emergency fund,39004,50940,1107,5,high,15.9
+8,wait_and_see,no_never,invest_all,weekly,buy a house,62519,32144,705,5,medium,23.7
+1,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,22554,3715,296,4,low,4.4
+6,buy_more,no_never,invest_all,quarterly,retirement,314768,465649,835,12,medium,61.8
+1,sell_immediately,yes_sometimes,save_all,quarterly,vacation,18233,11271,713,1,medium,9.8
+1,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,15639,1813,164,3,low,1.0
+8,wait_and_see,no_never,save_half,quarterly,buy a house,118155,64601,1188,12,medium,20.1
+2,sell_immediately,yes_always,save_all,quarterly,vacation,16211,10963,88,3,medium,1.0
+10,buy_more,yes_sometimes,invest_all,weekly,wealth building,332355,228696,1438,10,high,68.4
+1,wait_and_see,no_experience,save_all,rarely,buy a house,163735,43321,3040,5,medium,10.9
+1,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,345255,47531,6837,4,high,21.4
+4,buy_more,no_never,save_half,monthly,wealth building,292669,397687,1486,7,medium,39.3
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,2978,1827,26,3,low,12.8
+1,sell_immediately,yes_always,spend_it,quarterly,vacation,3288,410,99,1,low,4.0
+1,sell_immediately,yes_always,save_all,rarely,vacation,5677,1819,87,1,low,10.0
+5,wait_and_see,yes_sometimes,invest_all,weekly,buy a house,383269,65821,6027,7,high,24.1
+3,buy_more,no_experience,invest_all,monthly,wealth building,285413,146549,797,12,medium,33.7
+3,wait_and_see,no_experience,save_all,rarely,buy a house,109171,34088,3106,4,medium,15.8
+5,wait_and_see,no_experience,save_half,rarely,emergency fund,13740,6806,89,5,low,7.0
+4,wait_and_see,no_experience,save_half,monthly,retirement,365749,159018,1354,10,medium,35.6
+6,buy_more,no_never,save_half,weekly,retirement,2917816,5891113,41000,5,high,85.2
+5,wait_and_see,no_experience,save_half,rarely,emergency fund,5072,2618,21,3,low,1.0
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,876483,488219,1862,15,medium,44.1
+4,wait_and_see,no_never,save_half,monthly,buy a house,110219,78392,194,12,medium,25.8
+2,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,13033,5629,103,3,low,6.5
+1,sell_immediately,yes_sometimes,spend_it,quarterly,vacation,15006,6552,202,2,medium,13.4
+1,wait_and_see,yes_always,save_all,quarterly,emergency fund,16081,8504,819,1,low,1.0
+0,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,8093,5578,127,3,medium,4.5
+1,sell_immediately,yes_always,save_all,quarterly,vacation,13508,8806,203,3,medium,5.6
+1,sell_immediately,yes_always,spend_it,rarely,emergency fund,13455,6292,252,2,low,6.6
+15,wait_and_see,no_never,invest_all,monthly,wealth building,220448,59661,1097,20,medium,44.3
+1,sell_immediately,no_experience,save_half,rarely,save for a car,73815,105533,1515,5,high,24.5
+3,wait_and_see,no_never,save_half,monthly,buy a house,395005,192630,8126,10,high,31.7
+8,buy_more,no_never,invest_all,monthly,retirement,2071884,2744399,13687,10,high,82.4
+2,wait_and_see,yes_always,save_all,quarterly,emergency fund,13071,6556,298,2,low,3.6
+18,wait_and_see,yes_sometimes,save_half,daily,wealth building,380920,101609,1708,20,medium,37.2
+4,wait_and_see,no_experience,invest_all,quarterly,retirement,586540,449692,4126,12,medium,38.2
+5,sell_immediately,no_experience,save_half,monthly,buy a house,174265,236133,6333,4,high,30.4
+8,wait_and_see,no_experience,save_half,weekly,wealth building,334142,76142,7790,7,high,60.8
+18,buy_more,yes_sometimes,invest_all,weekly,wealth building,583117,793059,5086,20,high,80.0
+7,buy_more,no_never,save_half,weekly,buy a house,174670,48899,1104,12,medium,27.1
+10,buy_more,no_never,save_half,weekly,retirement,1248664,870447,4194,20,medium,46.1
+1,sell_immediately,no_experience,save_half,rarely,buy a house,51096,11274,587,4,low,1.0
+8,buy_more,no_never,invest_all,weekly,retirement,3721729,6566975,19797,20,high,85.0
+1,wait_and_see,yes_sometimes,save_all,quarterly,vacation,14418,7712,150,3,medium,12.7
+12,buy_more,yes_sometimes,invest_all,monthly,wealth building,155384,144111,1985,10,high,74.1
+3,wait_and_see,yes_sometimes,save_half,weekly,buy a house,104012,119135,318,12,medium,20.9
+1,wait_and_see,yes_always,spend_it,rarely,vacation,19433,4974,1365,1,medium,12.4
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,5731,2669,203,3,medium,6.4
+0,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,17362,3854,227,3,low,1.0
+8,buy_more,no_never,invest_all,daily,retirement,3098514,6759038,29600,10,high,80.6
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,20563,8562,423,3,medium,1.0
+6,wait_and_see,no_experience,save_half,quarterly,retirement,1266941,1999766,22612,7,high,79.0
+12,buy_more,yes_sometimes,invest_all,weekly,retirement,370936,146058,1664,15,medium,56.1
+0,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,18967,4033,476,3,medium,1.0
+5,wait_and_see,no_experience,invest_all,weekly,wealth building,1047859,1878414,5339,12,high,67.4
+12,buy_more,yes_sometimes,save_half,monthly,retirement,1749944,1841173,4843,10,high,77.4
+15,buy_more,no_never,invest_all,daily,wealth building,667591,1679755,2719,20,high,91.5
+5,sell_immediately,no_experience,save_all,quarterly,buy a house,53318,49440,465,3,medium,14.2
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,14179,10032,129,3,low,1.0
+5,buy_more,no_never,invest_all,weekly,wealth building,781076,1400399,12806,7,high,65.9
+5,buy_more,no_never,save_half,monthly,retirement,898203,609935,4471,7,medium,43.7
+1,wait_and_see,no_experience,save_half,quarterly,buy a house,184083,95521,6740,2,medium,14.2
+1,wait_and_see,no_experience,save_all,monthly,buy a house,42986,14873,138,3,low,8.6
+18,buy_more,yes_sometimes,invest_all,weekly,wealth building,227119,45585,652,20,medium,39.7
+3,buy_more,no_never,invest_all,monthly,wealth building,484457,634409,2764,12,high,70.4
+1,wait_and_see,yes_sometimes,save_all,quarterly,vacation,18245,11922,495,1,medium,18.6
+10,buy_more,no_never,invest_all,monthly,retirement,205313,28512,1216,15,medium,58.5
+2,sell_immediately,yes_sometimes,spend_it,rarely,emergency fund,18747,7672,303,3,medium,7.1
+30,buy_more,yes_sometimes,invest_all,monthly,retirement,1282166,1909318,3329,15,high,86.4
+2,wait_and_see,no_experience,save_all,quarterly,buy a house,36687,32059,241,3,low,5.8
+6,buy_more,yes_sometimes,invest_all,monthly,wealth building,884272,1860870,12627,7,high,68.1
+8,buy_more,no_never,invest_all,monthly,wealth building,171338,215690,1857,12,high,76.0
+3,wait_and_see,no_experience,invest_all,quarterly,buy a house,359932,509703,1454,10,high,36.0
+3,sell_immediately,no_experience,save_all,monthly,emergency fund,14336,7993,172,2,low,15.1
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,3623,3575,45,2,medium,11.8
+18,wait_and_see,no_never,invest_all,daily,retirement,3506987,4848271,14511,20,high,86.1
+3,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,20628,15874,107,4,medium,2.8
+10,buy_more,yes_sometimes,save_half,weekly,wealth building,402763,158499,4589,15,high,65.2
+7,wait_and_see,yes_sometimes,invest_all,monthly,retirement,1633610,2137938,10899,10,high,70.5
+18,buy_more,no_never,invest_all,monthly,wealth building,828104,366080,8378,15,high,81.8
+8,buy_more,no_never,save_half,monthly,wealth building,710593,1016163,2399,10,high,71.6
+8,buy_more,no_never,invest_all,monthly,retirement,763408,380064,3586,15,medium,49.9
+1,wait_and_see,no_experience,save_all,monthly,save for a car,84908,160564,964,4,high,26.3
+12,buy_more,yes_sometimes,invest_all,daily,retirement,1008405,366910,14330,10,medium,45.5
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,148742,95030,664,20,medium,46.9
+25,buy_more,yes_sometimes,invest_all,monthly,retirement,659033,251779,2993,20,medium,57.3
+3,buy_more,yes_sometimes,save_half,quarterly,retirement,605929,464733,2654,7,medium,38.3
+4,sell_immediately,no_experience,save_half,quarterly,buy a house,166020,60654,2828,2,medium,8.6
+15,wait_and_see,yes_sometimes,save_half,monthly,retirement,961578,1362572,3686,20,high,86.0
+3,wait_and_see,yes_sometimes,invest_all,monthly,buy a house,355921,58747,5588,7,high,29.8
+15,buy_more,no_never,invest_all,weekly,wealth building,241302,139670,282,15,medium,38.5
+12,wait_and_see,no_never,invest_all,monthly,retirement,952397,608303,4801,15,medium,58.5
+7,wait_and_see,no_experience,save_half,quarterly,retirement,495301,297742,4835,10,medium,48.2
+0,wait_and_see,yes_sometimes,save_all,rarely,emergency fund,4450,1294,49,2,low,1.0
+3,sell_immediately,yes_sometimes,save_half,rarely,buy a house,194448,62067,2358,3,medium,18.9
+1,sell_immediately,no_experience,save_all,quarterly,emergency fund,46238,86796,1196,2,high,14.7
+6,wait_and_see,no_never,save_half,monthly,wealth building,746546,195048,6275,12,high,56.6
+30,buy_more,no_never,invest_all,weekly,retirement,2011356,3013113,14721,20,high,96.2
+5,buy_more,no_never,save_half,weekly,buy a house,145121,59667,2584,7,medium,24.2
+2,sell_immediately,no_experience,save_half,rarely,save for a car,19846,9866,380,3,low,4.1
+8,wait_and_see,no_never,save_half,monthly,buy a house,437146,641570,12085,5,high,38.3
+4,sell_immediately,yes_sometimes,save_half,monthly,save for a car,34015,36697,909,2,high,22.9
+1,sell_immediately,no_experience,save_half,quarterly,buy a house,111776,29599,2117,2,medium,22.9
+8,wait_and_see,no_never,invest_all,weekly,retirement,793158,298627,6807,15,medium,49.2
+1,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,16890,15677,131,3,low,1.0
+3,wait_and_see,no_experience,save_half,weekly,buy a house,194602,61021,3301,7,medium,17.7
+2,sell_immediately,no_experience,save_all,quarterly,save for a car,15484,1822,330,3,medium,7.0
+10,wait_and_see,no_never,save_half,daily,wealth building,1069302,771412,11740,20,high,70.5
+1,sell_immediately,yes_sometimes,save_all,monthly,emergency fund,10325,4684,74,3,low,5.4
+5,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,13394,8371,120,2,low,13.6
+7,wait_and_see,yes_sometimes,save_half,weekly,retirement,380823,55113,2651,7,medium,39.4
+3,buy_more,no_never,save_half,quarterly,buy a house,333467,470273,5615,7,high,38.0
+8,buy_more,no_never,save_half,weekly,wealth building,790061,724670,2302,15,high,70.8
+12,buy_more,yes_sometimes,save_half,weekly,retirement,2945854,1380637,15442,20,high,75.2
+8,buy_more,no_experience,save_half,quarterly,buy a house,511229,451555,3194,10,high,38.8
+4,buy_more,no_never,invest_all,monthly,buy a house,116655,61053,801,12,high,40.1
+30,buy_more,no_never,invest_all,monthly,retirement,2101251,398031,8953,30,high,97.3
+5,wait_and_see,no_experience,save_half,monthly,buy a house,92743,24914,1007,4,low,7.5
+5,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,17311,11056,155,3,low,9.7
+5,buy_more,no_never,invest_all,quarterly,buy a house,446839,331981,1960,10,high,29.3
+5,sell_immediately,no_experience,save_half,rarely,buy a house,251952,339434,9700,3,high,23.5
+2,sell_immediately,yes_sometimes,spend_it,rarely,emergency fund,10115,2507,284,2,medium,2.3
+3,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,375035,181012,17216,4,high,32.6
+8,wait_and_see,yes_sometimes,invest_all,quarterly,retirement,707737,696652,2073,7,medium,36.6
+4,wait_and_see,no_experience,save_all,quarterly,emergency fund,16377,2650,234,2,low,8.2
+12,buy_more,yes_sometimes,save_half,weekly,retirement,2544468,2041620,60215,10,high,82.9
+12,wait_and_see,yes_sometimes,invest_all,daily,wealth building,284586,114094,2515,10,medium,46.8
+4,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,37063,37216,2287,3,high,9.8
+6,buy_more,no_experience,invest_all,quarterly,wealth building,343783,168350,1772,12,medium,40.4
+7,buy_more,no_never,save_half,weekly,retirement,824783,1279932,2370,12,medium,45.7
+4,buy_more,no_experience,save_half,quarterly,wealth building,340246,221016,1891,12,medium,34.3
+4,buy_more,yes_sometimes,save_half,monthly,retirement,2518017,3850051,16870,12,high,69.8
+5,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,146172,82322,1085,5,medium,18.5
+6,buy_more,no_experience,save_half,quarterly,wealth building,141328,86357,2769,10,high,62.4
+15,buy_more,no_never,invest_all,weekly,wealth building,991177,279402,5968,15,high,81.6
+20,buy_more,no_never,invest_all,weekly,retirement,493353,92659,3420,15,medium,61.6
+25,buy_more,yes_sometimes,invest_all,weekly,wealth building,1173138,3321656,5508,20,high,80.0
+4,buy_more,no_never,save_half,weekly,wealth building,687062,1679277,8822,5,high,70.9
+1,sell_immediately,no_experience,save_half,monthly,save for a car,44878,82936,754,5,high,27.9
+1,wait_and_see,no_experience,save_all,quarterly,buy a house,112423,45493,656,5,medium,13.3
+15,buy_more,yes_sometimes,invest_all,daily,retirement,376896,330710,1175,15,medium,49.8
+7,wait_and_see,yes_sometimes,save_half,weekly,wealth building,177222,165456,2013,7,medium,33.7
+18,buy_more,yes_sometimes,save_half,monthly,retirement,1072421,805867,3155,20,medium,53.7
+2,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,55992,77269,623,4,high,1.0
+18,buy_more,no_never,save_half,daily,retirement,367357,340530,1127,15,medium,50.5
+3,buy_more,no_never,save_half,weekly,wealth building,252189,339654,974,10,medium,29.9
+15,buy_more,yes_sometimes,invest_all,monthly,wealth building,156399,149672,223,30,high,69.3
+30,buy_more,no_never,invest_all,weekly,retirement,1415148,890979,6438,30,medium,55.2
+4,sell_immediately,yes_sometimes,save_half,rarely,buy a house,93266,121274,1941,2,high,33.5
+3,wait_and_see,yes_sometimes,save_all,monthly,save for a car,23395,4281,945,2,low,11.6
+20,buy_more,no_never,invest_all,weekly,wealth building,1360369,1620168,10125,25,high,84.8
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,1193984,1058208,3687,20,high,74.4
+15,buy_more,no_never,invest_all,weekly,retirement,458237,240550,3192,20,medium,53.3
+5,wait_and_see,yes_sometimes,invest_all,quarterly,buy a house,567441,1043025,4932,12,high,36.0
+5,sell_immediately,yes_sometimes,save_half,monthly,save for a car,47593,60096,849,3,medium,19.0
+1,sell_immediately,yes_always,save_all,quarterly,vacation,2200,733,21,2,low,1.0
+5,wait_and_see,no_experience,invest_all,quarterly,buy a house,140392,290805,1174,10,high,35.2
+25,buy_more,no_never,invest_all,daily,retirement,426772,79027,2031,15,medium,51.4
+3,buy_more,no_never,save_half,monthly,wealth building,185414,392927,1318,12,high,63.4
+6,wait_and_see,yes_sometimes,save_half,monthly,retirement,2182179,1504552,39469,5,high,70.0
+15,wait_and_see,yes_sometimes,save_half,daily,retirement,601887,287418,4172,15,medium,57.6
+2,sell_immediately,yes_sometimes,save_half,quarterly,buy a house,127351,27888,3635,2,medium,8.5
+18,wait_and_see,no_never,invest_all,daily,retirement,251989,284138,2400,10,medium,55.6
+5,wait_and_see,no_never,save_half,weekly,wealth building,973631,176039,7839,12,high,60.3
+1,sell_immediately,yes_sometimes,save_all,monthly,emergency fund,58146,110502,1089,4,high,15.8
+8,wait_and_see,no_never,save_half,weekly,wealth building,503123,776819,3358,20,high,78.3
+3,buy_more,no_experience,invest_all,quarterly,retirement,572391,466904,5291,12,high,72.5
+6,buy_more,no_experience,save_half,weekly,buy a house,199392,29394,1063,10,medium,21.5
+20,buy_more,no_never,invest_all,weekly,wealth building,819190,1198843,3299,20,high,73.9
+5,sell_immediately,no_experience,save_half,quarterly,emergency fund,14282,2392,145,4,low,3.9
+5,buy_more,yes_sometimes,invest_all,quarterly,retirement,666340,409261,1353,7,medium,38.0
+5,wait_and_see,no_experience,save_half,quarterly,wealth building,338793,691802,4301,7,high,53.2
+5,buy_more,no_experience,invest_all,quarterly,wealth building,552819,161390,18138,5,high,55.0
+2,sell_immediately,no_experience,save_half,monthly,emergency fund,11988,2368,311,3,medium,8.2
+5,buy_more,no_experience,save_half,quarterly,retirement,1228417,1214988,22562,10,high,74.9
+1,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,13807,1596,699,1,medium,10.4
+2,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,10730,2492,58,3,low,1.0
+10,buy_more,no_never,save_half,monthly,retirement,2472760,4974174,24562,10,high,83.9
+15,wait_and_see,no_never,save_half,monthly,wealth building,1108062,813238,7261,15,high,75.4
+4,sell_immediately,yes_sometimes,save_all,monthly,buy a house,42734,16447,162,3,low,9.1
+0,wait_and_see,yes_always,spend_it,quarterly,emergency fund,3987,866,57,3,low,3.7
+2,wait_and_see,yes_always,save_all,rarely,emergency fund,19061,9980,374,1,low,4.0
+15,buy_more,yes_sometimes,save_half,weekly,retirement,997732,811352,6989,15,medium,46.8
+18,buy_more,yes_sometimes,invest_all,daily,retirement,1070526,631511,5432,15,medium,52.3
+18,wait_and_see,no_never,save_half,monthly,retirement,3534861,3192387,42112,20,high,86.0
+15,wait_and_see,yes_sometimes,invest_all,daily,retirement,2856498,2596474,23963,10,high,75.0
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,1329246,2159322,9026,20,high,79.6
+2,sell_immediately,no_experience,save_all,quarterly,emergency fund,46113,22742,740,4,high,9.7
+10,buy_more,yes_sometimes,invest_all,daily,retirement,251050,177606,1360,20,medium,54.9
+2,sell_immediately,yes_sometimes,save_all,rarely,emergency fund,7794,990,614,1,low,4.8
+18,wait_and_see,no_never,invest_all,weekly,wealth building,271681,165936,637,15,medium,45.4
+2,wait_and_see,no_experience,save_half,quarterly,buy a house,161405,115164,4288,2,medium,8.6
+2,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,27749,14232,2699,2,high,7.5
+30,buy_more,yes_sometimes,invest_all,daily,wealth building,1495136,1739931,14032,20,high,81.0
+8,wait_and_see,no_never,invest_all,quarterly,buy a house,391077,411356,4614,12,high,41.4
+3,buy_more,no_never,save_half,weekly,wealth building,289199,48211,3147,7,medium,26.1
+15,wait_and_see,yes_sometimes,invest_all,daily,retirement,572173,366303,3698,15,medium,44.1
+6,buy_more,no_never,save_half,weekly,retirement,625565,859666,9746,7,high,82.7
+1,wait_and_see,yes_always,spend_it,quarterly,vacation,10264,1912,77,3,low,9.2
+8,wait_and_see,no_experience,invest_all,quarterly,retirement,922315,549590,7789,7,medium,44.1
+3,wait_and_see,no_experience,save_half,quarterly,retirement,609412,691002,3462,10,medium,40.8
+3,sell_immediately,yes_sometimes,save_half,quarterly,save for a car,63451,70793,1678,5,high,32.6
+10,wait_and_see,no_never,invest_all,daily,retirement,3769221,1870818,43235,20,high,75.3
+2,sell_immediately,yes_always,spend_it,rarely,emergency fund,9367,2903,49,3,low,1.0
+2,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,8053,3727,367,1,medium,3.1
+20,buy_more,no_never,invest_all,daily,retirement,2709464,6651639,10629,30,high,98.3
+5,wait_and_see,yes_sometimes,save_all,quarterly,emergency fund,10543,1023,220,2,low,1.0
+1,sell_immediately,yes_always,save_all,rarely,vacation,5318,2647,117,3,medium,1.9
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,2925520,3883669,6023,15,high,80.7
+3,wait_and_see,yes_sometimes,save_all,quarterly,buy a house,85460,117642,2618,4,high,25.2
+4,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,21553,40384,889,2,high,11.4
+6,wait_and_see,no_experience,save_half,quarterly,retirement,407467,361656,2824,5,medium,35.3
+3,sell_immediately,yes_sometimes,save_all,monthly,buy a house,88942,25129,1130,4,low,12.3
+8,buy_more,no_experience,invest_all,monthly,wealth building,1052705,1433749,11685,10,high,65.8
+4,buy_more,no_experience,save_half,weekly,retirement,428676,182646,1039,10,medium,38.4
+25,buy_more,yes_sometimes,invest_all,daily,wealth building,465627,523651,1923,30,high,81.8
+1,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,13386,3269,106,2,low,7.3
+25,buy_more,no_never,invest_all,monthly,retirement,1154990,956847,1500,30,medium,56.6
+7,wait_and_see,no_experience,invest_all,quarterly,retirement,1131676,865916,17431,12,high,71.6
+3,buy_more,yes_sometimes,save_half,weekly,wealth building,673919,911537,5797,5,high,63.3
+5,buy_more,no_experience,invest_all,weekly,retirement,2951848,2317592,44707,5,high,76.9
+25,buy_more,yes_sometimes,invest_all,weekly,retirement,481232,113511,2849,20,medium,56.8
+10,buy_more,yes_sometimes,invest_all,daily,retirement,2078289,1354131,7087,20,high,73.5
+5,buy_more,no_experience,invest_all,quarterly,buy a house,109536,72222,1030,10,medium,19.7
+20,buy_more,yes_sometimes,invest_all,monthly,wealth building,271562,179258,948,15,medium,42.5
+30,buy_more,yes_sometimes,invest_all,monthly,wealth building,107022,62242,243,20,medium,45.5
+3,buy_more,no_never,save_half,weekly,retirement,783313,207137,8301,10,high,67.9
+5,wait_and_see,yes_sometimes,save_half,quarterly,retirement,1086195,645622,11778,10,medium,30.6
+6,wait_and_see,no_never,invest_all,quarterly,buy a house,263586,243621,1418,12,high,42.0
+4,wait_and_see,no_experience,save_half,monthly,buy a house,181630,234884,1468,5,high,33.3
+4,sell_immediately,yes_sometimes,save_half,rarely,save for a car,44263,42492,219,5,medium,22.2
+1,sell_immediately,yes_sometimes,save_all,quarterly,vacation,5117,2768,97,1,low,16.3
+4,wait_and_see,no_experience,save_half,rarely,emergency fund,38919,18825,1416,2,high,8.6
+8,wait_and_see,yes_sometimes,save_half,weekly,retirement,3129138,3336162,28510,10,high,75.6
+4,buy_more,no_never,save_half,monthly,wealth building,884084,513679,7178,7,high,64.0
+0,sell_immediately,yes_always,save_all,quarterly,emergency fund,5964,1991,119,2,low,1.0
+15,buy_more,yes_sometimes,invest_all,daily,wealth building,503458,410448,1043,25,high,71.8
+5,buy_more,no_never,save_half,monthly,wealth building,254883,73271,2572,12,high,62.2
+6,wait_and_see,yes_sometimes,save_half,quarterly,retirement,953427,947050,3793,10,medium,42.9
+8,buy_more,no_experience,invest_all,monthly,retirement,3553467,6699406,24421,12,high,84.6
+7,wait_and_see,no_experience,save_half,quarterly,buy a house,253705,410818,1670,10,high,29.5
+8,wait_and_see,yes_sometimes,save_half,monthly,wealth building,358645,41985,1830,10,medium,34.4
+30,buy_more,yes_sometimes,invest_all,monthly,retirement,371833,126219,1082,25,medium,56.2
+3,buy_more,no_experience,invest_all,quarterly,retirement,501854,515534,2614,5,medium,41.6
+18,wait_and_see,no_never,invest_all,daily,retirement,419553,313898,4144,10,medium,50.6
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,3948811,1856711,49189,20,high,78.8
+1,sell_immediately,yes_sometimes,save_half,rarely,emergency fund,8815,1785,75,3,low,7.8
+7,buy_more,no_experience,save_half,weekly,wealth building,339024,733286,3949,7,high,71.9
+1,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,34737,16213,179,5,medium,9.6
+12,wait_and_see,no_never,invest_all,daily,wealth building,336403,235640,7956,10,high,78.4
+5,buy_more,no_never,save_half,monthly,wealth building,66230,92320,272,10,medium,33.6
+0,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,10597,9765,167,3,medium,1.2
+0,wait_and_see,yes_sometimes,save_all,rarely,vacation,5229,986,217,2,low,7.8
+1,sell_immediately,yes_always,spend_it,rarely,vacation,11327,3303,142,3,low,4.3
+7,buy_more,no_never,save_half,weekly,retirement,2734974,2465074,24484,5,high,75.3
+1,sell_immediately,no_experience,save_half,monthly,buy a house,169221,76033,1311,2,medium,12.8
+5,sell_immediately,no_experience,save_all,rarely,emergency fund,4783,864,64,5,low,1.1
+2,sell_immediately,yes_sometimes,save_all,quarterly,buy a house,441251,590030,5433,4,high,20.0
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,1018715,1762828,5445,20,high,81.9
+8,wait_and_see,no_never,invest_all,weekly,buy a house,261009,387410,1939,12,high,45.2
+8,wait_and_see,no_experience,invest_all,monthly,wealth building,334156,309945,1088,12,medium,32.0
+3,buy_more,yes_sometimes,invest_all,monthly,wealth building,199744,180688,2165,5,medium,38.5
+1,wait_and_see,yes_always,spend_it,rarely,vacation,8440,5253,281,3,medium,9.6
+12,wait_and_see,no_never,invest_all,daily,wealth building,1189365,305188,9192,15,high,71.2
+8,buy_more,yes_sometimes,invest_all,quarterly,retirement,241334,272360,1871,7,medium,53.8
+15,buy_more,yes_sometimes,invest_all,weekly,wealth building,727965,582590,3982,15,high,74.5
+2,sell_immediately,no_experience,save_all,quarterly,buy a house,41883,5029,1723,2,low,1.0
+12,wait_and_see,no_never,save_half,weekly,retirement,4185230,2562590,15620,20,high,80.8
+10,wait_and_see,yes_sometimes,invest_all,daily,wealth building,531302,750620,6095,15,high,66.7
+12,buy_more,no_never,invest_all,weekly,retirement,3982753,9436964,20936,20,high,91.5
+10,buy_more,no_never,save_half,daily,wealth building,144283,189350,312,15,high,73.1
+18,buy_more,no_never,save_half,weekly,wealth building,250510,419838,733,20,medium,51.6
+18,wait_and_see,yes_sometimes,invest_all,daily,retirement,931496,818573,4940,15,medium,46.6
+0,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,17487,6953,325,3,low,8.7
+5,buy_more,yes_sometimes,invest_all,weekly,wealth building,701715,952707,12954,5,high,64.6
+0,wait_and_see,yes_sometimes,spend_it,rarely,vacation,11361,3201,48,3,low,7.7
+7,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,175329,172844,1441,10,medium,28.6
+1,wait_and_see,no_experience,save_all,quarterly,emergency fund,15923,7279,59,4,low,1.0
+5,wait_and_see,no_experience,save_half,quarterly,buy a house,407425,187376,10531,5,high,29.7
+12,buy_more,yes_sometimes,invest_all,monthly,retirement,2457570,1745410,10860,20,high,80.5
+10,buy_more,no_never,invest_all,monthly,wealth building,334487,475100,2413,20,high,71.1
+8,buy_more,yes_sometimes,invest_all,weekly,wealth building,337875,54086,2111,10,medium,34.9
+4,wait_and_see,yes_sometimes,save_half,weekly,buy a house,252660,425667,2975,7,high,29.2
+30,buy_more,no_never,invest_all,weekly,retirement,2259422,1612414,9623,30,high,90.1
+8,buy_more,yes_sometimes,invest_all,weekly,retirement,505310,679600,2082,12,medium,53.8
+1,wait_and_see,yes_sometimes,save_all,quarterly,vacation,5772,1831,82,1,low,2.3
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,10506,3069,132,3,medium,8.7
+8,buy_more,no_never,invest_all,monthly,retirement,653989,528337,2594,15,medium,49.1
+5,wait_and_see,yes_sometimes,save_half,quarterly,retirement,777473,764243,13520,5,high,55.3
+12,wait_and_see,yes_sometimes,save_half,monthly,retirement,2897208,3852689,16566,20,high,74.8
+1,sell_immediately,yes_always,save_all,quarterly,vacation,11872,4221,203,1,low,5.7
+6,wait_and_see,no_experience,save_half,monthly,retirement,845822,366596,1601,12,medium,34.9
+2,wait_and_see,no_experience,save_half,quarterly,emergency fund,8693,3130,138,2,low,5.8
+3,wait_and_see,no_experience,invest_all,weekly,buy a house,210118,300662,1762,7,high,35.0
+2,sell_immediately,yes_sometimes,save_all,quarterly,emergency fund,29316,8789,344,3,medium,3.3
+5,sell_immediately,no_experience,save_half,monthly,buy a house,246817,81900,19804,3,high,32.0
+1,sell_immediately,yes_always,spend_it,rarely,emergency fund,27735,9691,1583,2,medium,1.0
+3,wait_and_see,no_experience,invest_all,monthly,wealth building,1153339,1806058,3353,12,high,54.3
+4,buy_more,no_experience,invest_all,quarterly,wealth building,947008,899290,18779,5,high,67.3
+3,wait_and_see,yes_sometimes,save_half,weekly,buy a house,251711,329580,3622,10,high,32.5
+15,buy_more,no_never,invest_all,daily,wealth building,124668,269140,1581,10,high,84.2
+3,wait_and_see,yes_sometimes,save_half,monthly,buy a house,213084,115755,209,12,medium,19.5
+30,buy_more,no_never,invest_all,weekly,wealth building,220445,799042,824,25,high,91.1
+15,buy_more,no_never,save_half,monthly,retirement,3303154,3793106,38416,15,high,93.9
+3,wait_and_see,yes_sometimes,save_half,monthly,wealth building,273130,47854,6685,5,medium,41.3
+4,sell_immediately,yes_sometimes,save_half,rarely,save for a car,13481,8289,148,4,low,10.3
+8,buy_more,no_never,save_half,weekly,buy a house,588200,583007,5335,12,high,43.9
+3,buy_more,no_experience,invest_all,quarterly,retirement,2106044,3314576,11492,12,high,78.0
+8,wait_and_see,yes_sometimes,save_half,monthly,retirement,2002558,4381247,8486,12,high,71.8
+12,buy_more,no_never,save_half,monthly,retirement,1039180,327398,8940,10,medium,43.8
+3,wait_and_see,no_experience,save_half,quarterly,save for a car,11837,4331,151,4,low,8.6
+8,wait_and_see,yes_sometimes,invest_all,quarterly,wealth building,72250,19763,998,10,medium,33.7
+4,wait_and_see,no_experience,save_all,monthly,emergency fund,26919,4640,299,5,medium,14.2
+8,wait_and_see,yes_sometimes,save_half,monthly,wealth building,145237,87444,630,10,medium,25.9
+12,wait_and_see,no_never,invest_all,weekly,wealth building,208280,55958,3127,10,medium,40.6
+6,buy_more,no_never,save_half,quarterly,wealth building,121175,56205,222,12,medium,40.2
+7,wait_and_see,yes_sometimes,save_half,monthly,buy a house,58149,22235,624,7,medium,16.4
+1,wait_and_see,yes_sometimes,save_all,rarely,save for a car,35978,53822,270,5,high,23.7
+7,wait_and_see,yes_sometimes,save_half,quarterly,wealth building,412608,149015,5524,7,high,58.4
+15,wait_and_see,yes_sometimes,invest_all,monthly,retirement,3387820,3943474,17535,10,high,80.8
+4,buy_more,no_experience,save_half,quarterly,wealth building,325930,184338,864,12,medium,30.9
+3,wait_and_see,no_experience,save_half,rarely,emergency fund,3738,2169,28,3,low,5.7
+25,buy_more,no_never,invest_all,monthly,retirement,3576795,3662255,17066,15,high,92.9
+5,wait_and_see,yes_sometimes,save_half,monthly,emergency fund,17930,17802,305,4,high,10.2
+0,wait_and_see,yes_sometimes,spend_it,quarterly,emergency fund,7715,1529,153,2,low,2.2
+4,buy_more,no_never,invest_all,weekly,retirement,1613854,1509983,9749,7,high,76.3
+2,sell_immediately,yes_sometimes,save_half,monthly,emergency fund,54330,56919,1356,3,high,8.7
+20,buy_more,no_never,invest_all,daily,wealth building,1378258,2574527,3807,25,high,79.5
+8,wait_and_see,yes_sometimes,invest_all,weekly,retirement,778806,791116,3811,10,medium,45.3
+3,wait_and_see,yes_sometimes,save_half,monthly,save for a car,32973,3251,800,3,low,12.7
+0,wait_and_see,yes_always,spend_it,rarely,emergency fund,9848,2647,409,3,medium,5.8
+5,wait_and_see,yes_sometimes,save_half,quarterly,emergency fund,8300,2997,21,5,low,1.0
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,3957,1364,123,3,medium,16.1
+1,sell_immediately,yes_sometimes,save_all,rarely,vacation,7984,3596,422,1,medium,13.7
+5,buy_more,no_experience,save_half,quarterly,retirement,488884,93252,6586,10,medium,42.7
+10,buy_more,no_never,save_half,daily,retirement,1794767,1173089,44011,10,high,84.5
+8,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,81387,35501,304,7,medium,34.7
+25,buy_more,yes_sometimes,invest_all,monthly,wealth building,302254,331133,673,15,medium,46.7
+18,buy_more,no_never,invest_all,daily,wealth building,260034,340239,498,15,medium,49.3
+20,buy_more,no_never,invest_all,monthly,wealth building,1233894,541757,4922,30,high,79.4
+20,buy_more,no_never,invest_all,monthly,wealth building,88657,65438,470,20,medium,46.0
+18,wait_and_see,no_never,invest_all,daily,wealth building,188481,180160,1669,10,medium,37.5
+1,sell_immediately,yes_sometimes,save_all,monthly,buy a house,94965,35413,712,5,low,5.6
+5,wait_and_see,yes_sometimes,save_half,quarterly,buy a house,77615,35520,177,5,low,12.6
+15,buy_more,no_never,invest_all,monthly,wealth building,348678,226689,3064,15,medium,48.1
+10,buy_more,no_never,invest_all,daily,retirement,2420108,3943731,12437,15,high,78.9
+5,wait_and_see,no_never,invest_all,weekly,buy a house,217229,253158,696,12,medium,30.7
+0,sell_immediately,yes_sometimes,spend_it,rarely,vacation,19356,11288,305,2,medium,2.2
+5,wait_and_see,no_experience,save_half,rarely,emergency fund,10436,4866,67,3,medium,6.5
+2,sell_immediately,yes_always,save_all,quarterly,emergency fund,4534,387,179,1,low,1.0
+15,wait_and_see,no_never,save_half,weekly,retirement,3449704,865019,27873,20,high,82.8
+7,buy_more,yes_sometimes,invest_all,monthly,wealth building,94283,120143,336,12,medium,45.5
+2,wait_and_see,no_experience,save_all,quarterly,save for a car,43153,11052,967,3,high,31.4
+6,wait_and_see,yes_sometimes,save_half,weekly,wealth building,122674,208902,1472,5,high,69.0
+2,wait_and_see,no_experience,save_half,quarterly,emergency fund,19576,16312,93,4,medium,2.6
+4,sell_immediately,yes_sometimes,save_all,monthly,emergency fund,17807,36844,252,5,high,10.9
+5,wait_and_see,yes_sometimes,save_half,weekly,retirement,689012,531493,4146,5,high,60.2
+20,buy_more,yes_sometimes,invest_all,daily,wealth building,428388,420090,1494,20,medium,42.8
+4,wait_and_see,no_never,save_half,monthly,buy a house,155683,46714,2462,7,medium,17.9
+18,wait_and_see,yes_sometimes,invest_all,monthly,wealth building,164607,207696,631,20,medium,44.4
+2,sell_immediately,yes_sometimes,save_half,quarterly,emergency fund,17019,5791,199,4,low,8.4
+30,buy_more,no_never,invest_all,monthly,retirement,772143,1355938,3274,15,high,94.7
+2,wait_and_see,yes_always,spend_it,quarterly,emergency fund,20350,9668,376,3,medium,1.1
+4,wait_and_see,yes_sometimes,invest_all,weekly,wealth building,208177,105328,2829,7,medium,37.2
+4,buy_more,no_never,invest_all,weekly,retirement,990244,958706,11112,7,high,68.5
+3,wait_and_see,no_experience,save_half,rarely,buy a house,192629,197250,3274,2,medium,16.5
+3,sell_immediately,no_experience,save_all,monthly,save for a car,40488,38378,918,3,medium,17.8
+8,buy_more,no_experience,invest_all,weekly,retirement,705634,333204,3937,10,medium,41.2
+2,wait_and_see,yes_sometimes,save_all,rarely,vacation,19762,9295,477,1,medium,7.2
+10,buy_more,yes_sometimes,invest_all,daily,retirement,2668882,4217213,34142,10,high,87.0
+0,sell_immediately,yes_always,spend_it,rarely,emergency fund,5463,1589,318,1,low,3.4
+8,buy_more,no_never,save_half,monthly,wealth building,623978,431665,9587,5,high,65.0
+5,wait_and_see,no_experience,save_half,monthly,emergency fund,17758,8303,264,3,low,6.3
+6,buy_more,no_never,save_half,monthly,wealth building,493595,757150,5291,12,high,71.8
+8,buy_more,no_experience,invest_all,monthly,retirement,1181177,1082675,2463,12,medium,49.8
+5,buy_more,no_never,invest_all,quarterly,retirement,542611,118881,4809,10,high,73.8
+18,buy_more,no_never,invest_all,monthly,wealth building,109629,47931,1226,20,high,84.1
+6,buy_more,no_never,invest_all,weekly,retirement,1179104,289492,12584,10,medium,55.2
+3,wait_and_see,yes_sometimes,save_all,monthly,emergency fund,27123,3834,690,4,medium,6.8
+5,sell_immediately,no_experience,save_all,monthly,buy a house,98878,23373,542,4,low,12.6
+18,wait_and_see,no_never,save_half,daily,retirement,481616,175593,4044,10,medium,50.2
+18,buy_more,no_never,invest_all,daily,retirement,426272,111016,2307,10,medium,47.1
+1,wait_and_see,yes_sometimes,save_all,rarely,buy a house,153429,107521,1355,4,medium,10.4
+18,buy_more,yes_sometimes,save_half,daily,retirement,2428528,4763834,11575,20,high,81.2
+1,sell_immediately,yes_sometimes,spend_it,rarely,vacation,14745,8558,270,2,medium,11.3
+3,wait_and_see,no_experience,save_all,rarely,emergency fund,47403,17984,1692,3,high,17.8
+6,wait_and_see,no_never,invest_all,monthly,retirement,474071,112916,2907,10,medium,42.6
+1,wait_and_see,yes_sometimes,spend_it,rarely,vacation,8334,4835,316,1,low,5.5
+8,buy_more,no_never,invest_all,monthly,wealth building,984880,623178,7627,10,high,66.7
+20,buy_more,yes_sometimes,invest_all,daily,wealth building,124655,107957,394,30,medium,52.0
+30,buy_more,no_never,invest_all,daily,retirement,2931656,3254633,36165,15,high,89.4
+10,wait_and_see,yes_sometimes,save_half,weekly,wealth building,340000,94564,1863,15,medium,34.9
+1,wait_and_see,yes_sometimes,spend_it,rarely,emergency fund,10133,1992,107,2,low,1.0
+0,wait_and_see,yes_always,spend_it,rarely,vacation,8567,6566,199,1,medium,6.0
+8,buy_more,no_experience,invest_all,quarterly,retirement,3347121,3146933,8727,10,high,74.2
+15,wait_and_see,no_never,save_half,daily,wealth building,553153,390802,2974,15,high,63.1

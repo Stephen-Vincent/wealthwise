@@ -31,8 +31,8 @@ export default function Dashboard() {
         <Header portfolioData={portfolioData} />
         <SummaryCards portfolioData={portfolioData} />
         <PortfolioGraph portfolioData={portfolioData} />
-        <StockPieChart data={portfolioData} onSliceClick={handleSliceClick} />
         <AIPortfolioSummary portfolioData={portfolioData} />
+        <StockPieChart data={portfolioData} onSliceClick={handleSliceClick} />
         <DashboardButtons />
       </main>
     </div>

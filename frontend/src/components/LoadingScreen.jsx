@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 const messages = [
   "🧠 Calculating your risk score...",
   "📊 Putting together your portfolio...",
   "🔍 Gathering market insights...",
+  "✅ Finalizing your personalized dashboard...",
 ];
 
 export default function LoadingScreen() {
@@ -35,19 +35,23 @@ export default function LoadingScreen() {
   }, []);
 
   useEffect(() => {
-    if (userId && simulationId) {
-      console.log("✅ Redirecting to dashboard with:", {
-        userId,
-        simulationId,
-      });
-      localStorage.setItem("simulationCompleted", "true"); // ✅ Mark simulation as complete
-      navigate(`/dashboard/${userId}/${simulationId}`);
-    } else {
-      console.warn("❌ Missing userId or simulationId in localStorage:", {
-        userId,
-        simulationId,
-      });
-    }
+    const interval = setInterval(() => {
+      const completed = localStorage.getItem("simulationCompleted");
+      const userIdCheck = localStorage.getItem("userId");
+      const simulationIdCheck = localStorage.getItem("simulationId");
+
+      if (
+        completed === "true" &&
+        userIdCheck &&
+        simulationIdCheck &&
+        simulationIdCheck !== "null"
+      ) {
+        clearInterval(interval);
+        navigate(`/dashboard/${userIdCheck}/${simulationIdCheck}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -55,7 +59,7 @@ export default function LoadingScreen() {
       <p
         className={`text-lg transition-opacity duration-500 ease-in-out mt-32 ${
           fade ? "opacity-100" : "opacity-0"
-        }`}
+        } ${index === messages.length - 1 ? "animate-pulse" : ""}`}
       >
         {messages[index]}
       </p>

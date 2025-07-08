@@ -31,12 +31,10 @@ export default function Login() {
     });
 
     const data = await res.json();
-    console.log("Login response:", data); // ← Add this line
 
     if (res.ok) {
       // Safer user info extraction
       const userId = data.user?.id;
-      console.log("✅ Extracted user ID:", userId);
 
       const userName = data.user?.name;
 
@@ -47,10 +45,7 @@ export default function Login() {
 
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("userId", String(userId));
-      console.log(
-        "📦 Stored user ID in localStorage:",
-        localStorage.getItem("user")
-      );
+
       localStorage.setItem("access_token", data.access_token);
 
       try {

@@ -59,8 +59,6 @@
 import { useState, useEffect, useContext } from "react";
 import { usePortfolio } from "../context/PortfolioContext";
 import { useNavigate } from "react-router-dom";
-import PortfolioContext from "../context/PortfolioContext";
-import logo from "../assets/wealthwise.png";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressDots from "./ProgressDots";
 import LoadingScreen from "./LoadingScreen";
@@ -76,6 +74,10 @@ export default function OnboardingForm() {
   // Local state to capture all onboarding form fields
   const [formData, setFormData] = useState({
     years_of_experience: "",
+    loss_tolerance: "",
+    panic_behavior: "",
+    financial_behavior: "",
+    engagement_level: "",
     investment_goal: "",
     target_amount: "",
     lump_sum_investment: "",
@@ -107,22 +109,126 @@ export default function OnboardingForm() {
     return () => clearTimeout(timeout);
   }, []);
 
-  // List of questions/steps for onboarding
+  // Complete list of questions/steps for onboarding
   const questions = [
     {
       key: "years_of_experience",
-      label: "How much investing experience do you have?",
+      label: "How many years of investing experience do you have?",
+      type: "select",
+      options: [...Array(31).keys()].map((year) => ({
+        value: year,
+        label: `${year} years`,
+      })),
+      placeholder: "Select years of experience",
     },
-    { key: "investment_goal", label: "What is your main goal for investing?" },
-    { key: "target_amount", label: "What is your target investment value?" },
-    { key: "lump_sum_investment", label: "How much would you like to invest?" },
+    {
+      key: "loss_tolerance",
+      label: "How would you react if your investment dropped by 20% in a week?",
+      type: "buttons",
+      options: [
+        {
+          value: "sell_immediately",
+          label: "Sell immediately to prevent further losses",
+        },
+        { value: "wait_and_see", label: "Wait and see what happens" },
+        { value: "buy_more", label: "Buy more while prices are low" },
+      ],
+    },
+    {
+      key: "panic_behavior",
+      label: "Have you ever sold investments during a market crash?",
+      type: "buttons",
+      options: [
+        { value: "yes_always", label: "Yes, I always sell when markets crash" },
+        { value: "yes_sometimes", label: "Yes, but only sometimes" },
+        { value: "no_never", label: "No, I hold through market downturns" },
+        {
+          value: "no_experience",
+          label: "I haven't experienced a major crash",
+        },
+      ],
+    },
+    {
+      key: "financial_behavior",
+      label: "What would you do with an unexpected £1,000 bonus?",
+      type: "buttons",
+      options: [
+        { value: "invest_all", label: "Invest all of it" },
+        { value: "save_half", label: "Save half, invest half" },
+        { value: "save_all", label: "Save all of it" },
+        { value: "spend_it", label: "Spend it on something I want" },
+      ],
+    },
+    {
+      key: "engagement_level",
+      label: "How often do you review your investments?",
+      type: "buttons",
+      options: [
+        { value: "daily", label: "Daily" },
+        { value: "weekly", label: "Weekly" },
+        { value: "monthly", label: "Monthly" },
+        { value: "quarterly", label: "Quarterly" },
+        { value: "rarely", label: "Rarely or never" },
+      ],
+    },
+    {
+      key: "investment_goal",
+      label: "What is your main goal for investing?",
+      type: "select",
+      options: [
+        { value: "buy a house", label: "Buy a house" },
+        { value: "vacation", label: "Vacation" },
+        { value: "emergency fund", label: "Emergency fund" },
+        { value: "retirement", label: "Retirement" },
+        { value: "save for a car", label: "Save for a car" },
+        { value: "wealth building", label: "General wealth building" },
+      ],
+      placeholder: "Select your goal",
+    },
+    {
+      key: "target_amount",
+      label: "What is your target investment value?",
+      type: "input",
+      inputType: "number",
+      placeholder: "Target value e.g. 20000",
+    },
+    {
+      key: "lump_sum_investment",
+      label: "How much would you like to invest?",
+      type: "dual_input",
+      inputs: [
+        {
+          key: "lump_sum_investment",
+          placeholder: "Lump sum amount",
+          type: "number",
+        },
+        {
+          key: "monthly_investment",
+          placeholder: "Monthly amount",
+          type: "number",
+        },
+      ],
+    },
     {
       key: "timeframe",
       label: "What is your ideal time frame to reach your goal?",
+      type: "buttons",
+      options: [
+        { value: "Under 1 year", label: "Under 1 year" },
+        { value: "1–5 years", label: "1–5 years" },
+        { value: "5–10 years", label: "5–10 years" },
+      ],
     },
     {
       key: "income",
       label: "Which income bracket best represents your household?",
+      type: "select",
+      options: [
+        { value: "low", label: "< £25,000" },
+        { value: "medium", label: "£25,000 - £50,000" },
+        { value: "high", label: "> £50,000" },
+      ],
+      placeholder: "Select your income bracket",
     },
   ];
 
@@ -131,6 +237,96 @@ export default function OnboardingForm() {
     "Under 1 year": 1,
     "1–5 years": 5,
     "5–10 years": 10,
+  };
+
+  // Render different question types
+  const renderQuestion = (question) => {
+    switch (question.type) {
+      case "select":
+        return (
+          <div className="flex justify-center items-center">
+            <select
+              className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
+              value={formData[question.key]}
+              onChange={(e) =>
+                setFormData({ ...formData, [question.key]: e.target.value })
+              }
+              required
+            >
+              <option value="" disabled>
+                {question.placeholder}
+              </option>
+              {question.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case "input":
+        return (
+          <div className="flex justify-center items-center">
+            <input
+              type={question.inputType || "text"}
+              className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
+              placeholder={question.placeholder}
+              value={formData[question.key]}
+              onChange={(e) =>
+                setFormData({ ...formData, [question.key]: e.target.value })
+              }
+              required
+            />
+          </div>
+        );
+
+      case "dual_input":
+        return (
+          <div className="flex justify-center items-center space-x-4 w-full max-w-2xl">
+            {question.inputs.map((input) => (
+              <input
+                key={input.key}
+                type={input.type}
+                step="0.01"
+                className="w-[170px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
+                placeholder={input.placeholder}
+                value={formData[input.key]}
+                onChange={(e) =>
+                  setFormData({ ...formData, [input.key]: e.target.value })
+                }
+              />
+            ))}
+          </div>
+        );
+
+      case "buttons":
+        return (
+          <div className="flex justify-center items-center gap-4 w-full max-w-4xl">
+            <div className="flex flex-col gap-3 w-full">
+              {question.options.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`font-bold px-6 py-4 rounded-[15px] hover:brightness-110 transition text-left ${
+                    formData[question.key] === option.value
+                      ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
+                      : "bg-[#00A8FF] text-white"
+                  }`}
+                  onClick={() =>
+                    setFormData({ ...formData, [question.key]: option.value })
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   // Advance to next onboarding step, with validation
@@ -194,10 +390,6 @@ export default function OnboardingForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
     setIsLoading(true);
 
-    console.log(
-      "Raw lump sum input (before parse):",
-      formData.lump_sum_investment
-    );
     const lump_sum = parseFloat(formData.lump_sum_investment || 0) || 0;
     const monthly_contribution =
       parseFloat(formData.monthly_investment || 0) || 0;
@@ -227,7 +419,6 @@ export default function OnboardingForm() {
 
     const user = JSON.parse(localStorage.getItem("user"));
     const userId = user?.id;
-    console.log("Fetched userId from localStorage (submit):", userId);
     if (!userId) {
       setIsLoading(false);
       alert("No user ID found. Please log in again.");
@@ -235,20 +426,13 @@ export default function OnboardingForm() {
     }
 
     try {
-      // Payload shape:
-      // {
-      //   name: string,
-      //   years_of_experience: number,
-      //   goal: string,
-      //   target_value: number,
-      //   lump_sum: number,
-      //   monthly: number,
-      //   risk: string,             // Initial input (not used by backend as final value)
-      //   investment_style: string
-      // }
       // Prepare payload for onboarding submission. Use backend field naming convention.
       const payload = {
         years_of_experience: parseInt(formData.years_of_experience),
+        loss_tolerance: formData.loss_tolerance,
+        panic_behavior: formData.panic_behavior,
+        financial_behavior: formData.financial_behavior,
+        engagement_level: formData.engagement_level,
         goal: formData.investment_goal,
         target_value: parseFloat(formData.target_amount),
         lump_sum: formData.lump_sum_investment
@@ -262,9 +446,7 @@ export default function OnboardingForm() {
         consent: formData.consent,
         name: userName || null,
         user_id: userId || null,
-        // risk and investment_style could be added here if needed for future expansion
       };
-      console.log("📤 Sending payload:", payload);
 
       // Send onboarding data to backend API (POST /onboarding/)
       const accessToken = localStorage.getItem("access_token");
@@ -291,10 +473,7 @@ export default function OnboardingForm() {
       if (simulationId && storedUserId) {
         localStorage.setItem("simulationId", simulationId);
         localStorage.setItem("userId", storedUserId);
-        console.log("✅ Stored simulationId and userId in localStorage:", {
-          simulationId,
-          userId: storedUserId,
-        });
+
         // If you need the risk value, always use simulationData.risk hereafter
         navigate("/loading");
       } else {
@@ -322,7 +501,7 @@ export default function OnboardingForm() {
       {showGreeting ? (
         <h2 className="text-2xl font-bold">Hello {userName || "there"} 👋</h2>
       ) : (
-        <div className="flex flex-col items-center justify-center min-h-[300px]  w-full max-w-xl">
+        <div className="flex flex-col items-center justify-center min-h-[300px] w-full max-w-xl">
           <div
             className={`transition-opacity duration-500 w-full ${
               fade ? "opacity-100" : "opacity-0"
@@ -333,150 +512,7 @@ export default function OnboardingForm() {
                 <h2 className="text-xl font-semibold mb-4">
                   {questions[step].label}
                 </h2>
-
-                {step === 0 && (
-                  <div className="flex justify-center items-center space-x-2">
-                    <select
-                      className="w-[300px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      value={formData.years_of_experience}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          years_of_experience: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="" disabled>
-                        Select years of experience
-                      </option>
-                      {[...Array(31).keys()].map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="text-lg font-bold">years</span>
-                  </div>
-                )}
-
-                {step === 1 && (
-                  <div className="flex justify-center items-center">
-                    <select
-                      name="goal"
-                      className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      value={formData.investment_goal}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          investment_goal: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Select your goal</option>
-                      <option value="buy a house">Buy a house</option>
-                      <option value="vacation">Vacation</option>
-                      <option value="emergency fund">Emergency fund</option>
-                      <option value="retirement">Retirement</option>
-                      <option value="save for a car">Save for a car</option>
-                    </select>
-                  </div>
-                )}
-
-                {step === 2 && (
-                  <div className="flex justify-center items-center">
-                    <input
-                      type="text"
-                      className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      placeholder="Target value e.g. 20000"
-                      value={formData.target_amount}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          target_amount: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                )}
-
-                {step === 3 && (
-                  <div className="flex justify-center items-center space-x-4 w-full max-w-2xl">
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-[170px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      placeholder="Lump sum amount"
-                      value={formData.lump_sum_investment}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          lump_sum_investment: e.target.value,
-                        })
-                      }
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="w-[170px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      placeholder="Monthly amount"
-                      value={formData.monthly_investment}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          monthly_investment: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                )}
-
-                {step === 4 && (
-                  <div className="flex justify-center items-center gap-8  w-full max-w-3xl">
-                    {["Under 1 year", "1–5 years", "5–10 years"].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className={`font-bold min-w-[160px] px-6 py-3 rounded-[15px] hover:brightness-110 transition ${
-                            formData.timeframe === label
-                              ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
-                              : "bg-[#00A8FF] text-white"
-                          }`}
-                          onClick={() =>
-                            setFormData({ ...formData, timeframe: label })
-                          }
-                        >
-                          {label}
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-
-                {step === 5 && (
-                  <div className="flex justify-center items-center gap-8 w-full max-w-3xl">
-                    <select
-                      name="income_bracket"
-                      className="w-[400px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                      value={formData.income}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          income: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Select your income bracket</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                )}
+                {renderQuestion(questions[step])}
               </>
             ) : (
               <div className="text-center">
@@ -502,7 +538,7 @@ export default function OnboardingForm() {
                   className="mt-4 bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
                   onClick={handleSubmit}
                 >
-                  Let’s Build Your Portfolio
+                  Let's Build Your Portfolio
                 </button>
               </div>
             )}
