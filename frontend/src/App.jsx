@@ -5,7 +5,7 @@ import OnboardingForm from "./components/OnboardingForm";
 import LoadingScreen from "./components/LoadingScreen";
 import Dashboard from "./components/Dashboard";
 import StockPage from "./components/StockPage";
-import Signup from "./components/SignUp";
+import Signup from "./components/Signup";
 import Login from "./components/Login";
 import { PortfolioProvider } from "./context/PortfolioContext"; // ✅ import the provider
 
@@ -19,10 +19,10 @@ export default function App() {
               <Route index element={<Login />} />
               <Route path="signup" element={<Signup />} />
               <Route path="login" element={<Login />} />
-              <Route path="onboarding" element={<OnboardingForm />} />
-              <Route path="onboarding/:id" element={<OnboardingForm />} />
-              <Route path="loading" element={<LoadingScreen />} />
             </Route>
+
+            {/* Move loading to top level so it can be accessed from anywhere */}
+            <Route path="/loading" element={<LoadingScreen />} />
 
             <Route
               path="/dashboard/:userId/:simulationId"

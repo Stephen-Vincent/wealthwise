@@ -1,11 +1,27 @@
 import React, { useEffect, useState, useContext } from "react";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
-import { Pie } from "react-chartjs-2";
+import { Chart } from "react-google-charts";
 import PortfolioContext from "../../context/PortfolioContext";
 
-// Register chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend);
-
+// Utility to lighten or darken a hex color by a percent
+// percent > 0: lighten, percent < 0: darken
+function shadeColor(color, percent) {
+  // Remove '#' if present
+  let hex = color.replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
+  let num = parseInt(hex, 16);
+  let r = (num >> 16) & 0xff;
+  let g = (num >> 8) & 0xff;
+  let b = num & 0xff;
+  r = Math.min(255, Math.max(0, Math.round(r + (255 - r) * percent)));
+  g = Math.min(255, Math.max(0, Math.round(g + (255 - g) * percent)));
+  b = Math.min(255, Math.max(0, Math.round(b + (255 - b) * percent)));
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
 // Category configurations for styling and grouping
 const CATEGORY_CONFIG = {
   bonds: {
@@ -336,79 +352,52 @@ export default function StockPieChart() {
     );
   }
 
-  // Safely map stocks to chart data with fallback colors
-  const pieData = enrichedStocks.map((stock) => {
+  // --- Google Charts Pie Chart Data Preparation ---
+  // Prepare chart data as [["Stock", "Allocation"], ...]
+  const chartData = [
+    ["Stock", "Allocation"],
+    ...enrichedStocks.map((stock) => [
+      `${stock.symbol} (${(stock.allocation * 100).toFixed(1)}%)`,
+      stock.allocation * 100,
+    ]),
+  ];
+
+  // Prepare colors for each slice using CATEGORY_CONFIG, alternate lighter/darker for 3D effect
+  const chartColors = enrichedStocks.map((stock, idx) => {
     const category = stock.info?.category || "other";
-    const color =
+    const baseColor =
       CATEGORY_CONFIG[category]?.color || DEFAULT_CATEGORY_CONFIG.color;
-    return {
-      ...stock,
-      value: stock.allocation,
-      color,
-      label: category,
-    };
+    // Odd-indexed slices: lighten; Even-indexed: darken (or vice versa)
+    const percent = idx % 2 === 0 ? -0.09 : 0.13;
+    return shadeColor(baseColor, percent);
   });
 
-  // Create chart data using pieData
-  const data = {
-    labels: pieData.map((item) => {
-      const percent = (item.value * 100).toFixed(1);
-      return `${item.symbol} ${percent}%`;
-    }),
-    datasets: [
-      {
-        label: "Portfolio Allocation (%)",
-        data: pieData.map((item) => item.value * 100),
-        backgroundColor: pieData.map((item) => item.color),
-        borderWidth: 2,
-        borderColor: "#fff",
-        hoverOffset: 8,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: {
-      padding: 10,
+  // Google Charts options for 3D pie chart
+  // Set legend position to "right" for better vertical display, and
+  // set legend.maxLines to 99 to avoid legend pagination/cycling arrows.
+  // See: https://developers.google.com/chart/interactive/docs/gallery/piechart#legend
+  const chartOptions = {
+    is3D: true,
+    legend: {
+      position: "right", // Place legend on right for vertical stacking
+      alignment: "center",
+      textStyle: { fontSize: 14, color: "#444" },
+      maxLines: 99, // Show as many legend entries vertically as possible; avoids pagination arrows
+      // This is intentionally set high for portfolios with many holdings.
     },
-    plugins: {
-      legend: {
-        display: false, // We'll create our own custom legend
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleColor: "#fff",
-        bodyColor: "#fff",
-        borderColor: "#374151",
-        borderWidth: 1,
-        callbacks: {
-          title: function (context) {
-            const stock = enrichedStocks[context[0].dataIndex];
-            return `${stock.info.icon} ${stock.info.name}`;
-          },
-          label: function (context) {
-            const stock = enrichedStocks[context.dataIndex];
-            return [
-              `Allocation: ${context.parsed.toFixed(1)}%`,
-              `Type: ${stock.info.type}`,
-              `Risk: ${stock.info.risk}`,
-            ];
-          },
-          afterLabel: function (context) {
-            const stock = enrichedStocks[context.dataIndex];
-            return `\n${stock.info.description}`;
-          },
-        },
-      },
+    pieSliceText: "none", // Hide labels on slices
+    tooltip: {
+      text: "percentage",
+      textStyle: { fontSize: 14 },
+      showColorCode: true,
     },
-    onClick: (event, activeElements) => {
-      if (activeElements.length > 0) {
-        const index = activeElements[0].index;
-        setSelectedInstrument(enrichedStocks[index]);
-      }
-    },
+    colors: chartColors,
+    backgroundColor: "transparent",
+    chartArea: { left: 0, top: 24, width: "100%", height: "80%" },
+    fontName: "Inter, sans-serif",
+    pieStartAngle: 60,
+    pieSliceBorderColor: "#e5e7eb",
+    slices: {},
   };
 
   return (
@@ -418,14 +407,40 @@ export default function StockPieChart() {
       </h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pie Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="h-80 flex items-center justify-center">
-            <Pie data={data} options={options} />
+        {/* Pie Chart Card - Google Charts 3D Pie */}
+        <div
+          className="rounded-2xl p-10 lg:p-14 shadow-2xl"
+          style={{
+            background: "rgba(255,255,255,0.92)",
+            boxShadow:
+              "0 8px 36px 0 rgba(31,38,135,0.14), 0 2px 12px 0 rgba(0,0,0,0.07)",
+            border: "none",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: 430,
+          }}
+        >
+          {/* Google 3D Pie Chart */}
+          <div
+            className="w-full flex items-center justify-center"
+            style={{ minHeight: 340, position: "relative" }}
+          >
+            {/* 
+              Google PieChart - 3D, custom colors, legend at bottom, minimalist.
+              Chart data and options are prepared above.
+            */}
+            <Chart
+              chartType="PieChart"
+              width="100%"
+              height="340px"
+              data={chartData}
+              options={chartOptions}
+              // onClick/selection events could be handled here if needed
+            />
           </div>
-          <p className="text-sm text-gray-500 text-center mt-4">
-            Click on segments for details
-          </p>
+          {/* Minimal, muted helper text below pie chart */}
         </div>
 
         {/* Category Summary & Holdings List */}
@@ -529,7 +544,16 @@ export default function StockPieChart() {
       {/* Detailed Instrument Modal/Card */}
       {selectedInstrument && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl max-h-96 overflow-y-auto">
+          {/* Glassmorphism for modal */}
+          <div
+            className="rounded-xl max-w-md w-full p-6 shadow-2xl max-h-96 overflow-y-auto"
+            style={{
+              background: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: "1.5px solid rgba(99,102,241,0.12)",
+            }}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{selectedInstrument.info.icon}</span>

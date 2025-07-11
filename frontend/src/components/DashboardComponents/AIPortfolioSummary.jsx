@@ -1,3 +1,12 @@
+/**
+ * AIPortfolioSummary.jsx
+ * ----------------------
+ * Displays an AI-generated summary of the user's portfolio.
+ * - Fetches summary data from PortfolioContext
+ * - Renders summary as markdown with GitHub-flavored markdown support
+ * - Handles loading, error, and missing data states
+ */
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm"; // For GitHub flavored markdown like tables, strikethrough, etc.
 import { usePortfolio } from "../../context/PortfolioContext";

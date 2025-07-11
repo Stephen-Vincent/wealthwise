@@ -1,9 +1,16 @@
-import { useContext } from "react";
-import PortfolioContext from "../../context/PortfolioContext";
+/**
+ * Header.jsx
+ * ----------
+ * Dashboard header component.
+ * - Greets the user by name (fetched from localStorage)
+ * - Shows main Dashboard title
+ * - Styled with Tailwind CSS
+ */
 
 export default function Header() {
   let userName = "user";
 
+  // Attempt to get user's name from localStorage
   const storedUser = localStorage.getItem("user");
   if (storedUser) {
     try {

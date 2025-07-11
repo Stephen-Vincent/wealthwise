@@ -1,52 +1,117 @@
 import logo from "../../assets/wealthwise.png";
 import { useNavigate } from "react-router-dom";
 
-export default function Sidebar() {
+export default function Sidebar({ scrollToSection, sectionRefs }) {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userId");
 
   const handleLogout = () => {
+    // Clear all authentication data
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
     localStorage.removeItem("userId");
     localStorage.removeItem("user_name");
-    navigate("/login");
+    localStorage.removeItem("simulationId");
+    localStorage.removeItem("portfolioData");
+    localStorage.removeItem("simulationData");
+    localStorage.removeItem("token");
+
+    // Navigate back to landing page (will show main welcome)
+    navigate("/");
   };
 
   const startNew = () => {
+    // Clear simulation data but keep user logged in
     localStorage.removeItem("portfolioData");
     localStorage.removeItem("simulationId");
     localStorage.removeItem("simulationData");
     localStorage.removeItem("token");
-    navigate(`/onboarding/${userId}`, { replace: true });
+
+    // Navigate back to landing page (will show welcome screen with panels)
+    navigate("/");
+  };
+
+  const viewSimulations = () => {
+    // Navigate back to landing page with a state indicating we want to show simulations
+    navigate("/", { state: { showPanel: "simulations" } });
+  };
+
+  // Helper function to convert ref keys to readable labels
+  const formatLabel = (key) => {
+    // Remove 'Ref' suffix and capitalize first letter
+    const label = key.replace(/Ref$/, "");
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+
+  // Helper function to get emoji icon for each actual section key used
+  const getIcon = (key) => {
+    switch (key) {
+      case "summaryRef":
+        return "📋";
+      case "graphRef":
+        return "📈";
+      case "aiSummaryRef":
+        return "🤖";
+      case "pieChartRef":
+        return "🥧";
+      default:
+        return "🔹";
+    }
   };
 
   return (
-    <aside className="w-1/6 p-4  shadow-md min-h-screen flex flex-col items-center">
+    <aside className="w-1/6 p-6 shadow-lg h-screen sticky top-0 flex flex-col items-center rounded-tr-3xl rounded-br-3xl bg-gradient-to-b from-white via-blue-50 to-blue-100">
+      {/* Logo Section */}
       <div className="mb-6 mt-4">
         <img
           src={logo}
           alt="WealthWise Logo"
           className="w-24 h-24 mx-auto mb-2"
         />
-        <div className="flex flex-col items-center mt-20">
-          <button
-            onClick={handleLogout}
-            className="mb-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Logout
-          </button>
-          <button
-            onClick={startNew}
-            className="bg-[#00A8FF] text-white px-4 py-2 rounded font-bold w-full"
-          >
-            Start New Simulation
-          </button>
-          <button
-            onClick={() => navigate("/simulations")}
-            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold w-full"
-          >
-            View Simulations
-          </button>
-        </div>
+      </div>
+
+      {/* Navigation Section */}
+      <nav className="mb-8 w-full">
+        <ul className="flex flex-col space-y-3">
+          {sectionRefs &&
+            Object.entries(sectionRefs).map(([key, ref]) => (
+              <li key={key}>
+                <button
+                  onClick={() => scrollToSection(ref)}
+                  className="w-full text-left px-4 py-2 rounded-l-md hover:bg-gray-200 hover:border-l-4 hover:border-blue-500 transition-colors font-semibold flex items-center space-x-3"
+                >
+                  <span className="text-lg">{getIcon(key)}</span>
+                  <span>{formatLabel(key)}</span>
+                </button>
+              </li>
+            ))}
+        </ul>
+      </nav>
+
+      {/* Action Buttons Section */}
+      <div className="flex flex-col items-center mt-auto w-full">
+        <button
+          onClick={handleLogout}
+          className="mb-5 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded font-semibold w-full"
+        >
+          Logout
+        </button>
+
+        <div className="w-full border-t border-gray-300 mb-5"></div>
+
+        <button
+          onClick={startNew}
+          className="mb-5 bg-[#00A8FF] text-white px-6 py-3 rounded font-bold w-full"
+        >
+          Start New Simulation
+        </button>
+
+        <button
+          onClick={viewSimulations}
+          className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded font-bold w-full"
+        >
+          View Simulations
+        </button>
       </div>
     </aside>
   );

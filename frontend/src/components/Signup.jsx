@@ -1,10 +1,7 @@
-// src/components/Signup.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function Signup() {
-  // Initialize navigation and form state
-  const navigate = useNavigate();
+// Modified Signup component to work with panel system
+export default function Signup({ onBack, onShowLogin }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -12,12 +9,10 @@ export default function Signup() {
   });
   const [error, setError] = useState("");
 
-  // Update form state on input change
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Handle form submission and send signup data to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -33,16 +28,16 @@ export default function Signup() {
 
     if (res.ok) {
       console.log("Signup successful", data);
-      navigate("/login");
+      // After successful signup, show login panel
+      onShowLogin();
     } else {
       const errorMsg = data.detail || "Signup failed";
       setError(errorMsg);
     }
   };
 
-  // Render the signup form UI
   return (
-    <div className="flex flex-col items-center justify-center ">
+    <div className="flex flex-col items-center justify-center">
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm space-y-4"
@@ -92,14 +87,14 @@ export default function Signup() {
           Already have an account?{" "}
           <span
             className="text-[#00A8FF] cursor-pointer underline"
-            onClick={() => navigate("/login")}
+            onClick={onShowLogin}
           >
             Log In
           </span>
         </p>
       </form>
       <button
-        onClick={() => navigate("/")}
+        onClick={onBack}
         className="mt-4 text-[#00A8FF] underline text-sm"
       >
         ← Back to Welcome

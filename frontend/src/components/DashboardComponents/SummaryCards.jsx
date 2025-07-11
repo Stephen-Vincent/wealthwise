@@ -1,3 +1,18 @@
+/**
+ * SummaryCards Component
+ *
+ * This component displays a summary of the user's investment portfolio,
+ * including key metrics such as investment goal, target amount, risk profile,
+ * total invested, current value, and total return. It uses context to access
+ * portfolio data and custom hooks for portfolio calculations.
+ *
+ * Features:
+ * - Dynamically styled cards based on portfolio data and risk profile.
+ * - Visual indicators for target achievement and progress.
+ * - Enhanced risk profile description with color-coded styling.
+ * - Responsive grid layout for different screen sizes.
+ */
+
 import { useContext } from "react";
 import PortfolioContext from "../../context/PortfolioContext";
 import usePortfolioCalculations from "../../hooks/usePortfolioCalculations";
@@ -6,7 +21,7 @@ import {
   formatPercentage,
 } from "../../utils/portfolioCalculations";
 
-// Icons for different metrics
+// Icons for different metrics displayed in the summary cards
 const ICONS = {
   target: "🎯",
   risk: "📊",
@@ -17,7 +32,8 @@ const ICONS = {
   goal: "🎯",
 };
 
-// Risk level configurations
+// Risk level configurations defining colors, border styles, and descriptions
+// Used to visually distinguish risk profiles and provide user-friendly info
 const RISK_CONFIGS = {
   "Ultra Conservative": {
     color: "text-blue-600",
@@ -99,10 +115,12 @@ export default function SummaryCards() {
   // Access portfolio data from context
   const { portfolioData } = useContext(PortfolioContext);
 
+  // Use custom hook for portfolio calculations and target status
   const { calculations, targetStatus } =
     usePortfolioCalculations(portfolioData);
 
-  // Get risk configuration
+  // Determine risk configuration based on portfolio risk label,
+  // fallback to default gray styling if no matching label found
   const riskConfig = RISK_CONFIGS[portfolioData?.risk_label] || {
     color: "text-gray-600",
     bgColor: "bg-gray-50",
@@ -110,7 +128,8 @@ export default function SummaryCards() {
     description: "Risk assessment unavailable",
   };
 
-  // Define cards with enhanced styling and information
+  // Define summary cards data with styling, icons, labels, values, and subtitles
+  // Includes conditional logic for displaying investment details and statuses
   const cards = [
     {
       id: "goal",
@@ -161,10 +180,13 @@ export default function SummaryCards() {
       value: formatCurrency(calculations.totalInvested),
       subtitle:
         calculations.monthlyContribution > 0
-          ? `£${calculations.lumpSum.toLocaleString()} lump sum + £${calculations.monthlyContribution.toLocaleString()}/month`
+          ? // Show lump sum + monthly contribution if monthlyContribution > 0
+            `£${calculations.lumpSum.toLocaleString()} lump sum + £${calculations.monthlyContribution.toLocaleString()}/month`
           : calculations.lumpSum > 0
-          ? "One-time investment"
-          : "No investment recorded",
+          ? // Show one-time investment if only lump sum > 0
+            "One-time investment"
+          : // Otherwise, no investment recorded
+            "No investment recorded",
       color: "text-blue-600",
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
@@ -177,9 +199,13 @@ export default function SummaryCards() {
       subtitle:
         calculations.totalGainLoss !== 0
           ? calculations.totalGainLoss > 0
-            ? `+${formatCurrency(Math.abs(calculations.totalGainLoss))} gain`
-            : `-${formatCurrency(Math.abs(calculations.totalGainLoss))} loss`
-          : "No change",
+            ? // Positive gain with plus sign
+              `+${formatCurrency(Math.abs(calculations.totalGainLoss))} gain`
+            : // Negative loss with minus sign
+              `-${formatCurrency(Math.abs(calculations.totalGainLoss))} loss`
+          : // No change if gain/loss is zero
+            "No change",
+      // Color coding based on gain/loss positive, negative, or neutral
       color:
         calculations.totalGainLoss > 0
           ? "text-green-600"
@@ -206,10 +232,13 @@ export default function SummaryCards() {
       value: formatPercentage(calculations.totalReturnPercent),
       subtitle:
         calculations.timeframeYears > 0
-          ? `${formatPercentage(
+          ? // Show annualized return if timeframe is positive
+            `${formatPercentage(
               calculations.annualizedReturnPercent
             )} annualized`
-          : "Performance data unavailable",
+          : // Otherwise, indicate performance data unavailable
+            "Performance data unavailable",
+      // Color coding based on return positive, negative, or neutral
       color:
         calculations.totalReturnPercent > 0
           ? "text-green-600"
@@ -233,6 +262,7 @@ export default function SummaryCards() {
 
   return (
     <div className="mb-8">
+      {/* Header with title and optional portfolio name */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold text-gray-800">Portfolio Summary</h3>
         {portfolioData?.name && (
@@ -241,6 +271,8 @@ export default function SummaryCards() {
           </div>
         )}
       </div>
+
+      {/* Grid layout for summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map((card) => (
           <div
@@ -255,6 +287,7 @@ export default function SummaryCards() {
                   {card.label}
                 </h4>
               </div>
+              {/* Show checkmark if target achieved */}
               {card.id === "target" && card.status?.achieved && (
                 <div className="text-green-500 animate-pulse">✅</div>
               )}
@@ -288,12 +321,14 @@ export default function SummaryCards() {
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
                     <span>Progress</span>
+                    {/* Progress percentage with one decimal place */}
                     <span>{card.status.progress.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
                       style={{
+                        // Limit progress bar width to max 100%
                         width: `${Math.min(card.status.progress, 100)}%`,
                       }}
                     />
@@ -312,7 +347,7 @@ export default function SummaryCards() {
         ))}
       </div>
 
-      {/* Enhanced Risk Profile Description */}
+      {/* Enhanced Risk Profile Description Section */}
       {portfolioData?.risk_label && (
         <div
           className={`mt-6 p-4 rounded-lg border ${riskConfig.borderColor} ${riskConfig.bgColor}`}
@@ -326,11 +361,13 @@ export default function SummaryCards() {
               <p className="text-sm text-gray-600 mt-1">
                 {riskConfig.description}
               </p>
+              {/* Optional detailed risk description */}
               {portfolioData?.risk_description && (
                 <p className="text-sm text-gray-600 mt-1">
                   {portfolioData.risk_description}
                 </p>
               )}
+              {/* Optional allocation guidance with lightbulb icon */}
               {portfolioData?.allocation_guidance && (
                 <p className="text-sm text-gray-600 mt-2 font-medium">
                   💡 Strategy: {portfolioData.allocation_guidance}

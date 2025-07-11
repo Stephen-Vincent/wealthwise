@@ -16,8 +16,10 @@ class Settings(BaseSettings):
     # Secret key for JWT
     JWT_SECRET_KEY: str
 
-    # GROQ API Key
-    GROQ_API_KEY: str
+    # Add your current AI service API key here
+    # LLAMA_API_KEY: str  # Uncomment if you're using Llama
+    # OPENAI_API_KEY: str  # Uncomment if you're using OpenAI
+    # Or remove entirely if not using AI services
 
     # App info
     APP_NAME: str = "WealthWise API"

@@ -1,5 +1,18 @@
+/**
+ * PortfolioGraph.jsx
+ * -----------------
+ * Visualizes the user's portfolio performance over time.
+ * - Switch between monthly, quarterly, and yearly views.
+ * - Toggle overlays for target value and gain/loss area.
+ * - Shows key summary metrics and a responsive Chart.js line chart.
+ * - Data comes from PortfolioContext.
+ */
+
+// React and context imports
 import { useContext, useState, useMemo } from "react";
 import PortfolioContext from "../../context/PortfolioContext";
+
+// Chart.js imports and registration
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -12,6 +25,8 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+
+// Utility functions for calculations and formatting
 import {
   calculateReturns,
   formatCurrency,
@@ -29,22 +44,22 @@ ChartJS.register(
   Filler
 );
 
+// Main component for portfolio performance graph
 const PortfolioGraph = () => {
+  // Get portfolio data from context
   const { portfolioData } = useContext(PortfolioContext);
+  // State for switching view modes and toggling overlays
   const [viewMode, setViewMode] = useState("monthly"); // monthly, quarterly, yearly
   const [showTarget, setShowTarget] = useState(true);
   const [showGainLoss, setShowGainLoss] = useState(true);
 
-  // Calculate percentage change
-  const calculatePercentChange = (current, previous) => {
-    if (!previous || previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
-  };
-
+  // Memoized processing of timeline data for chart and metrics
   const processedData = useMemo(() => {
+    // Extract timeline arrays from portfolio data
     const portfolio = portfolioData?.results?.timeline?.portfolio ?? [];
     const contributions = portfolioData?.results?.timeline?.contributions ?? [];
 
+    // Handle case where there is no data
     if (portfolio.length === 0) {
       return {
         labels: [],
@@ -56,14 +71,15 @@ const PortfolioGraph = () => {
       };
     }
 
-    // Group data by time period based on view mode
+    /**
+     * Groups time series data by the selected period (monthly, quarterly, yearly).
+     * For each group, selects the entry with the latest date.
+     */
     const groupData = (data, groupBy) => {
       const grouped = {};
-
       data.forEach((entry) => {
         const date = new Date(entry.date);
         let key;
-
         switch (groupBy) {
           case "quarterly":
             key = `${date.getFullYear()}-Q${
@@ -79,7 +95,7 @@ const PortfolioGraph = () => {
               "0"
             )}`;
         }
-
+        // Keep the entry with the latest date for each group
         if (
           !grouped[key] ||
           new Date(entry.date) > new Date(grouped[key].date)
@@ -87,16 +103,17 @@ const PortfolioGraph = () => {
           grouped[key] = entry;
         }
       });
-
+      // Return entries sorted by date
       return Object.values(grouped).sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
     };
 
+    // Group portfolio and contributions according to view mode
     const groupedPortfolio = groupData(portfolio, viewMode);
     const groupedContributions = groupData(contributions, viewMode);
 
-    // Create labels based on view mode
+    // Generate labels for the x-axis based on view mode
     const labels = groupedPortfolio.map((entry) => {
       const date = new Date(entry.date);
       switch (viewMode) {
@@ -114,9 +131,10 @@ const PortfolioGraph = () => {
       }
     });
 
+    // Extract portfolio values for the chart
     const portfolioValues = groupedPortfolio.map((entry) => entry.value);
 
-    // Match contributions to portfolio timeline
+    // Match contributions to each portfolio timeline point (by date proximity)
     const contributionValues = groupedPortfolio.map((portfolioEntry) => {
       const matchingContribution = groupedContributions.find(
         (contrib) =>
@@ -126,12 +144,12 @@ const PortfolioGraph = () => {
       return matchingContribution?.value || 0;
     });
 
-    // Calculate gain/loss (portfolio value - contributions)
+    // Calculate gain/loss for each point (portfolio value - contributions)
     const gainLossValues = portfolioValues.map(
       (portfolio, index) => portfolio - (contributionValues[index] || 0)
     );
 
-    // Target line (if target is set)
+    // Build a target line if a target value is set
     const targetValue = portfolioData?.target_value;
     const targetLine = targetValue
       ? new Array(labels.length).fill(targetValue)
@@ -161,11 +179,12 @@ const PortfolioGraph = () => {
     );
   }
 
-  // Calculate key metrics for display
+  // Memoized calculation of summary metrics for display
   const metrics = useMemo(() => {
     return calculateReturns(portfolioData);
   }, [portfolioData]);
 
+  // Build the Chart.js datasets array based on toggles and processed data
   const datasets = [
     {
       label: "Portfolio Value",
@@ -197,7 +216,7 @@ const PortfolioGraph = () => {
     },
   ];
 
-  // Add target line if enabled and target exists
+  // Optionally add target line overlay
   if (showTarget && processedData.targetLine.length > 0) {
     datasets.push({
       label: "Target Amount",
@@ -213,7 +232,7 @@ const PortfolioGraph = () => {
     });
   }
 
-  // Add gain/loss area if enabled
+  // Optionally add gain/loss area overlay (for area under the curve effect)
   if (showGainLoss) {
     datasets.push({
       label: "Gain/Loss Area",
@@ -228,11 +247,13 @@ const PortfolioGraph = () => {
     });
   }
 
+  // Prepare data object for Chart.js
   const data = {
     labels: processedData.labels,
     datasets,
   };
 
+  // Calculate y-axis min/max for better chart scaling
   const allValues = [
     ...processedData.portfolioValues,
     ...processedData.contributionValues,
@@ -242,6 +263,7 @@ const PortfolioGraph = () => {
   const minY = Math.min(...allValues) * 0.95;
   const maxY = Math.max(...allValues) * 1.05;
 
+  // Chart.js options for styling, tooltips, axes, and legend
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -279,7 +301,7 @@ const PortfolioGraph = () => {
           label: (context) => {
             const value = context.parsed.y;
             const label = context.dataset.label;
-
+            // Custom tooltip for portfolio value to show gain/loss
             if (label === "Portfolio Value") {
               const contributionValue =
                 processedData.contributionValues[context.dataIndex];
@@ -288,7 +310,6 @@ const PortfolioGraph = () => {
                 contributionValue > 0
                   ? (gainLoss / contributionValue) * 100
                   : 0;
-
               return [
                 `${label}: ${formatCurrency(value)}`,
                 `Gain/Loss: ${gainLoss >= 0 ? "+" : ""}${formatCurrency(
@@ -298,7 +319,6 @@ const PortfolioGraph = () => {
                 )}%)`,
               ];
             }
-
             return `${label}: ${formatCurrency(value)}`;
           },
         },
@@ -351,7 +371,7 @@ const PortfolioGraph = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-      {/* Header with controls */}
+      {/* Header with controls for view mode and overlays */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -385,7 +405,7 @@ const PortfolioGraph = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-          {/* View Mode Selector */}
+          {/* View Mode Selector buttons */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             {["monthly", "quarterly", "yearly"].map((mode) => (
               <button
@@ -402,7 +422,7 @@ const PortfolioGraph = () => {
             ))}
           </div>
 
-          {/* Toggle Controls */}
+          {/* Overlay toggles for target line and gain/loss area */}
           <div className="flex items-center space-x-3">
             {portfolioData?.target_value && (
               <label className="flex items-center space-x-2 text-sm">
@@ -429,7 +449,7 @@ const PortfolioGraph = () => {
         </div>
       </div>
 
-      {/* Performance Summary */}
+      {/* Performance summary cards for current value, contributions, gain/loss, and return */}
       {metrics.currentValue && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
@@ -503,12 +523,12 @@ const PortfolioGraph = () => {
         </div>
       )}
 
-      {/* Chart */}
+      {/* Main Chart.js line chart */}
       <div className="h-96 w-full">
         <Line data={data} options={options} />
       </div>
 
-      {/* Chart Legend/Help */}
+      {/* Chart legend/help area explaining the lines */}
       <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
         <div className="flex flex-wrap items-center justify-center space-x-6">
           <div className="flex items-center space-x-1">

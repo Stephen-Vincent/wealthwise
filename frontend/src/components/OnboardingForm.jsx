@@ -1,76 +1,15 @@
-// OnboardingForm captures user input (name, goal, experience, lump sum, etc.)
-// and sends it to the backend to generate a simulation.
-// The backend returns a simulation object, which includes a calculated risk score
-// and is stored in localStorage and context for later use.
-/**
- * OnboardingForm.jsx
- *
- * This component handles the onboarding flow for new users, collecting
- * their investment preferences, experience, and goals through a multi-step form.
- *
- * What the component does:
- * - Guides users through a series of questions to gather data required to simulate
- *   a personalized investment portfolio.
- * - Validates user inputs at each step.
- * - Submits the collected data to the backend API and fetches the resulting
- *   simulated portfolio data.
- * - Updates the global PortfolioContext with the simulation results for use
- *   throughout the dashboard.
- *
- * What data is expected in the form:
- * - years_of_experience: Number of years the user has been investing (integer).
- * - investment_goal: User's main investment goal (string, e.g. "buy a house").
- * - target_amount: The target value to reach with investments (number).
- * - lump_sum_investment: Optional lump sum amount to invest (number).
- * - monthly_investment: Optional monthly contribution amount (number).
- * - timeframe: Desired investment timeframe, selected from options (string, mapped to integer).
- * - income: User's income bracket (string: "low", "medium", "high").
- * - consent: Confirmation that the user understands this is a learning tool (boolean).
- * - name/user_id: User's name and ID, fetched from localStorage.
- *
- * What happens when the form is submitted:
- * - The form validates that all required fields are filled and consent is given.
- * - The form data is transformed into a payload matching backend expectations.
- * - A POST request is sent to the backend /onboarding endpoint with this data.
- * - On success, the returned onboarding submission ID is used to fetch portfolio simulation data.
- * - The simulation data is stored in PortfolioContext and the user is navigated to the loading screen.
- *
- * What data is sent to the backend:
- * - Payload structure:
- *   {
- *     years_of_experience: number,
- *     goal: string,
- *     target_value: number,
- *     lump_sum: number|null,
- *     monthly: number|null,
- *     timeframe: number,
- *     income_bracket: string,
- *     consent: boolean,
- *     name: string|null,
- *     user_id: number|null
- *   }
- *
- * How the response is handled and passed to PortfolioContext:
- * - The backend responds with the onboarding submission record (including an ID).
- * - The component then fetches the simulated portfolio data for this submission.
- * - The simulation data is set in PortfolioContext using setPortfolioData, making it available globally.
- * - The user is then navigated to the loading screen (and then to the dashboard).
- */
-import { useState, useEffect, useContext } from "react";
-import { usePortfolio } from "../context/PortfolioContext";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import ProgressDots from "./ProgressDots";
-import LoadingScreen from "./LoadingScreen";
-import axios from "axios";
+import CustomDropdown from "../components/CustomComponents/CustomDropdown";
+import ProgressDots from "../components/CustomComponents/ProgressDots";
 
 // Main onboarding form component
-export default function OnboardingForm() {
-  const navigate = useNavigate();
-  const { setPortfolioData } = usePortfolio();
+const OnboardingForm = ({ onBack, onShowLoading }) => {
   const [step, setStep] = useState(0);
   const [fade, setFade] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
   // Local state to capture all onboarding form fields
   const [formData, setFormData] = useState({
     years_of_experience: "",
@@ -89,24 +28,37 @@ export default function OnboardingForm() {
   const [showGreeting, setShowGreeting] = useState(true);
   const [userName, setUserName] = useState("");
 
-  // On mount: fetch user info from localStorage and show greeting
+  // On mount: fetch user info and show greeting with fade-in
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const storedName = user?.name;
-    console.log("Login check: user_name from localStorage:", storedName);
-    if (storedName) {
-      setUserName(storedName);
+    const fadeInTimer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    // Get real user data from localStorage or API
+    try {
+      // In a real app, you'd get this from localStorage or make an API call
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const storedName = user?.name;
+
+      if (storedName) {
+        setUserName(storedName);
+      } else {
+        // Fallback name for demo
+        setUserName("John Doe");
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      setUserName("User");
     }
-    const storedId = user?.id;
-    console.log("Fetched userId from localStorage:", storedId);
-    if (!storedId) {
-      alert("No user ID found. Please log in again.");
-      return;
-    }
-    const timeout = setTimeout(() => {
+
+    const greetingTimer = setTimeout(() => {
       setShowGreeting(false);
     }, 2000);
-    return () => clearTimeout(timeout);
+
+    return () => {
+      clearTimeout(fadeInTimer);
+      clearTimeout(greetingTimer);
+    };
   }, []);
 
   // Complete list of questions/steps for onboarding
@@ -114,9 +66,9 @@ export default function OnboardingForm() {
     {
       key: "years_of_experience",
       label: "How many years of investing experience do you have?",
-      type: "select",
+      type: "dropdown",
       options: [...Array(31).keys()].map((year) => ({
-        value: year,
+        value: year.toString(),
         label: `${year} years`,
       })),
       placeholder: "Select years of experience",
@@ -174,7 +126,7 @@ export default function OnboardingForm() {
     {
       key: "investment_goal",
       label: "What is your main goal for investing?",
-      type: "select",
+      type: "dropdown",
       options: [
         { value: "buy a house", label: "Buy a house" },
         { value: "vacation", label: "Vacation" },
@@ -190,7 +142,8 @@ export default function OnboardingForm() {
       label: "What is your target investment value?",
       type: "input",
       inputType: "number",
-      placeholder: "Target value e.g. 20000",
+      placeholder: "20000",
+      currency: true,
     },
     {
       key: "lump_sum_investment",
@@ -199,13 +152,17 @@ export default function OnboardingForm() {
       inputs: [
         {
           key: "lump_sum_investment",
-          placeholder: "Lump sum amount",
+          placeholder: "5000",
           type: "number",
+          currency: true,
+          label: "Lump Sum",
         },
         {
           key: "monthly_investment",
-          placeholder: "Monthly amount",
+          placeholder: "500",
           type: "number",
+          currency: true,
+          label: "Monthly",
         },
       ],
     },
@@ -222,7 +179,7 @@ export default function OnboardingForm() {
     {
       key: "income",
       label: "Which income bracket best represents your household?",
-      type: "select",
+      type: "dropdown",
       options: [
         { value: "low", label: "< £25,000" },
         { value: "medium", label: "£25,000 - £50,000" },
@@ -232,71 +189,91 @@ export default function OnboardingForm() {
     },
   ];
 
-  // Map human-friendly timeframe labels to integer years for backend
-  const timeframeMap = {
-    "Under 1 year": 1,
-    "1–5 years": 5,
-    "5–10 years": 10,
-  };
-
-  // Render different question types
+  // Render different question types with enhanced styling
   const renderQuestion = (question) => {
+    const baseInputClasses =
+      "w-full h-[70px] border-2 border-gray-300 rounded-[15px] px-4 text-lg font-bold transition-all duration-300 hover:border-[#00A8FF] focus:border-[#00A8FF] focus:ring-2 focus:ring-[#00A8FF]/20 focus:outline-none bg-white";
+
     switch (question.type) {
-      case "select":
+      case "dropdown":
         return (
-          <div className="flex justify-center items-center">
-            <select
-              className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
+          <div
+            className="flex justify-center items-center animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            <CustomDropdown
+              options={question.options}
+              placeholder={question.placeholder}
               value={formData[question.key]}
-              onChange={(e) =>
-                setFormData({ ...formData, [question.key]: e.target.value })
+              onChange={(value) =>
+                setFormData({ ...formData, [question.key]: value })
               }
-              required
-            >
-              <option value="" disabled>
-                {question.placeholder}
-              </option>
-              {question.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              className="max-w-[700px] w-full"
+            />
           </div>
         );
 
       case "input":
         return (
-          <div className="flex justify-center items-center">
-            <input
-              type={question.inputType || "text"}
-              className="w-[700px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-              placeholder={question.placeholder}
-              value={formData[question.key]}
-              onChange={(e) =>
-                setFormData({ ...formData, [question.key]: e.target.value })
-              }
-              required
-            />
+          <div
+            className="flex justify-center items-center animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            <div className="relative max-w-[700px] w-full">
+              {question.currency && (
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-lg font-bold text-gray-600 pointer-events-none z-10">
+                  £
+                </span>
+              )}
+              <input
+                type={question.inputType || "text"}
+                className={`${baseInputClasses} ${
+                  question.currency ? "pl-8" : ""
+                }`}
+                placeholder={question.placeholder}
+                value={formData[question.key]}
+                onChange={(e) =>
+                  setFormData({ ...formData, [question.key]: e.target.value })
+                }
+                required
+              />
+            </div>
           </div>
         );
 
       case "dual_input":
         return (
-          <div className="flex justify-center items-center space-x-4 w-full max-w-2xl">
-            {question.inputs.map((input) => (
-              <input
-                key={input.key}
-                type={input.type}
-                step="0.01"
-                className="w-[170px] h-[70px] border border-gray-300 rounded-[15px] px-4 text-lg font-bold"
-                placeholder={input.placeholder}
-                value={formData[input.key]}
-                onChange={(e) =>
-                  setFormData({ ...formData, [input.key]: e.target.value })
-                }
-              />
-            ))}
+          <div
+            className="flex justify-center items-center w-full max-w-2xl animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
+          >
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              {question.inputs.map((input, index) => (
+                <div key={input.key} className="relative flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {input.label}
+                  </label>
+                  {input.currency && (
+                    <span className="absolute left-4 top-[38px] transform text-lg font-bold text-gray-600 pointer-events-none z-10">
+                      £
+                    </span>
+                  )}
+                  <input
+                    type={input.type}
+                    step="0.01"
+                    className={`w-full h-[70px] border-2 border-gray-300 rounded-[15px] pr-4 text-lg font-bold transition-all duration-300 hover:border-[#00A8FF] focus:border-[#00A8FF] focus:ring-2 focus:ring-[#00A8FF]/20 focus:outline-none bg-white animate-fade-in-up ${
+                      input.currency ? "pl-8" : "pl-4"
+                    }`}
+                    style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                    placeholder={input.placeholder}
+                    value={formData[input.key]}
+                    onChange={(e) =>
+                      setFormData({ ...formData, [input.key]: e.target.value })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         );
 
@@ -304,15 +281,16 @@ export default function OnboardingForm() {
         return (
           <div className="flex justify-center items-center gap-4 w-full max-w-4xl">
             <div className="flex flex-col gap-3 w-full">
-              {question.options.map((option) => (
+              {question.options.map((option, index) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={`font-bold px-6 py-4 rounded-[15px] hover:brightness-110 transition text-left ${
+                  className={`font-bold px-6 py-4 rounded-[15px] transition-all duration-300 text-left transform hover:scale-105 hover:shadow-lg animate-fade-in-up ${
                     formData[question.key] === option.value
-                      ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF]"
-                      : "bg-[#00A8FF] text-white"
+                      ? "bg-white text-[#00A8FF] border-2 border-[#00A8FF] shadow-md scale-105"
+                      : "bg-[#00A8FF] text-white hover:brightness-110"
                   }`}
+                  style={{ animationDelay: `${0.2 + index * 0.1}s` }}
                   onClick={() =>
                     setFormData({ ...formData, [question.key]: option.value })
                   }
@@ -351,27 +329,29 @@ export default function OnboardingForm() {
     setTimeout(() => {
       setStep((prev) => Math.min(prev + 1, questions.length));
       setFade(true);
-    }, 500);
+    }, 300);
   };
 
   // Go back to previous onboarding step
   const prevStep = () => {
-    if (step === 0) navigate("/");
-    else {
+    if (step === 0) {
+      if (onBack) {
+        onBack();
+      } else {
+        console.log("No onBack callback provided");
+      }
+    } else {
       setFade(false);
       setTimeout(() => {
         setStep((prev) => Math.max(prev - 1, 0));
         setFade(true);
-      }, 500);
+      }, 300);
     }
   };
 
-  /**
-   * Handles form submission at the end of the onboarding steps.
-   * Validates required fields, prepares payload, and sends data to backend.
-   * On success, fetches simulation data and updates PortfolioContext.
-   */
+  // Handle form submission
   const handleSubmit = async () => {
+    // Validation
     if (
       !formData.years_of_experience ||
       !formData.investment_goal ||
@@ -386,47 +366,23 @@ export default function OnboardingForm() {
       return alert("Please confirm this is a learning tool.");
     }
 
-    // Show loading and scroll to top immediately after consent check passes
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setIsLoading(true);
+    console.log("📝 Form validation passed. Submitting data:", formData);
 
-    const lump_sum = parseFloat(formData.lump_sum_investment || 0) || 0;
-    const monthly_contribution =
-      parseFloat(formData.monthly_investment || 0) || 0;
-
-    // Compute variables, but do not block based on feasibility
-    let timeframeInYears;
-    switch (formData.timeframe) {
-      case "Under 1 year":
-        timeframeInYears = 1;
-        break;
-      case "1–5 years":
-        timeframeInYears = 5;
-        break;
-      case "5–10 years":
-        timeframeInYears = 10;
-        break;
-      default:
-        timeframeInYears = 5; // fallback to a reasonable default
-    }
-    const portfolioAmount =
-      lump_sum + monthly_contribution * 12 * timeframeInYears;
-
-    if (lump_sum === 0 && monthly_contribution === 0) {
-      setIsLoading(false);
-      return alert("Please enter a lump sum or a monthly contribution.");
-    }
-
-    const user = JSON.parse(localStorage.getItem("user"));
-    const userId = user?.id;
-    if (!userId) {
-      setIsLoading(false);
-      alert("No user ID found. Please log in again.");
-      return;
-    }
-
+    // Get real user data for submission
     try {
-      // Prepare payload for onboarding submission. Use backend field naming convention.
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user?.id;
+      const userName = user?.name;
+
+      if (!userId) {
+        console.error("❌ No user ID found. User must log in again.");
+        alert("Session expired. Please log in again.");
+        return;
+      }
+
+      console.log("✅ User data found:", { userId, userName });
+
+      // Prepare real payload for API
       const payload = {
         years_of_experience: parseInt(formData.years_of_experience),
         loss_tolerance: formData.loss_tolerance,
@@ -441,91 +397,143 @@ export default function OnboardingForm() {
         monthly: formData.monthly_investment
           ? parseFloat(formData.monthly_investment)
           : null,
-        timeframe: timeframeMap[formData.timeframe],
+        timeframe:
+          formData.timeframe === "Under 1 year"
+            ? 1
+            : formData.timeframe === "1–5 years"
+            ? 5
+            : 10,
         income_bracket: formData.income,
         consent: formData.consent,
         name: userName || null,
-        user_id: userId || null,
+        user_id: userId,
       };
 
-      // Send onboarding data to backend API (POST /onboarding/)
-      const accessToken = localStorage.getItem("access_token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      };
-      // Use the simulation result directly from the onboarding POST response
-      const response = await axios.post(
-        "http://localhost:8000/onboarding/",
-        payload,
-        config
-      );
-      // The backend returns the full simulation including the final calculated risk
-      const simulationData = response.data;
-      // Save simulation to context using usePortfolio hook
-      setPortfolioData(simulationData);
-      // Immediately store simulationId and userId in localStorage after response
-      // Use simulation.risk for any downstream logic (do not use local risk input)
-      const simulationId = simulationData?.id;
-      const storedUserId = localStorage.getItem("userId") || userId;
+      console.log("📤 Submitting payload to backend:", payload);
 
-      if (simulationId && storedUserId) {
-        localStorage.setItem("simulationId", simulationId);
-        localStorage.setItem("userId", storedUserId);
+      // Scroll to top immediately
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setIsLoading(true);
 
-        // If you need the risk value, always use simulationData.risk hereafter
-        navigate("/loading");
-      } else {
-        console.error(
-          "❌ Missing simulationId or userId in response/localStorage",
-          {
-            simulation: simulationData,
-            userId: storedUserId,
+      // MAKE THE ACTUAL API CALL
+      try {
+        const accessToken = localStorage.getItem("access_token");
+
+        if (!accessToken) {
+          throw new Error("No access token found");
+        }
+
+        console.log("🔄 Making API call to create simulation...");
+
+        const response = await fetch("http://localhost:8000/onboarding/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `API call failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const simulationData = await response.json();
+        console.log("✅ Simulation created successfully:", simulationData);
+
+        // Store ALL the simulation data, not just the ID
+        const simulationId = simulationData?.id;
+
+        if (simulationId && userId) {
+          // Store basic IDs for navigation
+          localStorage.setItem("simulationId", simulationId);
+          localStorage.setItem("userId", userId);
+
+          // IMPORTANT: Also store the full simulation data for LoadingScreen
+          localStorage.setItem("portfolioData", JSON.stringify(simulationData));
+
+          console.log("💾 Stored simulation data:", {
+            simulationId,
+            userId,
+            fullData: "stored in portfolioData key",
+          });
+
+          // Now show the loading screen - it will have data to work with
+          if (onShowLoading) {
+            console.log("🔄 Transitioning to LoadingScreen with real data");
+            onShowLoading();
           }
+        } else {
+          throw new Error("Invalid simulation response - missing ID");
+        }
+      } catch (apiError) {
+        console.error("❌ API call failed:", apiError);
+        alert(
+          `Failed to create portfolio: ${apiError.message}. Please try again.`
         );
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error("Saving onboarding data failed", error);
-      alert("Something went wrong saving your data.");
-      return;
-    } finally {
+      console.error("❌ Error processing form submission:", error);
+      alert("An error occurred. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center text-center px-12 py-12 font-sans">
-      {isLoading && <LoadingScreen />}
-
+    <div
+      className={`flex flex-col items-center justify-center text-center px-12 py-12 font-sans mt-12 transition-all duration-1000 ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
+    >
       {showGreeting ? (
-        <h2 className="text-2xl font-bold">Hello {userName || "there"} 👋</h2>
+        <div className="animate-fade-in-scale">
+          <h2 className="text-3xl font-bold text-[#00A8FF] mb-4">
+            {userName ? `Hello ${userName}!` : "Hello!"}
+          </h2>
+          <p className="text-gray-600 text-lg">
+            Let's build your investment portfolio...
+          </p>
+        </div>
       ) : (
-        <div className="flex flex-col items-center justify-center min-h-[300px] w-full max-w-xl">
+        <div className="flex flex-col items-center justify-center min-h-[500px] w-full max-w-4xl">
           <div
-            className={`transition-opacity duration-500 w-full ${
-              fade ? "opacity-100" : "opacity-0"
+            className={`transition-all duration-500 w-full transform ${
+              fade ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
           >
             {step < questions.length ? (
-              <>
-                <h2 className="text-xl font-semibold mb-4">
+              <div className="space-y-8">
+                <h2 className="text-2xl font-semibold mb-8 text-gray-800 animate-fade-in-down">
                   {questions[step].label}
                 </h2>
-                {renderQuestion(questions[step])}
-              </>
+                <div className="mb-16">{renderQuestion(questions[step])}</div>
+              </div>
             ) : (
-              <div className="text-center">
-                <h2 className="text-xl font-semibold mb-4">Declaration</h2>
-                <p className="text-gray-600 text-sm mb-4 max-w-md mx-auto">
-                  Thank you for sharing your details! We're excited to simulate
-                  a portfolio tailored to your goals. Please confirm that you
-                  understand this tool is for learning purposes only and not
-                  financial advice.
-                </p>
-                <label className="flex items-center gap-2 text-sm justify-center text-black">
+              <div className="text-center animate-fade-in-scale">
+                <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+                  Declaration
+                </h2>
+                <div
+                  className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-fade-in-up"
+                  style={{ animationDelay: "0.2s" }}
+                >
+                  <p className="text-gray-700 text-base mb-4 leading-relaxed">
+                    Thank you for sharing your details! We're excited to
+                    simulate a portfolio tailored to your goals. Please confirm
+                    that you understand this tool is for learning purposes only
+                    and not financial advice.
+                  </p>
+                </div>
+                <label
+                  className="flex items-center gap-3 text-base justify-center text-gray-800 mb-6 animate-fade-in-up"
+                  style={{ animationDelay: "0.4s" }}
+                >
                   <input
                     type="checkbox"
+                    className="w-5 h-5 text-[#00A8FF] border-2 border-gray-300 rounded focus:ring-[#00A8FF] focus:ring-2 transition-all duration-200"
                     checked={formData.consent}
                     onChange={(e) =>
                       setFormData({ ...formData, consent: e.target.checked })
@@ -535,31 +543,47 @@ export default function OnboardingForm() {
                   I agree this is a learning tool and not financial advice.
                 </label>
                 <button
-                  className="mt-4 bg-[#00A8FF] text-white font-bold px-6 py-3 rounded-[15px] hover:brightness-110 transition"
+                  className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg animate-fade-in-up disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  style={{ animationDelay: "0.6s" }}
                   onClick={handleSubmit}
+                  disabled={isLoading}
                 >
-                  Let's Build Your Portfolio
+                  {isLoading
+                    ? "Creating Portfolio..."
+                    : "Let's Build Your Portfolio"}
                 </button>
               </div>
             )}
           </div>
-          {/* Progress bar */}
+
+          {/* Progress bar with animation */}
           {step < questions.length && (
-            <ProgressDots total={questions.length} current={step} />
+            <div
+              className="animate-fade-in-up mt-8"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <ProgressDots total={questions.length} current={step} />
+            </div>
           )}
-          {/* Navigation Arrows */}
+
+          {/* Navigation Arrows with animation */}
           {step < questions.length && (
-            <div className="flex justify-center items-center space-x-10 mt-12">
+            <div
+              className="flex justify-center items-center space-x-10 mt-8 animate-fade-in-up"
+              style={{ animationDelay: "0.7s" }}
+            >
               <button
                 onClick={prevStep}
-                className="bg-[#00A8FF] text-white w-12 h-12 rounded-full flex items-center justify-center p-0 m-0 hover:brightness-110 transition"
+                className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+                disabled={isLoading}
               >
                 <ArrowLeft className="text-white w-6 h-6" />
               </button>
 
               <button
                 onClick={nextStep}
-                className="bg-[#00A8FF] text-white w-12 h-12 rounded-full flex items-center justify-center p-0 m-0 hover:brightness-110 transition"
+                className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+                disabled={isLoading}
               >
                 <ArrowRight className="text-white w-6 h-6" />
               </button>
@@ -567,6 +591,58 @@ export default function OnboardingForm() {
           )}
         </div>
       )}
+
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeInScale {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.6s ease-out forwards;
+          opacity: 0;
+        }
+
+        .animate-fade-in-down {
+          animation: fadeInDown 0.6s ease-out forwards;
+          opacity: 0;
+        }
+
+        .animate-fade-in-scale {
+          animation: fadeInScale 0.8s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   );
-}
+};
+
+export default OnboardingForm;
