@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import CustomDropdown from "../components/CustomComponents/CustomDropdown";
 import ProgressDots from "../components/CustomComponents/ProgressDots";
+import { usePortfolio } from "../context/PortfolioContext";
 
 // Main onboarding form component
 const OnboardingForm = ({ onBack, onShowLoading }) => {
@@ -27,6 +28,8 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
   });
   const [showGreeting, setShowGreeting] = useState(true);
   const [userName, setUserName] = useState("");
+
+  const { setPortfolioData } = usePortfolio();
 
   // On mount: fetch user info and show greeting with fade-in
   useEffect(() => {
@@ -451,13 +454,17 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
           localStorage.setItem("simulationId", simulationId);
           localStorage.setItem("userId", userId);
 
-          // IMPORTANT: Also store the full simulation data for LoadingScreen
+          // Store the full simulation data for LoadingScreen
           localStorage.setItem("portfolioData", JSON.stringify(simulationData));
+
+          // 🆕 UPDATE THE PORTFOLIO CONTEXT (this is what was missing!)
+          setPortfolioData(simulationData);
 
           console.log("💾 Stored simulation data:", {
             simulationId,
             userId,
             fullData: "stored in portfolioData key",
+            contextUpdated: true,
           });
 
           // Now show the loading screen - it will have data to work with
