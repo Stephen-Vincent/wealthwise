@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import CustomDropdown from "../components/CustomComponents/CustomDropdown";
 import ProgressDots from "../components/CustomComponents/ProgressDots";
 import { usePortfolio } from "../context/PortfolioContext";
 
@@ -39,14 +38,12 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
 
     // Get real user data from localStorage or API
     try {
-      // In a real app, you'd get this from localStorage or make an API call
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const storedName = user?.name;
 
       if (storedName) {
         setUserName(storedName);
       } else {
-        // Fallback name for demo
         setUserName("John Doe");
       }
     } catch (error) {
@@ -69,12 +66,12 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
     {
       key: "years_of_experience",
       label: "How many years of investing experience do you have?",
-      type: "dropdown",
-      options: [...Array(31).keys()].map((year) => ({
-        value: year.toString(),
-        label: `${year} years`,
-      })),
-      placeholder: "Select years of experience",
+      type: "input",
+      inputType: "number",
+      placeholder: "e.g., 5",
+      min: 0,
+      max: 50,
+      helpText: "Enter 0 if you're a complete beginner",
     },
     {
       key: "loss_tolerance",
@@ -129,7 +126,7 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
     {
       key: "investment_goal",
       label: "What is your main goal for investing?",
-      type: "dropdown",
+      type: "buttons",
       options: [
         { value: "buy a house", label: "Buy a house" },
         { value: "vacation", label: "Vacation" },
@@ -138,7 +135,6 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
         { value: "save for a car", label: "Save for a car" },
         { value: "wealth building", label: "General wealth building" },
       ],
-      placeholder: "Select your goal",
     },
     {
       key: "target_amount",
@@ -182,13 +178,12 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
     {
       key: "income",
       label: "Which income bracket best represents your household?",
-      type: "dropdown",
+      type: "buttons",
       options: [
         { value: "low", label: "< £25,000" },
         { value: "medium", label: "£25,000 - £50,000" },
         { value: "high", label: "> £50,000" },
       ],
-      placeholder: "Select your income bracket",
     },
   ];
 
@@ -198,28 +193,10 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       "w-full h-[70px] border-2 border-gray-300 rounded-[15px] px-4 text-lg font-bold transition-all duration-300 hover:border-[#00A8FF] focus:border-[#00A8FF] focus:ring-2 focus:ring-[#00A8FF]/20 focus:outline-none bg-white";
 
     switch (question.type) {
-      case "dropdown":
-        return (
-          <div
-            className="flex justify-center items-center animate-fade-in-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            <CustomDropdown
-              options={question.options}
-              placeholder={question.placeholder}
-              value={formData[question.key]}
-              onChange={(value) =>
-                setFormData({ ...formData, [question.key]: value })
-              }
-              className="max-w-[700px] w-full"
-            />
-          </div>
-        );
-
       case "input":
         return (
           <div
-            className="flex justify-center items-center animate-fade-in-up"
+            className="flex flex-col justify-center items-center animate-fade-in-up"
             style={{ animationDelay: "0.2s" }}
           >
             <div className="relative max-w-[700px] w-full">
@@ -230,6 +207,8 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
               )}
               <input
                 type={question.inputType || "text"}
+                min={question.min}
+                max={question.max}
                 className={`${baseInputClasses} ${
                   question.currency ? "pl-8" : ""
                 }`}
@@ -241,39 +220,52 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
                 required
               />
             </div>
+            {question.helpText && (
+              <p
+                className="text-sm text-gray-500 mt-3 animate-fade-in-up"
+                style={{ animationDelay: "0.4s" }}
+              >
+                {question.helpText}
+              </p>
+            )}
           </div>
         );
 
       case "dual_input":
         return (
           <div
-            className="flex justify-center items-center w-full max-w-2xl animate-fade-in-up"
+            className="flex justify-center items-center animate-fade-in-up"
             style={{ animationDelay: "0.2s" }}
           >
-            <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <div className="flex flex-col sm:flex-row gap-6 w-full max-w-3xl">
               {question.inputs.map((input, index) => (
-                <div key={input.key} className="relative flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div key={input.key} className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-3 text-left">
                     {input.label}
                   </label>
-                  {input.currency && (
-                    <span className="absolute left-4 top-[38px] transform text-lg font-bold text-gray-600 pointer-events-none z-10">
-                      £
-                    </span>
-                  )}
-                  <input
-                    type={input.type}
-                    step="0.01"
-                    className={`w-full h-[70px] border-2 border-gray-300 rounded-[15px] pr-4 text-lg font-bold transition-all duration-300 hover:border-[#00A8FF] focus:border-[#00A8FF] focus:ring-2 focus:ring-[#00A8FF]/20 focus:outline-none bg-white animate-fade-in-up ${
-                      input.currency ? "pl-8" : "pl-4"
-                    }`}
-                    style={{ animationDelay: `${0.3 + index * 0.1}s` }}
-                    placeholder={input.placeholder}
-                    value={formData[input.key]}
-                    onChange={(e) =>
-                      setFormData({ ...formData, [input.key]: e.target.value })
-                    }
-                  />
+                  <div className="relative">
+                    {input.currency && (
+                      <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-lg font-bold text-gray-600 pointer-events-none z-10">
+                        £
+                      </span>
+                    )}
+                    <input
+                      type={input.type}
+                      step="0.01"
+                      className={`w-full h-[70px] border-2 border-gray-300 rounded-[15px] text-lg font-bold transition-all duration-300 hover:border-[#00A8FF] focus:border-[#00A8FF] focus:ring-2 focus:ring-[#00A8FF]/20 focus:outline-none bg-white animate-fade-in-up ${
+                        input.currency ? "pl-8 pr-4" : "px-4"
+                      }`}
+                      style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                      placeholder={input.placeholder}
+                      value={formData[input.key]}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          [input.key]: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -314,6 +306,14 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
   const nextStep = () => {
     const currentKey = questions[step]?.key;
     const currentValue = formData[currentKey];
+
+    // Special validation for years of experience (number input)
+    if (currentKey === "years_of_experience") {
+      const experience = parseInt(formData.years_of_experience);
+      if (isNaN(experience) || experience < 0 || experience > 50) {
+        return alert("Please enter a valid number of years (0-50).");
+      }
+    }
 
     // Special validation for lump_sum_investment/monthly_investment step
     if (
@@ -414,11 +414,20 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
 
       console.log("📤 Submitting payload to backend:", payload);
 
+      // 🚀 NAVIGATE TO LOADING SCREEN IMMEDIATELY
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("isCreatingPortfolio", "true");
+
       // Scroll to top immediately
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setIsLoading(true);
 
-      // MAKE THE ACTUAL API CALL
+      // Show loading screen right away
+      if (onShowLoading) {
+        console.log("🔄 Transitioning to LoadingScreen immediately");
+        onShowLoading();
+      }
+
+      // MAKE THE API CALL IN THE BACKGROUND
       try {
         const accessToken = localStorage.getItem("access_token");
 
@@ -426,7 +435,7 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
           throw new Error("No access token found");
         }
 
-        console.log("🔄 Making API call to create simulation...");
+        console.log("🔄 Making API call to create simulation in background...");
 
         const response = await fetch("http://localhost:8000/onboarding/", {
           method: "POST",
@@ -446,18 +455,15 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
         const simulationData = await response.json();
         console.log("✅ Simulation created successfully:", simulationData);
 
-        // Store ALL the simulation data, not just the ID
+        // Store ALL the simulation data
         const simulationId = simulationData?.id;
 
-        if (simulationId && userId) {
-          // Store basic IDs for navigation
+        if (simulationId) {
           localStorage.setItem("simulationId", simulationId);
-          localStorage.setItem("userId", userId);
-
-          // Store the full simulation data for LoadingScreen
           localStorage.setItem("portfolioData", JSON.stringify(simulationData));
+          localStorage.removeItem("isCreatingPortfolio");
 
-          // 🆕 UPDATE THE PORTFOLIO CONTEXT (this is what was missing!)
+          // UPDATE THE PORTFOLIO CONTEXT
           setPortfolioData(simulationData);
 
           console.log("💾 Stored simulation data:", {
@@ -466,26 +472,20 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
             fullData: "stored in portfolioData key",
             contextUpdated: true,
           });
-
-          // Now show the loading screen - it will have data to work with
-          if (onShowLoading) {
-            console.log("🔄 Transitioning to LoadingScreen with real data");
-            onShowLoading();
-          }
         } else {
           throw new Error("Invalid simulation response - missing ID");
         }
       } catch (apiError) {
         console.error("❌ API call failed:", apiError);
+        localStorage.removeItem("isCreatingPortfolio");
         alert(
           `Failed to create portfolio: ${apiError.message}. Please try again.`
         );
-        setIsLoading(false);
       }
     } catch (error) {
       console.error("❌ Error processing form submission:", error);
+      localStorage.removeItem("isCreatingPortfolio");
       alert("An error occurred. Please try again.");
-      setIsLoading(false);
     }
   };
 
