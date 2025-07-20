@@ -1,19 +1,38 @@
 import Simulations from "./components/Simulations";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingScreen from "./components/LandingScreen";
-import OnboardingForm from "./components/OnboardingForm";
 import LoadingScreen from "./components/LoadingScreen";
 import Dashboard from "./components/Dashboard";
-import StockPage from "./components/StockPage";
 import Signup from "./components/Signup";
 import Login from "./components/Login";
-import { PortfolioProvider } from "./context/PortfolioContext"; // ✅ import the provider
+import { PortfolioProvider } from "./context/PortfolioContext";
+import { useEffect } from "react";
 
 export default function App() {
+  // Set body background to match for seamless scrolling
+  // useEffect(() => {
+  //   // Apply background to body for full-page coverage
+  //   document.body.style.background =
+  //     "linear-gradient(to bottom, white, #a3cde0)";
+  //   document.body.style.minHeight = "100vh";
+  //   document.documentElement.style.minHeight = "100vh";
+
+  //   // Cleanup on unmount
+  //   return () => {
+  //     document.body.style.background = "";
+  //     document.body.style.minHeight = "";
+  //     document.documentElement.style.minHeight = "";
+  //   };
+  // }, []);
+
   return (
     <Router>
       <PortfolioProvider>
-        <div className="min-h-screen w-full bg-gradient-to-b from-white to-[#a3cde0] font-sans">
+        {/* 
+          Use min-h-screen to ensure minimum viewport height
+          Background is now applied to body for seamless scrolling
+        */}
+        <div className="min-h-screen w-full font-sans mt-6">
           <Routes>
             <Route path="/" element={<LandingScreen />}>
               <Route index element={<Login />} />
@@ -28,7 +47,7 @@ export default function App() {
               path="/dashboard/:userId/:simulationId"
               element={<Dashboard />}
             />
-            <Route path="/stock/:stock" element={<StockPage />} />
+
             <Route path="/simulations" element={<Simulations />} />
           </Routes>
         </div>

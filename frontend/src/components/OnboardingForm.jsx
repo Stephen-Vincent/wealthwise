@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import ProgressDots from "../components/CustomComponents/ProgressDots";
 import { usePortfolio } from "../context/PortfolioContext";
 
@@ -9,6 +10,8 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
   const [fade, setFade] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showError, setShowError] = useState(false);
 
   // Local state to capture all onboarding form fields
   const [formData, setFormData] = useState({
@@ -60,6 +63,23 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       clearTimeout(greetingTimer);
     };
   }, []);
+
+  // Auto-hide error messages after 4 seconds
+  useEffect(() => {
+    if (showError) {
+      const timer = setTimeout(() => {
+        setShowError(false);
+        setErrorMessage("");
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showError]);
+
+  // Function to show error message with animation
+  const showErrorMessage = (message) => {
+    setErrorMessage(message);
+    setShowError(true);
+  };
 
   // Complete list of questions/steps for onboarding
   const questions = [
@@ -187,6 +207,72 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
     },
   ];
 
+  // Toast Notification Component - Using Portal for true screen positioning
+  const ToastNotification = ({ message, visible }) => {
+    if (typeof document === "undefined") return null; // SSR safety
+
+    return createPortal(
+      <div
+        className={`fixed top-6 right-6 z-[9999] transition-all duration-500 ease-in-out transform ${
+          visible
+            ? "opacity-100 translate-x-0 scale-100"
+            : "opacity-0 translate-x-full scale-95 pointer-events-none"
+        }`}
+        style={{ position: "fixed", zIndex: 9999 }} // Inline styles for extra specificity
+      >
+        <div className="bg-white border-l-4 border-red-400 rounded-lg shadow-lg p-4 max-w-sm min-w-[300px]">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-400 mt-0.5" />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                Validation Error
+              </p>
+              <p className="text-sm text-gray-600 mt-1">{message}</p>
+            </div>
+            <div className="ml-4 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setShowError(false);
+                  setErrorMessage("");
+                }}
+                className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none transition-colors duration-200"
+              >
+                <span className="sr-only">Close</span>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Progress bar for auto-dismiss */}
+          <div className="mt-3 bg-gray-200 rounded-full h-1 overflow-hidden">
+            <div
+              className="h-full bg-red-400 rounded-full transition-all duration-[4000ms] ease-linear"
+              style={{
+                width: visible ? "0%" : "100%",
+                transitionDelay: visible ? "0ms" : "0ms",
+              }}
+            />
+          </div>
+        </div>
+      </div>,
+      document.body // Portal to document body for true screen positioning
+    );
+  };
+
   // Render different question types with enhanced styling
   const renderQuestion = (question) => {
     const baseInputClasses =
@@ -311,7 +397,8 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
     if (currentKey === "years_of_experience") {
       const experience = parseInt(formData.years_of_experience);
       if (isNaN(experience) || experience < 0 || experience > 50) {
-        return alert("Please enter a valid number of years (0-50).");
+        showErrorMessage("Please enter a valid number of years (0-50).");
+        return;
       }
     }
 
@@ -321,11 +408,22 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       !formData.lump_sum_investment &&
       !formData.monthly_investment
     ) {
-      return alert("Please enter a lump sum or a monthly contribution.");
+      showErrorMessage("Please enter a lump sum or a monthly contribution.");
+      return;
+    }
+
+    // Special validation for target amount
+    if (currentKey === "target_amount") {
+      const target = parseFloat(formData.target_amount);
+      if (isNaN(target) || target <= 0) {
+        showErrorMessage("Please enter a valid target amount.");
+        return;
+      }
     }
 
     if (!currentValue && currentKey !== "lump_sum_investment") {
-      return alert("Please answer this question before continuing.");
+      showErrorMessage("Please answer this question before continuing.");
+      return;
     }
 
     setFade(false);
@@ -363,10 +461,12 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       !formData.timeframe ||
       !formData.income
     ) {
-      return alert("Please complete all questions.");
+      showErrorMessage("Please complete all questions.");
+      return;
     }
     if (!formData.consent) {
-      return alert("Please confirm this is a learning tool.");
+      showErrorMessage("Please confirm this is a learning tool.");
+      return;
     }
 
     console.log("📝 Form validation passed. Submitting data:", formData);
@@ -379,7 +479,7 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
 
       if (!userId) {
         console.error("❌ No user ID found. User must log in again.");
-        alert("Session expired. Please log in again.");
+        showErrorMessage("Session expired. Please log in again.");
         return;
       }
 
@@ -478,14 +578,14 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       } catch (apiError) {
         console.error("❌ API call failed:", apiError);
         localStorage.removeItem("isCreatingPortfolio");
-        alert(
+        showErrorMessage(
           `Failed to create portfolio: ${apiError.message}. Please try again.`
         );
       }
     } catch (error) {
       console.error("❌ Error processing form submission:", error);
       localStorage.removeItem("isCreatingPortfolio");
-      alert("An error occurred. Please try again.");
+      showErrorMessage("An error occurred. Please try again.");
     }
   };
 
@@ -495,6 +595,9 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       }`}
     >
+      {/* Toast Notification Component - Portal ensures true screen positioning */}
+      <ToastNotification message={errorMessage} visible={showError} />
+
       {showGreeting ? (
         <div className="animate-fade-in-scale">
           <h2 className="text-3xl font-bold text-[#00A8FF] mb-4">
@@ -549,16 +652,33 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
                   />
                   I agree this is a learning tool and not financial advice.
                 </label>
-                <button
-                  className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg animate-fade-in-up disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+
+                {/* Declaration Screen Navigation */}
+                <div
+                  className="flex justify-center items-center gap-6 animate-fade-in-up"
                   style={{ animationDelay: "0.6s" }}
-                  onClick={handleSubmit}
-                  disabled={isLoading}
                 >
-                  {isLoading
-                    ? "Creating Portfolio..."
-                    : "Let's Build Your Portfolio"}
-                </button>
+                  {/* Back Button */}
+                  <button
+                    onClick={prevStep}
+                    className="bg-gray-500 text-white font-bold px-6 py-4 rounded-[15px] hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-2"
+                    disabled={isLoading}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                    Back
+                  </button>
+
+                  {/* Submit Button */}
+                  <button
+                    className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                  >
+                    {isLoading
+                      ? "Creating Portfolio..."
+                      : "Let's Build Your Portfolio"}
+                  </button>
+                </div>
               </div>
             )}
           </div>

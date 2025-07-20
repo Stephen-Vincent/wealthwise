@@ -23,43 +23,81 @@ export default function LoadingScreen() {
   const [fade, setFade] = useState(true);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [readyToNavigate, setReadyToNavigate] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  // Calculate progress based on various factors
+  // Simplified smooth progress animation
   useEffect(() => {
-    const updateProgress = () => {
-      let currentProgress = 0;
+    if (!hasStarted) {
+      setHasStarted(true);
+    }
 
-      // Base progress from message index (0-60%)
-      currentProgress += (index / (messages.length - 1)) * 60;
+    let animationFrame;
+    let startTime = Date.now();
+    const minLoadingDuration = 4000; // 4 seconds minimum
 
-      // Add progress if API call is complete (60-80%)
-      if (!isCreatingPortfolio && portfolioData) {
-        currentProgress = Math.max(currentProgress, 80);
-      }
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const timeProgress = Math.min(elapsed / minLoadingDuration, 1);
 
-      // Add progress if data is ready (80-95%)
+      // Calculate target progress - SIMPLIFIED LOGIC
+      let targetProgress = 0;
+
+      // Always start with time-based progress (0-80% over 4 seconds)
+      targetProgress = timeProgress * 80;
+
+      // Add data-based progress
       if (portfolioData && portfolioData.id) {
-        currentProgress = Math.max(currentProgress, 95);
+        targetProgress = Math.max(targetProgress, 90);
       }
 
-      // Complete when ready to navigate (95-100%)
-      if (portfolioData && portfolioData.id && minTimeElapsed) {
-        currentProgress = 100;
+      // Complete when all conditions are met
+      if (
+        portfolioData &&
+        portfolioData.id &&
+        minTimeElapsed &&
+        userId &&
+        simulationId &&
+        !isCreatingPortfolio
+      ) {
+        targetProgress = 100;
       }
 
-      // If still creating portfolio, cap at 40%
-      if (isCreatingPortfolio) {
-        currentProgress = Math.min(currentProgress, 40);
-      }
+      // Smooth progress animation using easing - ONLY MOVE FORWARD
+      setProgress((prev) => {
+        const newTarget = Math.max(prev, targetProgress); // Never go backwards
+        const diff = newTarget - prev;
 
-      setProgress(Math.round(currentProgress));
+        if (diff < 0.1) {
+          return newTarget;
+        }
+
+        // Smooth easing - slower near the end
+        const increment = diff * (newTarget > 90 ? 0.08 : 0.03);
+        return Math.min(prev + increment, 100);
+      });
+
+      // Continue animation if not complete
+      if (targetProgress < 100) {
+        animationFrame = requestAnimationFrame(animate);
+      }
     };
 
-    const interval = setInterval(updateProgress, 200);
-    updateProgress(); // Run immediately
+    animationFrame = requestAnimationFrame(animate);
 
-    return () => clearInterval(interval);
-  }, [index, portfolioData, minTimeElapsed, isCreatingPortfolio]);
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [
+    portfolioData,
+    minTimeElapsed,
+    isCreatingPortfolio,
+    userId,
+    simulationId,
+    hasStarted,
+  ]);
 
   // Handle message cycling
   useEffect(() => {
@@ -88,16 +126,14 @@ export default function LoadingScreen() {
     return () => clearTimeout(minLoadingTime);
   }, []);
 
-  // Check if portfolio data is ready and navigate when conditions are met
+  // Check if ready to navigate - SIMPLIFIED
   useEffect(() => {
-    const checkDataAndNavigate = () => {
-      // If we're still creating the portfolio, don't navigate yet
-      if (isCreatingPortfolio) {
-        console.log("🔄 Still creating portfolio, waiting...");
-        return;
+    const checkReadyToNavigate = () => {
+      // Clear creating portfolio flag if we have data
+      if (portfolioData && portfolioData.id && isCreatingPortfolio) {
+        localStorage.setItem("isCreatingPortfolio", "false");
       }
 
-      // Check for the actual data structure
       const isDataReady =
         portfolioData &&
         portfolioData.id &&
@@ -105,46 +141,24 @@ export default function LoadingScreen() {
           portfolioData.breakdown ||
           portfolioData.results);
 
-      console.log("🔍 Data check:", {
+      const canNavigate =
+        isDataReady && minTimeElapsed && userId && simulationId;
+
+      setReadyToNavigate(canNavigate);
+
+      console.log("🔍 Navigation check:", {
         hasPortfolioData: !!portfolioData,
         hasId: !!portfolioData?.id,
-        hasStocksPicked: !!portfolioData?.stocks_picked,
-        hasBreakdown: !!portfolioData?.breakdown,
-        hasResults: !!portfolioData?.results,
         minTimeElapsed,
-        userId,
-        simulationId,
-        isCreatingPortfolio,
-        progress,
+        userId: !!userId,
+        simulationId: !!simulationId,
+        canNavigate,
+        progress: Math.round(progress),
       });
-
-      // Only navigate if data is ready, minimum time has elapsed, and we have valid IDs
-      if (
-        isDataReady &&
-        minTimeElapsed &&
-        userId &&
-        simulationId &&
-        !isCreatingPortfolio &&
-        progress >= 100
-      ) {
-        console.log("✅ All conditions met, navigating to dashboard:", {
-          portfolioData: portfolioData,
-          userId: userId,
-          simulationId: simulationId,
-        });
-
-        // Add a small delay for smooth transition
-        setTimeout(() => {
-          navigate(`/dashboard/${userId}/${simulationId}`);
-        }, 500);
-      }
     };
 
-    // Check every second while we're waiting
-    const interval = setInterval(checkDataAndNavigate, 1000);
-
-    // Also check immediately
-    checkDataAndNavigate();
+    const interval = setInterval(checkReadyToNavigate, 1000);
+    checkReadyToNavigate();
 
     return () => clearInterval(interval);
   }, [
@@ -152,25 +166,38 @@ export default function LoadingScreen() {
     minTimeElapsed,
     userId,
     simulationId,
-    navigate,
     isCreatingPortfolio,
     progress,
   ]);
 
-  // Fallback timeout
+  // Navigate when progress reaches 100% and ready
+  useEffect(() => {
+    if (readyToNavigate && progress >= 99.5) {
+      console.log("✅ Navigation conditions met, redirecting to dashboard");
+
+      // Clear the creating portfolio flag
+      localStorage.setItem("isCreatingPortfolio", "false");
+
+      setTimeout(() => {
+        navigate(`/dashboard/${userId}/${simulationId}`);
+      }, 500);
+    }
+  }, [readyToNavigate, progress, navigate, userId, simulationId]);
+
+  // Fallback navigation after 10 seconds if we have data
   useEffect(() => {
     const fallbackTimeout = setTimeout(() => {
-      if (!portfolioData || !portfolioData.id) {
-        console.error(
-          "❌ Data not ready after 15 seconds, something may be wrong"
-        );
+      if (portfolioData && portfolioData.id && userId && simulationId) {
+        console.log("⏰ Fallback navigation triggered");
+        localStorage.setItem("isCreatingPortfolio", "false");
+        navigate(`/dashboard/${userId}/${simulationId}`);
       }
-    }, 15000);
+    }, 10000);
 
     return () => clearTimeout(fallbackTimeout);
-  }, [portfolioData]);
+  }, [portfolioData, userId, simulationId, navigate]);
 
-  // Progress circle component
+  // Progress circle component with smooth animations
   const ProgressCircle = ({ percentage }) => {
     const radius = 45;
     const circumference = 2 * Math.PI * radius;
@@ -193,7 +220,7 @@ export default function LoadingScreen() {
             fill="transparent"
             className="text-gray-200"
           />
-          {/* Progress circle */}
+          {/* Progress circle with smooth transition */}
           <circle
             cx="64"
             cy="64"
@@ -203,14 +230,14 @@ export default function LoadingScreen() {
             fill="transparent"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
-            className="text-[#00A8FF] transition-all duration-300 ease-out"
+            className="text-[#00A8FF] transition-all duration-100 ease-out"
             strokeLinecap="round"
           />
         </svg>
-        {/* Percentage text */}
+        {/* Percentage text with smooth counting */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-2xl font-bold text-[#00A8FF]">
-            {percentage}%
+          <span className="text-2xl font-bold text-[#00A8FF] tabular-nums">
+            {Math.round(percentage)}%
           </span>
         </div>
       </div>
@@ -223,6 +250,27 @@ export default function LoadingScreen() {
       return "🤖 AI is creating your optimized portfolio...";
     }
     return messages[index];
+  };
+
+  // Get status message based on progress
+  const getStatusMessage = () => {
+    if (isCreatingPortfolio) {
+      return "Our AI is analyzing market conditions and optimizing your portfolio...";
+    }
+
+    if (progress < 25) {
+      return "Initializing analysis systems...";
+    } else if (progress < 50) {
+      return "Processing your risk profile and goals...";
+    } else if (progress < 75) {
+      return "Analyzing market data and stock performance...";
+    } else if (progress < 95) {
+      return "Optimizing your personalized portfolio...";
+    } else if (progress < 100) {
+      return "Finalizing recommendations...";
+    } else {
+      return "Portfolio optimization complete!";
+    }
   };
 
   return (
@@ -239,15 +287,13 @@ export default function LoadingScreen() {
         {getCurrentMessage()}
       </p>
 
-      {/* Additional status if still creating */}
-      {isCreatingPortfolio && (
-        <p className="text-sm text-gray-600 mt-2 animate-pulse max-w-md">
-          Our AI is analyzing market conditions and optimizing your portfolio...
-        </p>
-      )}
+      {/* Dynamic status message */}
+      <p className="text-sm text-gray-600 mt-2 max-w-md">
+        {getStatusMessage()}
+      </p>
 
       {/* Completion message */}
-      {progress >= 100 && (
+      {progress >= 99.5 && readyToNavigate && (
         <div className="mt-4 text-green-600 font-semibold animate-pulse">
           🎉 Portfolio ready! Redirecting...
         </div>
