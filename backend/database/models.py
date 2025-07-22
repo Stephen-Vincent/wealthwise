@@ -17,7 +17,7 @@ class User(Base):
 class Simulation(Base):
     __tablename__ = "simulations"
     # Updated for PostgreSQL compatibility
-    __table_args__ = {"postgresql_sequence_name": "simulations_id_seq"} if os.getenv("DATABASE_URL") else {"sqlite_autoincrement": True}
+    __table_args__ = {"sqlite_autoincrement": True}
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
