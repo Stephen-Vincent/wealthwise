@@ -1,7 +1,9 @@
 from datetime import datetime
+import os  # ← ADD THIS LINE
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
-from .database import Base  # Changed from .session import
+from .database import Base  # Make sure this import is correct too
+
 
 class User(Base):
     __tablename__ = "users"
