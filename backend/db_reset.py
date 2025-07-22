@@ -1,5 +1,5 @@
 # In a Python script or shell
-from database.session import engine
+from database.database import engine
 from database import models
 
 models.Base.metadata.drop_all(bind=engine)
