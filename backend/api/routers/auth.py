@@ -43,7 +43,7 @@ def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
     expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     expire = datetime.utcnow() + expires_delta
     token_data = {"sub": str(user.id), "exp": expire}
-    token = jwt.encode(token_data, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    token = jwt.encode(token_data, settings.JWT_SECRET_KEY, algorithm=settings.ALGORITHM)
     return {
         "access_token": token,
         "token_type": "bearer",
