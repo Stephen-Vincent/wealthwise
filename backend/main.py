@@ -123,6 +123,33 @@ def setup_cors():
 # Setup CORS
 setup_cors()
 
+# Add this after setup_cors() call
+@app.middleware("http")
+async def add_cors_to_errors(request, call_next):
+    """Ensure CORS headers are present on all responses, including errors"""
+    response = await call_next(request)
+    
+    # Get origin from request
+    origin = request.headers.get("origin")
+    
+    # Add CORS headers to all responses (including errors)
+    if origin:
+        # Check if origin is allowed (you can make this more sophisticated)
+        allowed_origins = [
+            "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
+            "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ]
+        
+        if origin in allowed_origins or origin.endswith(".vercel.app"):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
 # Health check endpoints (important for Railway deployment)
 @app.get("/")
 async def root():
