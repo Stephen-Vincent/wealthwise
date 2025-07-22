@@ -5,6 +5,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
@@ -61,32 +62,63 @@ app = FastAPI(
 def setup_cors():
     """Setup CORS for both development and production"""
     
-    # Get CORS origins from settings
-    cors_origins = settings.BACKEND_CORS_ORIGINS
+    # Start with default CORS origins from settings
+    cors_origins = getattr(settings, 'BACKEND_CORS_ORIGINS', [])
     
-    # Add production URLs if in production environment
+    # Add essential development origins
+    dev_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"
+    ]
+    
+    # Add production Vercel origins
+    prod_origins = [
+        "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
+        # Add pattern for all your Vercel deployments
+        "https://*.vercel.app"
+    ]
+    
+    # Combine all origins
+    all_origins = list(set(cors_origins + dev_origins + prod_origins))
+    
+    # Get environment
     environment = os.getenv("ENVIRONMENT", "development")
+    
+    # Add environment-specific URLs
     if environment == "production":
         # Add common production patterns
         vercel_url = os.getenv("VERCEL_URL")
-        if vercel_url and vercel_url not in cors_origins:
-            cors_origins.append(f"https://{vercel_url}")
+        if vercel_url and f"https://{vercel_url}" not in all_origins:
+            all_origins.append(f"https://{vercel_url}")
         
         # Add Railway frontend URL pattern (if using Railway for both)
         railway_frontend = os.getenv("RAILWAY_STATIC_URL") 
-        if railway_frontend and railway_frontend not in cors_origins:
-            cors_origins.append(railway_frontend)
+        if railway_frontend and railway_frontend not in all_origins:
+            all_origins.append(railway_frontend)
+    
+    # For development/testing, you might want to be more permissive
+    if environment == "development":
+        # Add localhost variants
+        localhost_variants = [
+            "http://localhost:3001",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080"
+        ]
+        all_origins.extend(localhost_variants)
     
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=cors_origins,
+        allow_origins=all_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
         expose_headers=["*"]
     )
     
-    logger.info(f"🌐 CORS configured for origins: {cors_origins}")
+    logger.info(f"🌐 CORS configured for origins: {all_origins}")
 
 # Setup CORS
 setup_cors()
@@ -122,7 +154,7 @@ async def health_check():
         # Test database connection
         from database.database import SessionLocal
         db = SessionLocal()
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db.close()
         db_status = "connected"
     except Exception as e:
@@ -181,10 +213,11 @@ async def internal_server_error(request, exc):
     }
 
 # Middleware to log requests in development
-if os.getenv("DEBUG", "false").lower() == "true":
+if os.getenv("DEBUG", "true").lower() == "true":
     @app.middleware("http")
     async def log_requests(request, call_next):
-        logger.info(f"📨 {request.method} {request.url}")
+        origin = request.headers.get("origin", "No origin")
+        logger.info(f"📨 {request.method} {request.url} from {origin}")
         response = await call_next(request)
         logger.info(f"📤 Response: {response.status_code}")
         return response
