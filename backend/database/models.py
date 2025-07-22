@@ -1,8 +1,8 @@
 from datetime import datetime
-import os  # ← ADD THIS LINE
+import os 
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
-from .database import Base  # Make sure this import is correct too
+from .database import Base  
 
 
 class User(Base):
