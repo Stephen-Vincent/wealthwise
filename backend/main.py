@@ -73,11 +73,18 @@ def setup_cors():
         "http://127.0.0.1:5173"
     ]
     
-    # Add production Vercel origins
+    # Add ALL current Vercel deployment URLs
     prod_origins = [
+        # Old deployment URLs
         "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
         "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
-        # Add pattern for all your Vercel deployments
+        
+        # Current deployment URLs (from Vercel dashboard)
+        "https://wealthwise-six-gamma.vercel.app",
+        "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
+        "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
+        
+        # Wildcard pattern for all Vercel deployments
         "https://*.vercel.app"
     ]
     
@@ -134,12 +141,20 @@ async def add_cors_to_errors(request, call_next):
     
     # Add CORS headers to all responses (including errors)
     if origin:
-        # Check if origin is allowed (you can make this more sophisticated)
+        # Updated allowed origins list to match current deployments
         allowed_origins = [
+            # Development
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+            
+            # All current Vercel deployments
             "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
             "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:5173"
+            "https://wealthwise-six-gamma.vercel.app",
+            "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
+            "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app"
         ]
         
         if origin in allowed_origins or origin.endswith(".vercel.app"):
