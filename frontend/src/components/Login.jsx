@@ -18,29 +18,34 @@ export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:8000/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.ok) {
-      const userId = data.user?.id;
-      if (!userId) {
-        alert("Login response did not include a user ID.");
-        return;
+      if (res.ok) {
+        const userId = data.user?.id;
+        if (!userId) {
+          alert("Login response did not include a user ID.");
+          return;
+        }
+
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("userId", String(userId));
+        localStorage.setItem("access_token", data.access_token);
+
+        // Show welcome screen instead of navigating directly
+        onShowWelcomeScreen(data.user);
+      } else {
+        alert(data.detail || "Login failed");
       }
-
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("userId", String(userId));
-      localStorage.setItem("access_token", data.access_token);
-
-      // Show welcome screen instead of navigating directly
-      onShowWelcomeScreen(data.user);
-    } else {
-      alert(data.detail || "Login failed");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("An error occurred during login. Please try again.");
     }
   };
 

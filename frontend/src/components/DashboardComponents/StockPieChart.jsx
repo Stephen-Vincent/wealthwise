@@ -107,7 +107,7 @@ const DEFAULT_CATEGORY_CONFIG = {
 
 // Instrument service for FastAPI calls
 class InstrumentService {
-  constructor(baseURL = "http://localhost:8000/api") {
+  constructor(baseURL = `${import.meta.env.VITE_API_URL}/api`) {
     this.baseURL = baseURL;
     this.cache = new Map();
   }

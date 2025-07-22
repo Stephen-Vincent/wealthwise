@@ -30,12 +30,15 @@ export default function DashboardButtons() {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const response = await fetch(`/api/users/${userId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
           if (response.ok) {
             const userData = await response.json();

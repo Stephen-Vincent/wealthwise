@@ -537,14 +537,17 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
 
         console.log("🔄 Making API call to create simulation in background...");
 
-        const response = await fetch("http://localhost:8000/onboarding/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/onboarding`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
 
         if (!response.ok) {
           throw new Error(
