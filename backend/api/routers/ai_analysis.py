@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from services.portfolio_simulator import simulate_portfolio
 from services.ai_analysis import AIAnalysisService
-from database.session import get_db  # Fixed import
+from database.database import get_db  # Fixed import
 
 router = APIRouter(prefix="/ai", tags=["ai-analysis"])
 
