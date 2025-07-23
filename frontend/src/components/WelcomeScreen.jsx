@@ -30,8 +30,17 @@ export default function WelcomeScreen({
 
     console.log("🔍 Checking simulations - Token:", !!token, "UserId:", userId);
 
+    // ADD DEBUG LOGGING
+    console.log("🔍 WELCOMESCREEN DEBUG:");
+    console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
+    console.log("Environment mode:", import.meta.env.MODE);
+    console.log("All env vars:", import.meta.env);
+
+    const apiUrl = `${import.meta.env.VITE_API_URL}/simulations`;
+    console.log("🔍 About to fetch URL:", apiUrl);
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/simulations`, {
+      const res = await fetch(apiUrl, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
