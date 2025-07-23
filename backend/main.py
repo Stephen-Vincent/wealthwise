@@ -59,6 +59,7 @@ app = FastAPI(
 )
 
 # Enhanced CORS middleware for production deployment
+# Enhanced CORS middleware for production deployment
 def setup_cors():
     """Setup CORS for both development and production"""
     
@@ -83,6 +84,7 @@ def setup_cors():
         "https://wealthwise-six-gamma.vercel.app",
         "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
         "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",  # NEW DOMAIN
         
         # Wildcard pattern for all Vercel deployments
         "https://*.vercel.app"
