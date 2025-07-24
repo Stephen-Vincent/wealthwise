@@ -44,6 +44,7 @@ yfinance==0.2.61
 numpy==2.0.0
 pandas==2.2.3
 scikit-learn==1.5.2
+xgboost==2.1.1
 
 # REMOVED HEAVY/UNNECESSARY LIBRARIES:
 # torch>=2.5.0            ❌ HEAVY, NOT NEEDED
