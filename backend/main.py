@@ -339,3 +339,9 @@ if os.getenv("ENVIRONMENT") == "development":
 logger.info("🎓 WealthWise API configured for university project deployment")
 logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
 logger.info("🔗 Health check available at /health and /api/health")
+
+# Add this at the very end of main.py
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
