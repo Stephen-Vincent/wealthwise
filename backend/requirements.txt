@@ -39,10 +39,13 @@ typing_extensions==4.14.0
 beautifulsoup4==4.13.4
 yfinance==0.2.61
 
-# REMOVE ALL THESE - THEY'RE CAUSING THE BUILD FAILURES:
-# pandas==2.2.1           ❌ FAILS ON PYTHON 3.13
-# numpy==1.26.4           ❌ FAILS ON PYTHON 3.13  
-# scikit-learn==1.7.0     ❌ FAILS ON PYTHON 3.13
+# ESSENTIAL ML LIBRARIES - Required for risk assessment model
+# Using Python 3.13 compatible versions
+numpy==2.0.0
+pandas==2.2.3
+scikit-learn==1.5.2
+
+# REMOVED HEAVY/UNNECESSARY LIBRARIES:
 # torch>=2.5.0            ❌ HEAVY, NOT NEEDED
 # transformers>=4.40.0    ❌ HEAVY, NOT NEEDED
 # gradio==5.28.0          ❌ NOT NEEDED FOR API
@@ -51,6 +54,3 @@ yfinance==0.2.61
 # matplotlib==3.8.4       ❌ PLOTTING, NOT NEEDED FOR API
 # seaborn==0.13.2         ❌ PLOTTING, NOT NEEDED FOR API
 # plotly==5.24.1          ❌ PLOTTING, NOT NEEDED FOR API
-
-# Note: If you absolutely need ML features later, 
-# add them back one by one and test each deployment
