@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import logging
 import aiohttp
 import os
-
+from services.news_analysis import NewsAnalysisService
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -11,13 +11,40 @@ logger = logging.getLogger(__name__)
 class AIAnalysisService:
     """
     Enhanced AI-powered portfolio analysis service using GROQ API
+    Now includes news sentiment analysis and market event detection
     Focuses on educational explanations of market movements for beginners
     """
     
     def __init__(self):
         self.groq_url = "https://api.groq.com/openai/v1/chat/completions"
         self.groq_api_key = os.getenv("GROQ_API_KEY")  # Set from environment
+        self.finnhub_api_key = os.getenv("FINNHUB_API_KEY")  # For news analysis
         self.model = "llama3-70b-8192"  # Or mixtral-8x7b-32768
+    
+    def extract_symbols_from_portfolio(self, portfolio_data: dict) -> List[str]:
+        """Extract stock symbols from portfolio data"""
+        symbols = []
+        
+        # Handle different portfolio data formats
+        if 'holdings' in portfolio_data:
+            for holding in portfolio_data['holdings']:
+                if 'symbol' in holding:
+                    symbols.append(holding['symbol'].upper())
+        elif 'positions' in portfolio_data:
+            for position in portfolio_data['positions']:
+                if 'ticker' in position:
+                    symbols.append(position['ticker'].upper())
+        elif 'stocks' in portfolio_data:
+            symbols = [stock.upper() for stock in portfolio_data['stocks']]
+        elif 'stocks_picked' in portfolio_data:
+            # Handle the stocks_picked format from simulation
+            for stock in portfolio_data['stocks_picked']:
+                if 'symbol' in stock:
+                    symbols.append(stock['symbol'].upper())
+                elif 'ticker' in stock:
+                    symbols.append(stock['ticker'].upper())
+        
+        return list(set(symbols))  # Remove duplicates
             
     async def generate_portfolio_summary(
         self, 
@@ -29,15 +56,19 @@ class AIAnalysisService:
     ) -> str:
         """
         Generate AI summary with enhanced market movement explanations
+        Now includes news sentiment analysis
         """
         try:
             # Analyze market movements from timeline data
             market_analysis = self._analyze_market_movements(simulation_results, user_data)
             
-            # Generate comprehensive prompt with market movement insights
-            prompt = self._create_educational_market_prompt(
+            # Get news sentiment analysis for the portfolio stocks
+            news_analysis = await self._analyze_portfolio_news(stocks_picked)
+            
+            # Generate comprehensive prompt with market movement insights and news sentiment
+            prompt = self._create_educational_market_prompt_with_news(
                 stocks_picked, user_data, risk_score, risk_label, 
-                simulation_results, market_analysis
+                simulation_results, market_analysis, news_analysis
             )
             
             response = await self._get_groq_response(prompt)
@@ -49,6 +80,298 @@ class AIAnalysisService:
                 user_data, simulation_results, stocks_picked, risk_label
             )
     
+    async def analyze_portfolio_performance(self, portfolio_data: dict):
+        """Analyze existing portfolio performance with news context"""
+        try:
+            symbols = self.extract_symbols_from_portfolio(portfolio_data)
+            
+            if not symbols:
+                return {"error": "No valid symbols found in portfolio data"}
+            
+            # Get news analysis
+            news_analysis = await self._get_portfolio_news_analysis(symbols)
+            
+            # Generate AI insights about performance with news context
+            prompt = self._create_performance_analysis_prompt(portfolio_data, news_analysis)
+            
+            ai_response = await self._get_groq_response(prompt)
+            
+            return {
+                "performance_analysis": ai_response,
+                "news_sentiment": news_analysis,
+                "analysis_date": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error analyzing portfolio performance: {e}")
+            return {"error": str(e)}
+    
+    async def analyze_risk_allocation(self, portfolio_data: dict):
+        """Analyze portfolio risk and allocation with market sentiment"""
+        try:
+            symbols = self.extract_symbols_from_portfolio(portfolio_data)
+            
+            if not symbols:
+                return {"error": "No valid symbols found in portfolio data"}
+            
+            # Get news analysis for risk assessment
+            news_analysis = await self._get_portfolio_news_analysis(symbols)
+            
+            # Generate AI risk analysis with news context
+            prompt = self._create_risk_analysis_prompt(portfolio_data, news_analysis)
+            
+            ai_response = await self._get_groq_response(prompt)
+            
+            return {
+                "risk_analysis": ai_response,
+                "market_sentiment": news_analysis,
+                "analysis_date": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error analyzing risk allocation: {e}")
+            return {"error": str(e)}
+    
+    async def explain_portfolio_changes(self, portfolio_data: dict, previous_data: dict = None):
+        """Explain portfolio changes over time with news context"""
+        try:
+            symbols = self.extract_symbols_from_portfolio(portfolio_data)
+            
+            if not symbols:
+                return {"error": "No valid symbols found in portfolio data"}
+            
+            # Get recent news that might explain changes
+            news_analysis = await self._get_portfolio_news_analysis(symbols, days_back=14)
+            
+            # Generate explanation with news context
+            prompt = self._create_changes_explanation_prompt(portfolio_data, previous_data, news_analysis)
+            
+            ai_response = await self._get_groq_response(prompt)
+            
+            return {
+                "changes_explanation": ai_response,
+                "relevant_news": news_analysis,
+                "analysis_date": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error explaining portfolio changes: {e}")
+            return {"error": str(e)}
+    
+    async def analyze_portfolio_with_context(self, portfolio_data: dict, days_back: int = 7) -> Dict:
+        """
+        Enhanced portfolio analysis with news sentiment and market context
+        """
+        symbols = self.extract_symbols_from_portfolio(portfolio_data)
+        
+        if not symbols:
+            return {"error": "No valid symbols found in portfolio data"}
+        
+        try:
+            # Get comprehensive news analysis
+            async with NewsAnalysisService(self.finnhub_api_key) as news_service:
+                # Get news and sentiment for all symbols
+                news_data = await news_service.get_market_news(symbols, days_back)
+                
+                analysis_results = {}
+                
+                for symbol in symbols:
+                    articles = news_data.get(symbol, [])
+                    
+                    # Analyze sentiment
+                    sentiment_analysis = await news_service.analyze_sentiment(articles)
+                    
+                    # Detect market events
+                    events = await news_service.get_market_events(articles)
+                    
+                    # Get price data for correlation
+                    price_data = await self._get_price_data(symbol, days_back)
+                    
+                    # Generate AI insights for this specific stock
+                    stock_insights = await self._generate_stock_insights(symbol, sentiment_analysis, events, price_data)
+                    
+                    analysis_results[symbol] = {
+                        'sentiment_analysis': sentiment_analysis,
+                        'market_events': events,
+                        'price_data': price_data,
+                        'ai_insights': stock_insights,
+                        'news_impact_score': self._calculate_news_impact(sentiment_analysis, events, price_data)
+                    }
+        
+            return analysis_results
+            
+        except Exception as e:
+            logger.error(f"Error in portfolio context analysis: {e}")
+            return {"error": str(e)}
+    
+    async def _analyze_portfolio_news(self, stocks_picked: List[Dict], days_back: int = 7) -> Dict:
+        """Analyze news sentiment for portfolio stocks"""
+        try:
+            # Extract symbols from stocks_picked
+            symbols = []
+            for stock in stocks_picked:
+                if 'symbol' in stock:
+                    symbols.append(stock['symbol'].upper())
+                elif 'ticker' in stock:
+                    symbols.append(stock['ticker'].upper())
+            
+            if not symbols:
+                return {"error": "No symbols found in portfolio"}
+            
+            return await self._get_portfolio_news_analysis(symbols, days_back)
+            
+        except Exception as e:
+            logger.error(f"Error analyzing portfolio news: {e}")
+            return {"error": str(e)}
+    
+    async def _get_portfolio_news_analysis(self, symbols: List[str], days_back: int = 7) -> Dict:
+        """Get comprehensive news analysis for portfolio symbols"""
+        try:
+            async with NewsAnalysisService(self.finnhub_api_key) as news_service:
+                # Get news for all symbols
+                news_data = await news_service.get_market_news(symbols, days_back)
+                
+                portfolio_analysis = {
+                    "overall_sentiment": 0.0,
+                    "total_articles": 0,
+                    "symbol_analysis": {},
+                    "market_events": [],
+                    "sentiment_distribution": {"positive": 0, "neutral": 0, "negative": 0}
+                }
+                
+                sentiment_scores = []
+                
+                for symbol in symbols:
+                    articles = news_data.get(symbol, [])
+                    
+                    if articles:
+                        # Analyze sentiment for this symbol
+                        sentiment_result = await news_service.analyze_sentiment(articles)
+                        
+                        # Detect events for this symbol
+                        events = await news_service.get_market_events(articles)
+                        
+                        portfolio_analysis["symbol_analysis"][symbol] = {
+                            "sentiment": sentiment_result,
+                            "events": events,
+                            "article_count": len(articles)
+                        }
+                        
+                        # Add to overall metrics
+                        portfolio_analysis["total_articles"] += len(articles)
+                        portfolio_analysis["market_events"].extend(events)
+                        
+                        if sentiment_result["average_sentiment"] != 0:
+                            sentiment_scores.append(sentiment_result["average_sentiment"])
+                        
+                        # Update sentiment distribution
+                        dist = sentiment_result.get("sentiment_distribution", {})
+                        for key in ["positive", "neutral", "negative"]:
+                            portfolio_analysis["sentiment_distribution"][key] += dist.get(key, 0)
+                
+                # Calculate overall portfolio sentiment
+                if sentiment_scores:
+                    portfolio_analysis["overall_sentiment"] = sum(sentiment_scores) / len(sentiment_scores)
+                
+                return portfolio_analysis
+                
+        except Exception as e:
+            logger.error(f"Error getting portfolio news analysis: {e}")
+            return {"error": str(e)}
+    
+    async def _get_price_data(self, symbol: str, days_back: int) -> Dict:
+        """Get recent price movements for correlation analysis"""
+        try:
+            import yfinance as yf
+            
+            stock = yf.Ticker(symbol)
+            hist = stock.history(period=f"{days_back}d")
+            
+            if hist.empty:
+                return {"error": f"No price data available for {symbol}"}
+            
+            # Calculate key metrics
+            price_change = ((hist['Close'][-1] - hist['Close'][0]) / hist['Close'][0]) * 100
+            volatility = hist['Close'].pct_change().std() * 100
+            volume_avg = hist['Volume'].mean()
+            
+            return {
+                'current_price': round(hist['Close'][-1], 2),
+                'price_change_pct': round(price_change, 2),
+                'volatility': round(volatility, 2),
+                'average_volume': int(volume_avg),
+                'high_period': round(hist['High'].max(), 2),
+                'low_period': round(hist['Low'].min(), 2),
+                'data_points': len(hist)
+            }
+        except Exception as e:
+            logger.error(f"Error getting price data for {symbol}: {e}")
+            return {"error": str(e)}
+    
+    def _calculate_news_impact(self, sentiment_analysis: Dict, events: List[Dict], price_data: Dict) -> Dict:
+        """Calculate the potential impact of news on stock price"""
+        if 'error' in sentiment_analysis or 'error' in price_data:
+            return {"impact_score": 0, "confidence": "Low"}
+        
+        # Base impact score from sentiment
+        sentiment_score = sentiment_analysis.get('average_sentiment', 0)
+        news_volume = sentiment_analysis.get('total_articles', 0)
+        
+        # Weight by news volume (more articles = potentially more impact)
+        volume_multiplier = min(news_volume / 10, 2.0)  # Cap at 2x
+        
+        # Event impact multiplier
+        event_multiplier = 1.0
+        if events:
+            high_impact_events = ['earnings', 'merger_acquisition', 'regulatory']
+            for event in events:
+                if any(event_type in high_impact_events for event_type in event.get('event_types', [])):
+                    event_multiplier = 1.5
+                    break
+        
+        # Calculate final impact score
+        impact_score = sentiment_score * volume_multiplier * event_multiplier
+        
+        # Determine confidence based on data quality
+        confidence = "High" if news_volume >= 5 and price_data.get('data_points', 0) >= 5 else "Medium" if news_volume >= 2 else "Low"
+        
+        return {
+            'impact_score': round(impact_score, 3),
+            'confidence': confidence,
+            'sentiment_component': round(sentiment_score, 3),
+            'volume_multiplier': round(volume_multiplier, 2),
+            'event_multiplier': round(event_multiplier, 2)
+        }
+    
+    async def _generate_stock_insights(self, symbol: str, sentiment_analysis: Dict, events: List[Dict], price_data: Dict) -> str:
+        """Generate AI insights for individual stock"""
+        try:
+            prompt = f"""
+Analyze this stock data and provide brief insights for {symbol}:
+
+SENTIMENT DATA:
+- Average Sentiment: {sentiment_analysis.get('average_sentiment', 0):.3f}
+- News Articles: {sentiment_analysis.get('total_articles', 0)}
+- Sentiment Category: {sentiment_analysis.get('sentiment_category', 'Neutral')}
+
+PRICE DATA:
+- Recent Price Change: {price_data.get('price_change_pct', 0):.2f}%
+- Current Price: ${price_data.get('current_price', 0)}
+
+MARKET EVENTS:
+{len(events)} events detected: {', '.join([e.get('headline', '')[:50] + '...' for e in events[:3]])}
+
+Provide 2-3 sentences of actionable insights about this stock's current situation.
+"""
+            
+            response = await self._get_groq_response(prompt)
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error generating stock insights for {symbol}: {e}")
+            return f"Unable to generate insights for {symbol} due to analysis error."
+
+    # ... [Keep all your existing market movement analysis methods] ...
     def _analyze_market_movements(self, simulation_results: Dict, user_data: Dict) -> Dict:
         """
         Comprehensive analysis of market movements throughout the simulation
@@ -309,12 +632,12 @@ class AIAnalysisService:
             }
         }
     
-    def _create_educational_market_prompt(
+    def _create_educational_market_prompt_with_news(
         self, stocks_picked: List[Dict], user_data: Dict[str, Any], 
         risk_score: int, risk_label: str, simulation_results: Dict[str, Any], 
-        market_analysis: Dict
+        market_analysis: Dict, news_analysis: Dict
     ) -> str:
-        """Create comprehensive prompt focusing on market movement education"""
+        """Create comprehensive prompt focusing on market movement education with news context"""
         
         goal = user_data.get("goal", "wealth building")
         lump_sum = user_data.get("lump_sum", 0)
@@ -341,8 +664,25 @@ class AIAnalysisService:
                 for rally in market_analysis["major_rallies"][:3]
             ])
         
+        # Format news analysis
+        news_summary = ""
+        if news_analysis and 'error' not in news_analysis:
+            overall_sentiment = news_analysis.get('overall_sentiment', 0)
+            total_articles = news_analysis.get('total_articles', 0)
+            
+            sentiment_desc = "Positive" if overall_sentiment > 0.1 else "Negative" if overall_sentiment < -0.1 else "Neutral"
+            
+            news_summary = f"""
+CURRENT NEWS SENTIMENT ANALYSIS:
+- Overall Portfolio Sentiment: {sentiment_desc} ({overall_sentiment:.3f})
+- Total News Articles Analyzed: {total_articles}
+- Market Events Detected: {len(news_analysis.get('market_events', []))}
+
+This gives context about how the market currently views your portfolio stocks.
+"""
+        
         return f"""
-You are a patient, encouraging financial educator explaining investment results to a complete beginner. Focus heavily on explaining market movements in simple, educational terms.
+You are a patient, encouraging financial educator explaining investment results to a complete beginner. Focus heavily on explaining market movements in simple, educational terms, and now also incorporate current news sentiment.
 
 THEIR INVESTMENT JOURNEY:
 - Goal: {goal}
@@ -364,6 +704,8 @@ MARKET CRASHES/CORRECTIONS:
 MARKET RALLIES/RECOVERIES:
 {rallies_summary if rallies_summary else "• Steady growth without dramatic rallies"}
 
+{news_summary}
+
 EDUCATIONAL INSIGHTS:
 {market_analysis['educational_insights']}
 
@@ -371,7 +713,7 @@ REQUIRED STRUCTURE (use this exact format):
 
 ## 🎢 Your Investment Roller Coaster Journey
 
-[Explain their overall experience in simple terms, like a story]
+[Explain their overall experience in simple terms, like a story. Include current news sentiment context.]
 
 ## 📉 When Markets Went Down (The Scary Parts)
 
@@ -381,9 +723,13 @@ REQUIRED STRUCTURE (use this exact format):
 
 [Explain the recoveries and rallies - how markets heal themselves and reward patient investors]
 
+## 📰 What Current News Tells Us
+
+[Incorporate the news sentiment analysis - explain what current market sentiment means for their portfolio]
+
 ## 🧠 What These Market Swings Teach Us
 
-[Extract 3-4 key investing lessons from their specific market experience]
+[Extract 3-4 key investing lessons from their specific market experience, enhanced with news insights]
 
 ## 🎯 Your Results in Perspective
 
@@ -391,7 +737,7 @@ REQUIRED STRUCTURE (use this exact format):
 
 ## 🚀 What This Means for Your Future
 
-[Encouraging conclusion about their investing education and next steps]
+[Encouraging conclusion about their investing education and next steps, considering current market sentiment]
 
 WRITING STYLE:
 - Explain like you're talking to a curious friend over coffee
@@ -400,8 +746,115 @@ WRITING STYLE:
 - Celebrate their patience through volatility
 - Use emojis and formatting for engagement
 - Focus on EDUCATION, not sales
+- Integrate news sentiment naturally into the narrative
 
 Be comprehensive - don't limit length. This is their investment education!
+"""
+    
+    def _create_performance_analysis_prompt(self, portfolio_data: dict, news_analysis: Dict) -> str:
+        """Create prompt for performance analysis with news context"""
+        symbols = self.extract_symbols_from_portfolio(portfolio_data)
+        
+        news_context = ""
+        if news_analysis and 'error' not in news_analysis:
+            overall_sentiment = news_analysis.get('overall_sentiment', 0)
+            total_articles = news_analysis.get('total_articles', 0)
+            sentiment_desc = "Positive" if overall_sentiment > 0.1 else "Negative" if overall_sentiment < -0.1 else "Neutral"
+            
+            news_context = f"""
+CURRENT NEWS SENTIMENT:
+- Overall Sentiment: {sentiment_desc} ({overall_sentiment:.3f})
+- Total Articles: {total_articles}
+- Key Events: {len(news_analysis.get('market_events', []))} detected
+"""
+        
+        return f"""
+Analyze this portfolio's performance with current market context:
+
+PORTFOLIO HOLDINGS: {', '.join(symbols)}
+
+{news_context}
+
+Provide an educational analysis covering:
+1. How current news sentiment affects these holdings
+2. What the market sentiment suggests about near-term prospects
+3. Educational insights about how news impacts stock prices
+4. Actionable recommendations based on sentiment analysis
+
+Keep it beginner-friendly and educational. Focus on teaching, not selling.
+"""
+    
+    def _create_risk_analysis_prompt(self, portfolio_data: dict, news_analysis: Dict) -> str:
+        """Create prompt for risk analysis with market sentiment"""
+        symbols = self.extract_symbols_from_portfolio(portfolio_data)
+        
+        risk_context = ""
+        if news_analysis and 'error' not in news_analysis:
+            events = news_analysis.get('market_events', [])
+            sentiment = news_analysis.get('overall_sentiment', 0)
+            
+            # Identify risk factors from news
+            risk_events = [event for event in events if any(risk_type in event.get('event_types', []) 
+                          for risk_type in ['regulatory', 'legal', 'earnings'])]
+            
+            risk_context = f"""
+CURRENT RISK INDICATORS FROM NEWS:
+- Portfolio Sentiment: {sentiment:.3f} ({"Higher risk" if abs(sentiment) > 0.3 else "Normal risk"})
+- Risk Events Detected: {len(risk_events)}
+- Total Market Events: {len(events)}
+"""
+        
+        return f"""
+Analyze the risk profile of this portfolio considering current market sentiment:
+
+PORTFOLIO: {', '.join(symbols)}
+
+{risk_context}
+
+Provide educational risk analysis covering:
+1. How current news sentiment affects portfolio risk
+2. What market events mean for volatility expectations
+3. Risk management lessons from current market conditions
+4. Educational insights about news-driven market risks
+
+Explain in beginner terms how news and sentiment create investment risk and opportunity.
+"""
+    
+    def _create_changes_explanation_prompt(self, portfolio_data: dict, previous_data: dict, news_analysis: Dict) -> str:
+        """Create prompt for explaining portfolio changes with news context"""
+        current_symbols = self.extract_symbols_from_portfolio(portfolio_data)
+        previous_symbols = self.extract_symbols_from_portfolio(previous_data) if previous_data else []
+        
+        changes_context = ""
+        if news_analysis and 'error' not in news_analysis:
+            symbol_analysis = news_analysis.get('symbol_analysis', {})
+            
+            # Identify which stocks have significant news
+            news_heavy_stocks = [symbol for symbol, data in symbol_analysis.items() 
+                               if data.get('article_count', 0) > 5]
+            
+            changes_context = f"""
+RECENT NEWS THAT MIGHT EXPLAIN CHANGES:
+- Stocks with Heavy News Coverage: {', '.join(news_heavy_stocks) if news_heavy_stocks else 'None'}
+- Overall Market Sentiment: {news_analysis.get('overall_sentiment', 0):.3f}
+- Major Events: {len(news_analysis.get('market_events', []))}
+"""
+        
+        return f"""
+Explain what might have caused changes in this portfolio:
+
+CURRENT HOLDINGS: {', '.join(current_symbols)}
+PREVIOUS HOLDINGS: {', '.join(previous_symbols)}
+
+{changes_context}
+
+Provide educational explanation covering:
+1. How recent news might explain portfolio changes
+2. What market events could have influenced decisions
+3. Educational insights about how news drives portfolio adjustments
+4. Lessons about reacting (or not reacting) to market news
+
+Focus on teaching how news and market sentiment influence investment decisions.
 """
     
     async def _get_groq_response(self, prompt: str) -> str:
@@ -417,7 +870,7 @@ Be comprehensive - don't limit length. This is their investment education!
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert financial educator who excels at explaining complex market movements to beginners in an engaging, educational way."
+                        "content": "You are an expert financial educator who excels at explaining complex market movements and news sentiment to beginners in an engaging, educational way."
                     },
                     {
                         "role": "user", 
@@ -493,7 +946,7 @@ Be comprehensive - don't limit length. This is their investment education!
         self, user_data: Dict, simulation_results: Dict, 
         stocks_picked: List[Dict], risk_label: str
     ) -> str:
-        """Enhanced fallback that includes market movement education"""
+        """Enhanced fallback that includes market movement education and news context"""
         
         lump_sum = user_data.get("lump_sum", 0)
         monthly = user_data.get("monthly", 0)
@@ -541,18 +994,27 @@ With your **{risk_label.lower()}** approach, your portfolio likely experienced s
 • Innovation drives new opportunities
 • Central banks provide support during crises
 
+## 📰 News and Your Portfolio
+
+**How news affects your investments:**
+• Daily headlines create short-term volatility
+• Positive news can drive temporary rallies
+• Negative news often causes overreactions
+• Long-term fundamentals matter more than daily news cycles
+
 ## 🧠 Key Lessons from Market Volatility
 
 • **Volatility is the price of admission**: Higher returns come with bigger swings
 • **Time heals market wounds**: Patience during downturns gets rewarded
 • **Stay the course**: Panic selling locks in losses at the worst times
 • **Markets climb a wall of worry**: Good things happen despite scary headlines
+• **News creates noise, not necessarily direction**: Headlines are emotional, markets are mathematical
 
 ## 🎯 Why Your Strategy Worked
 
-Despite all the market drama, you ended up with **£{end_value:,.0f}** from **£{total_contributed:,.0f}** invested - that's the power of staying invested through the ups and downs!
+Despite all the market drama and daily news cycles, you ended up with **£{end_value:,.0f}** from **£{total_contributed:,.0f}** invested - that's the power of staying invested through the ups and downs!
 
-The key: You didn't let short-term market movements derail your long-term plan. That's exactly what successful investors do! 🚀"""
+The key: You didn't let short-term market movements or scary headlines derail your long-term plan. That's exactly what successful investors do! 🚀"""
         
         success_message = "🎉 Congratulations - Goal Achieved!" if target_achieved else "📈 Solid Progress Made"
         
@@ -571,12 +1033,13 @@ Your investment journey shows the power of patient, consistent investing! You pu
 
 ## 🌟 What This Means for Your Future
 
-You've experienced real-world investing - complete with market ups and downs. This education is invaluable for your future financial decisions!
+You've experienced real-world investing - complete with market ups and downs, news cycles, and sentiment swings. This education is invaluable for your future financial decisions!
 
 **Key takeaways:**
 • Market volatility is normal and manageable
 • Consistent investing builds wealth over time
 • Staying patient during downturns pays off
 • Your strategy can handle market stress
+• News sentiment creates opportunities, not just risks
 
 You're now a more experienced investor with real market battle scars - wear them proudly! 💪"""
