@@ -51,52 +51,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Floating Sidebar Toggle Button - Mobile Only */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className={`
-          fixed top-6 z-50
-          w-12 h-12 bg-blue-600 hover:bg-blue-700
-          text-white rounded-full shadow-lg
-          flex items-center justify-center
-          transition-all duration-300 ease-in-out
-          lg:hidden
-          ${sidebarOpen ? "left-80" : "left-4"}
-        `}
-        aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-      >
-        <svg
-          className="w-6 h-6 transition-transform duration-300"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          {sidebarOpen ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          ) : (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          )}
-        </svg>
-      </button>
-
-      {/* Backdrop overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Sidebar - Sliding on mobile, static on desktop */}
       <div
         className={`
@@ -117,14 +71,49 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 w-full lg:w-5/6">
-        {/* Header - Always visible, with mobile spacing */}
-        <div className="w-full">
-          <Header portfolioData={portfolioData} />
-        </div>
+      <main className="flex-1 w-full lg:w-5/6 relative">
+        {/* Header */}
+        <Header portfolioData={portfolioData} />
 
-        {/* Dashboard Content - With proper spacing for floating toggle button */}
-        <div className="p-4 md:p-6 lg:p-8 pt-20 lg:pt-6 space-y-6 md:space-y-8 pl-20 lg:pl-4">
+        {/* Floating Menu Button - Positioned below header */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="
+            fixed top-24 left-4 z-50
+            w-12 h-12 bg-blue-600 hover:bg-blue-700
+            text-white rounded-full shadow-lg
+            flex items-center justify-center
+            transition-colors duration-200
+            lg:hidden
+          "
+          aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {sidebarOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
+          </svg>
+        </button>
+
+        {/* Dashboard Content */}
+        <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
           {/* Attach refs to sections */}
           <section ref={summaryRef}>
             <SummaryCards portfolioData={portfolioData} />
