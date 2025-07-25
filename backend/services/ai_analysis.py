@@ -1,23 +1,24 @@
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import logging
-import json
-import asyncio
 import aiohttp
+import os
+
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 class AIAnalysisService:
     """
-    AI-powered portfolio analysis service using Ollama
-    Focuses on educational explanations and insights with beginner-friendly language
+    Enhanced AI-powered portfolio analysis service using GROQ API
+    Focuses on educational explanations of market movements for beginners
     """
     
     def __init__(self):
-        self.ollama_url = "http://localhost:11434"
-        self.model = "llama3.1:8b"
-    
+        self.groq_url = "https://api.groq.com/openai/v1/chat/completions"
+        self.groq_api_key = os.getenv("GROQ_API_KEY")  # Set from environment
+        self.model = "llama3-70b-8192"  # Or mixtral-8x7b-32768
+            
     async def generate_portfolio_summary(
         self, 
         stocks_picked: List[Dict], 
@@ -27,323 +28,429 @@ class AIAnalysisService:
         simulation_results: Dict[str, Any]
     ) -> str:
         """
-        Generate AI summary for portfolio simulation results with educational focus
-        Enhanced with detailed underwater period analysis
+        Generate AI summary with enhanced market movement explanations
         """
         try:
-            goal = user_data.get("goal", "wealth building")
-            lump_sum = user_data.get("lump_sum", 0)
-            monthly = user_data.get("monthly", 0)
-            timeframe = user_data.get("timeframe", 10)
-            target_value = user_data.get("target_value", 50000)
+            # Analyze market movements from timeline data
+            market_analysis = self._analyze_market_movements(simulation_results, user_data)
             
-            start_value = simulation_results.get("starting_value", 0)
-            end_value = simulation_results.get("end_value", 0)
+            # Generate comprehensive prompt with market movement insights
+            prompt = self._create_educational_market_prompt(
+                stocks_picked, user_data, risk_score, risk_label, 
+                simulation_results, market_analysis
+            )
             
-            total_contributed = lump_sum + (monthly * timeframe * 12)
-            target_achieved = end_value >= target_value
-            
-            # Calculate annual return
-            try:
-                annual_return = ((end_value / total_contributed) ** (1/timeframe) - 1) * 100
-                annual_return_str = f"{annual_return:.1f}%"
-            except:
-                annual_return_str = "N/A"
-
-            # Get investment types for education
-            stock_names = []
-            for stock in stocks_picked:
-                symbol = stock.get("symbol", "UNKNOWN")
-                name = stock.get("name", symbol)
-                allocation = stock.get("allocation", 0)
-                stock_names.append(f"{symbol} ({name}) - {allocation:.1%}")
-            
-            investment_breakdown = "\n".join([f"  • {stock}" for stock in stock_names[:5]])
-            if len(stock_names) > 5:
-                investment_breakdown += f"\n  • ... and {len(stock_names) - 5} other investments"
-
-            # Get detailed drawdown analysis
-            drawdown_analysis = self._analyze_drawdowns_detailed(simulation_results, user_data)
-            underwater_explanation = drawdown_analysis["explanation"]
-
-            prompt = f"""
-You are a friendly, patient financial educator speaking to someone who is new to investing. Your job is to explain their portfolio simulation results in a comprehensive, well-structured way that helps them understand what happened and learn about investing.
-
-SIMULATION RESULTS TO EXPLAIN:
-- Their Goal: {goal}
-- Target Amount: £{target_value:,.0f}
-- Total Investment: £{total_contributed:,.0f} (£{lump_sum:,.0f} upfront + £{monthly:,.0f} monthly for {timeframe} years)
-- Final Portfolio Value: £{end_value:,.0f}
-- Goal Status: {'✅ ACHIEVED!' if target_achieved else '❌ Not quite reached'}
-- Risk Level: {risk_label} (Score: {risk_score}/100)
-- Annual Growth Rate: {annual_return_str}
-
-THEIR INVESTMENT PORTFOLIO:
-{investment_breakdown}
-
-UNDERWATER PERIODS ANALYSIS:
-{underwater_explanation}
-
-FORMATTING REQUIREMENTS:
-- Use clear headings with emojis (## 🎯 Your Results, ## 📈 What This Means, etc.)
-- Break content into well-structured sections
-- Use bullet points for key information
-- Include paragraph breaks for readability
-- Use bold text for important numbers and concepts
-- Add line breaks between major sections
-
-CONTENT STRUCTURE:
-## 🎯 Your Investment Results
-[Summarize what happened in simple terms]
-
-## 📈 What This Means
-[Explain if this is good performance and put it in perspective]
-
-## 🌊 Understanding the Ups and Downs
-[Include the underwater periods analysis and explain what it means]
-
-## 🧠 Key Investing Lesson
-[Explain ONE important concept they demonstrated]
-
-## 📚 What You Can Learn
-[Share 2-3 practical lessons from this experience]
-
-## 🚀 Your Financial Journey
-[End with encouragement and next steps]
-
-WRITING STYLE:
-- Use simple, everyday language (avoid complex financial jargon)
-- Explain concepts like you're talking to a friend over coffee
-- Use analogies and comparisons to everyday things
-- Be encouraging and positive, even if goals weren't met
-- Use emojis appropriately but not excessively
-- Make it educational, not sales-focused
-
-IMPORTANT: Please incorporate the underwater periods analysis into your response, explaining why periods where the portfolio was worth less than contributions are normal and part of successful long-term investing.
-
-Do NOT limit the length - provide a comprehensive, well-formatted explanation that truly educates the user about their investment journey.
-"""
-            
-            response = await self._get_ollama_response(prompt)
+            response = await self._get_groq_response(prompt)
             return self._format_ai_response(response)
             
         except Exception as e:
             logger.error(f"Error generating AI summary: {e}")
-            return self._get_formatted_fallback_summary(total_contributed, end_value, timeframe, target_achieved, risk_label, stocks_picked)
+            return self._get_formatted_fallback_summary_with_movements(
+                user_data, simulation_results, stocks_picked, risk_label
+            )
     
-    def _analyze_drawdowns_detailed(self, simulation_results: Dict, user_data: Dict) -> Dict:
+    def _analyze_market_movements(self, simulation_results: Dict, user_data: Dict) -> Dict:
         """
-        Enhanced drawdown analysis that specifically identifies when portfolio value 
-        was below invested amount and explains what happened
+        Comprehensive analysis of market movements throughout the simulation
         """
-        try:
-            timeline = simulation_results.get("timeline", [])
-            lump_sum = user_data.get("lump_sum", 0)
-            monthly = user_data.get("monthly", 0)
-            
-            if not timeline:
-                return self._get_estimated_drawdown_explanation(simulation_results, user_data)
-            
-            underwater_periods = []
-            significant_drawdowns = []
-            max_drawdown = 0
-            peak_value = 0
-            total_contributed_running = lump_sum
-            
-            for i, period in enumerate(timeline):
-                portfolio_value = period.get("value", 0)
-                year = period.get("year", i + 1)
-                month = period.get("month", 1)
-                
-                # Calculate running total contributions
-                if i > 0:  # Add monthly contribution for each period after initial
-                    total_contributed_running += monthly
-                
-                # Track peak portfolio value
-                if portfolio_value > peak_value:
-                    peak_value = portfolio_value
-                
-                # Calculate drawdown from peak
-                if peak_value > 0:
-                    current_drawdown = (peak_value - portfolio_value) / peak_value * 100
-                    if current_drawdown > max_drawdown:
-                        max_drawdown = current_drawdown
-                    
-                    # Record significant drawdowns (>10%)
-                    if current_drawdown > 10:
-                        significant_drawdowns.append({
-                            "period": f"Year {year}",
-                            "drawdown_pct": current_drawdown,
-                            "peak_value": peak_value,
-                            "current_value": portfolio_value,
-                            "loss_amount": peak_value - portfolio_value
-                        })
-                
-                # Check if portfolio is "underwater" (below total contributions)
-                if portfolio_value < total_contributed_running:
-                    underwater_amount = total_contributed_running - portfolio_value
-                    underwater_pct = (underwater_amount / total_contributed_running) * 100
-                    
-                    underwater_periods.append({
-                        "period": f"Year {year}" + (f" Month {month}" if month > 1 else ""),
-                        "portfolio_value": portfolio_value,
-                        "total_contributed": total_contributed_running,
-                        "underwater_amount": underwater_amount,
-                        "underwater_pct": underwater_pct
-                    })
-            
-            return {
-                "has_underwater_periods": len(underwater_periods) > 0,
-                "underwater_periods": underwater_periods,
-                "significant_drawdowns": significant_drawdowns,
-                "max_drawdown": max_drawdown,
-                "total_underwater_periods": len(underwater_periods),
-                "explanation": self._generate_underwater_explanation(underwater_periods, significant_drawdowns, user_data)
-            }
-            
-        except Exception as e:
-            logger.warning(f"Error in detailed drawdown analysis: {e}")
-            return self._get_estimated_drawdown_explanation(simulation_results, user_data)
-
-    def _generate_underwater_explanation(self, underwater_periods: List, significant_drawdowns: List, user_data: Dict) -> str:
-        """Generate educational explanation for underwater periods"""
+        timeline = simulation_results.get("timeline", {}).get("portfolio", [])
+        if not timeline:
+            return self._estimate_market_movements(simulation_results, user_data)
         
-        if not underwater_periods:
-            return """
-🎉 Great News: Always Above Water!
-
-Your portfolio stayed above the amount you invested throughout the entire period. This means your investments were always worth more than what you put in - excellent!
-
-What this tells us:
-• Your investment strategy was well-suited to market conditions
-• You experienced growth with manageable volatility
-• Your risk level and timing worked in your favor
-
-Remember: Even successful portfolios can have temporary declines, so this is a particularly good outcome! 📈
-"""
+        # Extract portfolio values and dates
+        values = []
+        dates = []
+        for period in timeline:
+            values.append(period.get("value", 0))
+            dates.append(period.get("date", ""))
         
-        # Find the worst underwater period
-        worst_period = max(underwater_periods, key=lambda x: x["underwater_pct"])
-        total_periods = len(underwater_periods)
+        if len(values) < 2:
+            return self._estimate_market_movements(simulation_results, user_data)
         
-        # Determine likely causes based on timing and market knowledge
-        causes_explanation = self._get_likely_market_causes(underwater_periods, user_data)
-        
-        return f"""
-📊 Understanding When Your Portfolio Was "Underwater"
-
-Your portfolio experienced **{total_periods} periods** where it was worth less than the money you had invested. This is completely normal and happens to most investors!
-
-🌊 Your Worst "Underwater" Period
-
-When: {worst_period['period']}
-Your Contributions: £{worst_period['total_contributed']:,.0f}
-Portfolio Value: £{worst_period['portfolio_value']:,.0f}
-Temporary Loss: £{worst_period['underwater_amount']:,.0f} ({worst_period['underwater_pct']:.1f}% below contributions)
-
-🤔 Why This Happened
-
-{causes_explanation}
-
-💡 This Is Normal - Here's Why
-
-Think of it like a roller coaster: You bought your ticket (made your investment), and sometimes you're going downhill. But you stay on the ride because you know it goes back up!
-
-• Market cycles: All markets go through ups and downs
-• Economic events: Recessions, panics, and uncertainty affect prices
-• Company performance: Individual stocks can drag down portfolios temporarily
-• Investor emotions: Fear can drive prices below true value
-
-🎯 What Successful Investors Do
-
-• Stay calm: Panic selling locks in losses
-• Keep investing: Often the best buying opportunities come during declines
-• Focus long-term: Temporary setbacks don't change long-term growth potential
-• Learn from it: Each experience makes you a better investor
-
-🚀 The Recovery Story
-
-The good news? Your portfolio recovered from these underwater periods and went on to achieve your goals! This shows the power of staying invested through market turbulence.
-
-Key lesson: Time in the market beats timing the market! 📈
-"""
-
-    def _get_likely_market_causes(self, underwater_periods: List, user_data: Dict) -> str:
-        """Provide likely explanations for underwater periods based on timing"""
-        
-        timeframe = user_data.get("timeframe", 5)
-        risk_level = user_data.get("risk_score", 50)
-        
-        # Generic explanation that works for most scenarios
-        causes = []
-        
-        if risk_level > 70:
-            causes.append("High-growth strategy volatility: Your aggressive approach naturally experiences bigger swings")
-        
-        if timeframe >= 5:
-            causes.append("Market corrections: Normal periodic adjustments that happen every few years")
-            causes.append("Economic uncertainty: Periods of recession, inflation fears, or geopolitical events")
-        
-        causes.extend([
-            "Earnings disappointments: Some companies in your portfolio may have reported lower-than-expected profits",
-            "Sector rotation: Money flowing out of your investment sectors into others",
-            "Interest rate changes: Central bank policies affecting stock valuations",
-            "General market sentiment: Periods when investors became more cautious overall"
-        ])
-        
-        return "The underwater periods likely resulted from a combination of:\n\n" + "\n".join([f"• {cause}" for cause in causes])
-
-    def _get_estimated_drawdown_explanation(self, simulation_results: Dict, user_data: Dict) -> Dict:
-        """Fallback explanation when timeline data isn't available"""
-        
-        risk_score = simulation_results.get("risk_score", user_data.get("risk_score", 50))
-        timeframe = user_data.get("timeframe", 5)
-        
-        # Estimate likelihood of underwater periods based on risk and timeframe
-        if risk_score > 70 and timeframe >= 3:
-            estimated_underwater = "very likely"
-            estimated_periods = f"3-{min(timeframe//2, 8)} periods"
-            max_underwater = f"15-25%"
-        elif risk_score > 50 and timeframe >= 2:
-            estimated_underwater = "likely"
-            estimated_periods = f"1-{min(timeframe//3, 4)} periods"
-            max_underwater = f"8-15%"
-        elif timeframe >= 5:
-            estimated_underwater = "possible"
-            estimated_periods = "1-2 periods"
-            max_underwater = f"5-10%"
-        else:
-            estimated_underwater = "unlikely"
-            estimated_periods = "0-1 periods"
-            max_underwater = f"less than 5%"
-        
-        explanation = f"""
-🎢 Expected Portfolio Ups and Downs
-
-Based on your **{user_data.get('risk_label', 'moderate')} risk approach** and **{timeframe}-year timeline**, underwater periods were **{estimated_underwater}**.
-
-What to expect:
-• Estimated underwater periods: {estimated_periods}
-• Typical depth: Portfolio could be {max_underwater} below contributions temporarily
-• Recovery time: Usually 6-18 months to get back above water
-
-Why this happens:
-• Market corrections occur every 2-3 years on average
-• Higher-risk portfolios experience deeper but shorter-lived declines
-• These temporary setbacks are the "price" of long-term growth
-
-The key insight: Staying invested through these periods is what separates successful long-term investors from those who miss out on recovery gains! 📈
-"""
+        # Identify major market events
+        movements = self._identify_market_events(values, dates, user_data)
         
         return {
-            "has_underwater_periods": estimated_underwater in ["likely", "very likely"],
-            "underwater_periods": [],
-            "significant_drawdowns": [],
-            "max_drawdown": 0,
-            "total_underwater_periods": 0,
-            "explanation": explanation,
-            "is_estimated": True
+            "major_crashes": movements["crashes"],
+            "major_rallies": movements["rallies"],
+            "volatility_periods": movements["volatile_periods"],
+            "recovery_periods": movements["recoveries"],
+            "overall_pattern": movements["pattern"],
+            "biggest_drop": movements["biggest_drop"],
+            "biggest_gain": movements["biggest_gain"],
+            "total_swings": movements["total_swings"],
+            "educational_insights": self._generate_movement_insights(movements, user_data)
         }
+    
+    def _identify_market_events(self, values: List[float], dates: List[str], user_data: Dict) -> Dict:
+        """
+        Identify significant market movements and categorize them
+        """
+        if len(values) < 3:
+            return {"crashes": [], "rallies": [], "volatile_periods": [], "recoveries": [], 
+                   "pattern": "stable", "biggest_drop": 0, "biggest_gain": 0, "total_swings": 0}
+        
+        crashes = []
+        rallies = []
+        volatile_periods = []
+        recoveries = []
+        
+        # Calculate rolling peaks and troughs
+        peaks = []
+        troughs = []
+        
+        for i in range(1, len(values) - 1):
+            # Find local peaks (higher than neighbors)
+            if values[i] > values[i-1] and values[i] > values[i+1]:
+                peaks.append({"index": i, "value": values[i], "date": dates[i]})
+            
+            # Find local troughs (lower than neighbors)
+            if values[i] < values[i-1] and values[i] < values[i+1]:
+                troughs.append({"index": i, "value": values[i], "date": dates[i]})
+        
+        # Analyze significant drops (crashes)
+        for i, peak in enumerate(peaks):
+            # Find the next trough after this peak
+            next_troughs = [t for t in troughs if t["index"] > peak["index"]]
+            if next_troughs:
+                trough = min(next_troughs, key=lambda x: x["value"])
+                drop_pct = ((peak["value"] - trough["value"]) / peak["value"]) * 100
+                
+                if drop_pct > 15:  # Significant drop
+                    crash_type = self._categorize_market_event(drop_pct, peak["date"], trough["date"])
+                    crashes.append({
+                        "type": crash_type,
+                        "drop_percent": drop_pct,
+                        "start_date": peak["date"],
+                        "end_date": trough["date"],
+                        "start_value": peak["value"],
+                        "end_value": trough["value"],
+                        "likely_cause": self._guess_market_cause(peak["date"], trough["date"], drop_pct)
+                    })
+        
+        # Analyze significant rallies
+        for i, trough in enumerate(troughs):
+            # Find the next peak after this trough
+            next_peaks = [p for p in peaks if p["index"] > trough["index"]]
+            if next_peaks:
+                peak = max(next_peaks, key=lambda x: x["value"])
+                gain_pct = ((peak["value"] - trough["value"]) / trough["value"]) * 100
+                
+                if gain_pct > 20:  # Significant rally
+                    rally_type = self._categorize_rally(gain_pct, trough["date"], peak["date"])
+                    rallies.append({
+                        "type": rally_type,
+                        "gain_percent": gain_pct,
+                        "start_date": trough["date"],
+                        "end_date": peak["date"],
+                        "start_value": trough["value"],
+                        "end_value": peak["value"],
+                        "likely_cause": self._guess_rally_cause(trough["date"], peak["date"], gain_pct)
+                    })
+        
+        # Calculate overall statistics
+        biggest_drop = max([c["drop_percent"] for c in crashes], default=0)
+        biggest_gain = max([r["gain_percent"] for r in rallies], default=0)
+        total_swings = len(crashes) + len(rallies)
+        
+        # Determine overall pattern
+        pattern = self._determine_market_pattern(values, crashes, rallies)
+        
+        return {
+            "crashes": crashes,
+            "rallies": rallies,
+            "volatile_periods": volatile_periods,
+            "recoveries": recoveries,
+            "pattern": pattern,
+            "biggest_drop": biggest_drop,
+            "biggest_gain": biggest_gain,
+            "total_swings": total_swings
+        }
+    
+    def _categorize_market_event(self, drop_pct: float, start_date: str, end_date: str) -> str:
+        """Categorize the severity of market drops"""
+        if drop_pct >= 40:
+            return "Market Crash"
+        elif drop_pct >= 25:
+            return "Major Correction"
+        elif drop_pct >= 15:
+            return "Market Correction"
+        else:
+            return "Minor Pullback"
+    
+    def _categorize_rally(self, gain_pct: float, start_date: str, end_date: str) -> str:
+        """Categorize the strength of market rallies"""
+        if gain_pct >= 60:
+            return "Explosive Rally"
+        elif gain_pct >= 40:
+            return "Strong Bull Market"
+        elif gain_pct >= 25:
+            return "Market Recovery"
+        else:
+            return "Modest Rally"
+    
+    def _guess_market_cause(self, start_date: str, end_date: str, drop_pct: float) -> str:
+        """Provide educational guesses for what might cause market drops"""
+        causes = [
+            "Economic recession fears",
+            "Interest rate changes",
+            "Geopolitical tensions",
+            "Corporate earnings disappointments",
+            "Global financial crisis",
+            "Pandemic-related uncertainty",
+            "Inflation concerns",
+            "Banking sector stress",
+            "Trade war tensions",
+            "Central bank policy changes"
+        ]
+        
+        # More severe drops get more dramatic causes
+        if drop_pct >= 40:
+            return f"Likely a major crisis like {causes[4]} or {causes[5]}"
+        elif drop_pct >= 25:
+            return f"Possibly {causes[0]} or {causes[1]}"
+        else:
+            return f"Could be {causes[2]} or {causes[3]}"
+    
+    def _guess_rally_cause(self, start_date: str, end_date: str, gain_pct: float) -> str:
+        """Provide educational guesses for what might cause market rallies"""
+        if gain_pct >= 50:
+            return "Recovery from major crisis or breakthrough economic news"
+        elif gain_pct >= 30:
+            return "Strong economic growth or positive policy changes"
+        else:
+            return "Improved investor confidence or good earnings reports"
+    
+    def _determine_market_pattern(self, values: List[float], crashes: List, rallies: List) -> str:
+        """Determine the overall market pattern"""
+        total_crashes = len(crashes)
+        total_rallies = len(rallies)
+        
+        if values[-1] > values[0] * 1.5:
+            return "Strong Uptrend with Volatility"
+        elif total_crashes > total_rallies:
+            return "Volatile Bear Market"
+        elif total_rallies > total_crashes:
+            return "Volatile Bull Market"
+        elif total_crashes + total_rallies > 3:
+            return "Highly Volatile Sideways Market"
+        else:
+            return "Steady Growth with Normal Fluctuations"
+    
+    def _generate_movement_insights(self, movements: Dict, user_data: Dict) -> Dict:
+        """Generate educational insights about the market movements"""
+        insights = {
+            "volatility_lesson": "",
+            "crash_lesson": "",
+            "recovery_lesson": "",
+            "emotional_lesson": "",
+            "time_lesson": ""
+        }
+        
+        # Volatility lesson
+        total_events = len(movements.get("crashes", [])) + len(movements.get("rallies", []))
+        if total_events >= 3:
+            insights["volatility_lesson"] = "Your portfolio experienced significant ups and downs - this is completely normal! Markets are like weather: sometimes stormy, sometimes sunny, but always changing."
+        
+        # Crash lesson
+        if movements.get("biggest_drop", 0) > 25:
+            insights["crash_lesson"] = f"The biggest drop of {movements['biggest_drop']:.1f}% might have felt scary, but this shows why we invest for the long term - markets recover from even severe drops."
+        
+        # Recovery lesson
+        if movements.get("biggest_gain", 0) > 30:
+            insights["recovery_lesson"] = f"The rally of {movements['biggest_gain']:.1f}% shows how markets can bounce back strongly - patience during downturns gets rewarded!"
+        
+        # Emotional lesson
+        insights["emotional_lesson"] = "These market swings test every investor's emotions. Successful investors learn to stay calm during both crashes and rallies."
+        
+        # Time lesson
+        timeframe = user_data.get("timeframe", 5)
+        insights["time_lesson"] = f"Over your {timeframe}-year journey, you experienced the full cycle of market emotions - fear, greed, hope, and patience. This is real-world investing education!"
+        
+        return insights
+    
+    def _estimate_market_movements(self, simulation_results: Dict, user_data: Dict) -> Dict:
+        """Fallback estimation when timeline data isn't available"""
+        start_value = simulation_results.get("starting_value", 0)
+        end_value = simulation_results.get("end_value", 0)
+        timeframe = user_data.get("timeframe", 5)
+        risk_score = user_data.get("risk_score", 50)
+        
+        # Estimate movements based on risk level and timeframe
+        estimated_drops = []
+        estimated_rallies = []
+        
+        if timeframe >= 5:
+            # Estimate 1-2 major corrections over 5+ years
+            if risk_score > 70:
+                estimated_drops.append({
+                    "type": "Major Correction",
+                    "drop_percent": 30,
+                    "likely_cause": "Market correction typical for aggressive portfolios"
+                })
+                estimated_rallies.append({
+                    "type": "Strong Recovery", 
+                    "gain_percent": 45,
+                    "likely_cause": "Recovery rally following correction"
+                })
+        
+        return {
+            "major_crashes": estimated_drops,
+            "major_rallies": estimated_rallies,
+            "volatility_periods": [],
+            "recovery_periods": [],
+            "overall_pattern": "Estimated Volatile Growth",
+            "biggest_drop": estimated_drops[0]["drop_percent"] if estimated_drops else 15,
+            "biggest_gain": estimated_rallies[0]["gain_percent"] if estimated_rallies else 25,
+            "total_swings": len(estimated_drops) + len(estimated_rallies),
+            "educational_insights": {
+                "volatility_lesson": f"With your {user_data.get('risk_label', 'moderate')} risk approach, expect market ups and downs - this is how wealth is built over time!",
+                "time_lesson": "Market volatility is the price we pay for long-term growth - successful investors embrace it rather than fear it."
+            }
+        }
+    
+    def _create_educational_market_prompt(
+        self, stocks_picked: List[Dict], user_data: Dict[str, Any], 
+        risk_score: int, risk_label: str, simulation_results: Dict[str, Any], 
+        market_analysis: Dict
+    ) -> str:
+        """Create comprehensive prompt focusing on market movement education"""
+        
+        goal = user_data.get("goal", "wealth building")
+        lump_sum = user_data.get("lump_sum", 0)
+        monthly = user_data.get("monthly", 0)
+        timeframe = user_data.get("timeframe", 10)
+        target_value = user_data.get("target_value", 50000)
+        
+        end_value = simulation_results.get("end_value", 0)
+        total_contributed = lump_sum + (monthly * timeframe * 12)
+        target_achieved = end_value >= target_value
+        
+        # Format market events for the prompt
+        crashes_summary = ""
+        if market_analysis["major_crashes"]:
+            crashes_summary = "\n".join([
+                f"• {crash['type']}: {crash['drop_percent']:.1f}% drop - {crash['likely_cause']}"
+                for crash in market_analysis["major_crashes"][:3]
+            ])
+        
+        rallies_summary = ""
+        if market_analysis["major_rallies"]:
+            rallies_summary = "\n".join([
+                f"• {rally['type']}: {rally['gain_percent']:.1f}% gain - {rally['likely_cause']}"
+                for rally in market_analysis["major_rallies"][:3]
+            ])
+        
+        return f"""
+You are a patient, encouraging financial educator explaining investment results to a complete beginner. Focus heavily on explaining market movements in simple, educational terms.
+
+THEIR INVESTMENT JOURNEY:
+- Goal: {goal}
+- Target: £{target_value:,.0f}
+- Total Invested: £{total_contributed:,.0f}
+- Final Value: £{end_value:,.0f}
+- Result: {'🎉 GOAL ACHIEVED!' if target_achieved else '📈 PROGRESS MADE'}
+- Risk Level: {risk_label} ({risk_score}/100)
+
+MAJOR MARKET EVENTS THEY EXPERIENCED:
+Market Pattern: {market_analysis['overall_pattern']}
+Biggest Drop: {market_analysis['biggest_drop']:.1f}%
+Biggest Rally: {market_analysis['biggest_gain']:.1f}%
+Total Major Events: {market_analysis['total_swings']}
+
+MARKET CRASHES/CORRECTIONS:
+{crashes_summary if crashes_summary else "• No major crashes detected"}
+
+MARKET RALLIES/RECOVERIES:
+{rallies_summary if rallies_summary else "• Steady growth without dramatic rallies"}
+
+EDUCATIONAL INSIGHTS:
+{market_analysis['educational_insights']}
+
+REQUIRED STRUCTURE (use this exact format):
+
+## 🎢 Your Investment Roller Coaster Journey
+
+[Explain their overall experience in simple terms, like a story]
+
+## 📉 When Markets Went Down (The Scary Parts)
+
+[Explain each major drop in beginner terms - what happened, why it's normal, and what it teaches us]
+
+## 📈 When Markets Bounced Back (The Exciting Parts)
+
+[Explain the recoveries and rallies - how markets heal themselves and reward patient investors]
+
+## 🧠 What These Market Swings Teach Us
+
+[Extract 3-4 key investing lessons from their specific market experience]
+
+## 🎯 Your Results in Perspective
+
+[Explain their final results and what the market journey means for their success]
+
+## 🚀 What This Means for Your Future
+
+[Encouraging conclusion about their investing education and next steps]
+
+WRITING STYLE:
+- Explain like you're talking to a curious friend over coffee
+- Use analogies (roller coasters, weather, sports, etc.)
+- Make market crashes sound normal and educational, not scary
+- Celebrate their patience through volatility
+- Use emojis and formatting for engagement
+- Focus on EDUCATION, not sales
+
+Be comprehensive - don't limit length. This is their investment education!
+"""
+    
+    async def _get_groq_response(self, prompt: str) -> str:
+        """Get response from GROQ API"""
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.groq_api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are an expert financial educator who excels at explaining complex market movements to beginners in an engaging, educational way."
+                    },
+                    {
+                        "role": "user", 
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.7,
+                "max_tokens": 3000,
+                "stream": False
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    self.groq_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        ai_response = result["choices"][0]["message"]["content"].strip()
+                        
+                        if ai_response:
+                            return ai_response
+                        else:
+                            raise Exception("Empty response from GROQ")
+                    else:
+                        error_text = await response.text()
+                        raise Exception(f"GROQ API returned status {response.status}: {error_text}")
+                        
+        except Exception as e:
+            logger.error(f"GROQ request failed: {str(e)}")
+            raise Exception(f"Failed to get AI response: {str(e)}")
     
     def _format_ai_response(self, response: str) -> str:
         """Format AI response with better structure and readability"""
@@ -382,331 +489,94 @@ The key insight: Staying invested through these periods is what separates succes
         
         return formatted_response.strip()
     
-    async def _get_ollama_response(self, prompt: str) -> str:
-        """Get response from local Ollama instance with better error handling"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                payload = {
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                        "max_tokens": 2500,  # Increased for longer, more comprehensive responses
-                        "stop": ["Human:", "User:", "Question:"]
-                    }
-                }
-                
-                async with session.post(
-                    f"{self.ollama_url}/api/generate",
-                    json=payload,
-                    timeout=aiohttp.ClientTimeout(total=120)  # Longer timeout for comprehensive responses
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        ai_response = result.get("response", "").strip()
-                        
-                        if ai_response:
-                            return ai_response
-                        else:
-                            raise Exception("Empty response from AI")
-                    else:
-                        raise Exception(f"Ollama API returned status {response.status}")
-                        
-        except Exception as e:
-            logger.error(f"Ollama request failed: {str(e)}")
-            raise Exception(f"Failed to get AI response: {str(e)}")
-    
-    def _get_formatted_fallback_summary(self, total_contributed: float, end_value: float, timeframe: int, target_achieved: bool, risk_label: str, stocks_picked: List[Dict]) -> str:
-        """Enhanced fallback with proper formatting when AI is unavailable"""
+    def _get_formatted_fallback_summary_with_movements(
+        self, user_data: Dict, simulation_results: Dict, 
+        stocks_picked: List[Dict], risk_label: str
+    ) -> str:
+        """Enhanced fallback that includes market movement education"""
+        
+        lump_sum = user_data.get("lump_sum", 0)
+        monthly = user_data.get("monthly", 0)
+        timeframe = user_data.get("timeframe", 10)
+        total_contributed = lump_sum + (monthly * timeframe * 12)
+        end_value = simulation_results.get("end_value", 0)
+        target_value = user_data.get("target_value", 50000)
+        target_achieved = end_value >= target_value
+        
         growth = end_value - total_contributed
         return_pct = (growth / total_contributed * 100) if total_contributed > 0 else 0
         
-        # Format stock holdings
-        stock_list = []
-        for stock in stocks_picked[:5]:
-            symbol = stock.get("symbol", "UNKNOWN")
-            name = stock.get("name", symbol)
-            allocation = stock.get("allocation", 0)
-            stock_list.append(f"  • {symbol} ({name}) - {allocation:.1%}")
+        market_education = ""
+        if risk_label.lower() in ["aggressive", "moderate aggressive"]:
+            market_education = f"""
+
+## 🎢 Understanding Your Market Journey
+
+With your **{risk_label.lower()}** approach, your portfolio likely experienced some dramatic ups and downs - and that's completely normal! Here's what probably happened:
+
+## 📉 The Downs (Market Corrections)
+
+**What you might have experienced:**
+• **Market corrections** (10-20% drops): These happen every 1-2 years
+• **Bear markets** (20%+ drops): These occur every 3-5 years  
+• **Flash crashes**: Sudden, sharp drops that recover quickly
+
+**Why they happen:**
+• Economic uncertainty or recession fears
+• Interest rate changes by central banks
+• Global events affecting investor confidence
+• Company earnings disappointments
+• General market psychology and emotions
+
+## 📈 The Ups (Market Recoveries)
+
+**What followed the downs:**
+• **Relief rallies**: Quick bounces after oversold conditions
+• **Bull market runs**: Extended periods of growth
+• **Recovery phases**: Gradual climbing back to new highs
+
+**Why markets recover:**
+• Companies adapt and improve over time
+• Economic growth continues long-term
+• Innovation drives new opportunities
+• Central banks provide support during crises
+
+## 🧠 Key Lessons from Market Volatility
+
+• **Volatility is the price of admission**: Higher returns come with bigger swings
+• **Time heals market wounds**: Patience during downturns gets rewarded
+• **Stay the course**: Panic selling locks in losses at the worst times
+• **Markets climb a wall of worry**: Good things happen despite scary headlines
+
+## 🎯 Why Your Strategy Worked
+
+Despite all the market drama, you ended up with **£{end_value:,.0f}** from **£{total_contributed:,.0f}** invested - that's the power of staying invested through the ups and downs!
+
+The key: You didn't let short-term market movements derail your long-term plan. That's exactly what successful investors do! 🚀"""
         
-        holdings_text = "\n".join(stock_list)
-        if len(stocks_picked) > 5:
-            holdings_text += f"\n  • ... and {len(stocks_picked) - 5} other investments"
+        success_message = "🎉 Congratulations - Goal Achieved!" if target_achieved else "📈 Solid Progress Made"
         
-        # Estimate drawdown explanation based on risk level
-        drawdown_explanation = ""
-        if risk_label.lower() in ["aggressive", "moderate aggressive", "ultra aggressive"]:
-            drawdown_explanation = f"""
+        return f"""## {success_message}
 
-## ⚠️ Understanding Portfolio Ups and Downs
+Your investment journey shows the power of patient, consistent investing! You put in **£{total_contributed:,.0f}** over {timeframe} years, and it grew to **£{end_value:,.0f}**.
 
-With your **{risk_label.lower()}** risk approach, your portfolio might experience temporary declines during market downturns. This is completely normal! Here's why:
-
-• **Market cycles happen**: Even the best investments go through periods of decline
-• **Higher growth potential = more volatility**: Your strategy aims for better long-term returns, but this means more ups and downs along the way
-• **Temporary setbacks are normal**: Think of it like the weather - storms pass, but the seasons keep changing
-• **Stay focused on long-term goals**: Successful investors don't panic during temporary market declines
-
-**What causes portfolio declines?**
-- Economic uncertainty or recession fears
-- Global events affecting markets
-- Company-specific news or earnings disappointments
-- Interest rate changes by central banks
-- General market sentiment shifts
-
-Remember: These declines are temporary bumps on your long-term wealth-building journey! 📈"""
-        
-        if target_achieved:
-            return f"""## 🎉 Congratulations - Goal Achieved!
-
-Your investment plan was a success! You put in **£{total_contributed:,.0f}** over {timeframe} years, and it grew to **£{end_value:,.0f}**.
-
-## 📈 Your Investment Performance
+## 📊 Your Investment Results
 
 • **Total Growth**: £{growth:,.0f} ({return_pct:+.1f}%)
-• **Strategy**: {risk_label} approach
+• **Strategy**: {risk_label} approach  
 • **Time Horizon**: {timeframe} years
+• **Target**: {'✅ Achieved' if target_achieved else f'£{abs(target_value - end_value):,.0f} short'}
 
-## 🏆 Your Investment Portfolio
+{market_education}
 
-{holdings_text}
+## 🌟 What This Means for Your Future
 
-## 💡 Key Success Factors
+You've experienced real-world investing - complete with market ups and downs. This education is invaluable for your future financial decisions!
 
-• **Consistent investing**: You stuck to your plan with regular contributions
-• **Appropriate risk level**: Your {risk_label.lower()} strategy matched your goals
-• **Time in the market**: You gave your investments time to grow
-• **Diversification**: You spread risk across multiple investments
+**Key takeaways:**
+• Market volatility is normal and manageable
+• Consistent investing builds wealth over time
+• Staying patient during downturns pays off
+• Your strategy can handle market stress
 
-{drawdown_explanation}
-
-## 🚀 What This Means for Your Future
-
-This success shows the power of patient, consistent investing. Your money worked hard while you focused on other things - that's the magic of long-term wealth building!
-
-**Next steps**: Consider whether you want to set new, bigger financial goals or maintain this successful strategy for other objectives. You've proven you can make investing work for you! 💰"""
-        else:
-            shortfall = target_achieved - end_value
-            return f"""## 📈 Your Investment Progress
-
-Your investment journey shows important progress! You invested **£{total_contributed:,.0f}** over {timeframe} years, and it's now worth **£{end_value:,.0f}**.
-
-## 📊 Your Results
-
-• **Portfolio Growth**: £{growth:,.0f} ({return_pct:+.1f}%)
-• **Target Gap**: £{abs(shortfall):,.0f} short of your goal
-• **Strategy**: {risk_label} approach
-• **Achievement**: Strong foundation built for future growth
-
-## 🏗️ Your Investment Portfolio
-
-{holdings_text}
-
-## 🌱 Why This Is Still Progress
-
-Remember: investing is like planting a tree. Sometimes it takes longer than expected to reach full height, but with patience and consistent care, it gets there.
-
-• **You're building wealth**: Any growth is better than keeping money in low-yield savings
-• **You're learning**: Every investment experience teaches valuable lessons
-• **You're developing discipline**: Regular investing builds great financial habits
-• **Time is on your side**: Compound growth accelerates over longer periods
-
-{drawdown_explanation}
-
-## 🎯 Moving Forward
-
-Consider these options:
-- **Extend your timeline**: Give your investments more time to grow
-- **Increase contributions**: Boost monthly investments if possible
-- **Adjust risk level**: Consider a slightly more aggressive approach if appropriate
-- **Stay the course**: Continue your current successful strategy
-
-You're on the right track - every successful investor has had portfolios that needed more time to reach their goals! 🌟"""
-
-    async def analyze_portfolio_performance(
-        self, 
-        portfolio_data: Dict, 
-        user_context: Optional[Dict] = None
-    ) -> Dict:
-        """
-        Analyze existing portfolio performance with educational explanations
-        """
-        try:
-            analysis_data = self._prepare_analysis_data(portfolio_data)
-            prompt = self._create_educational_performance_prompt(analysis_data, user_context)
-            response = await self._get_ollama_response(prompt)
-            
-            return {
-                "success": True,
-                "analysis": self._format_ai_response(response),
-                "metrics": analysis_data,
-                "timestamp": datetime.now().isoformat(),
-                "type": "performance_analysis",
-                "educational_focus": True
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "fallback_analysis": self._get_educational_fallback_analysis(portfolio_data)
-            }
-    
-    def _prepare_analysis_data(self, portfolio_data: Dict) -> Dict:
-        """Extract key metrics for analysis with better formatting"""
-        results = portfolio_data.get("results", {})
-        
-        return {
-            "total_value": results.get("end_value", 0),
-            "total_invested": portfolio_data.get("lump_sum", 0) + 
-                           (portfolio_data.get("monthly", 0) * 12 * portfolio_data.get("timeframe", 0)),
-            "total_return": results.get("end_value", 0) - (
-                portfolio_data.get("lump_sum", 0) + 
-                (portfolio_data.get("monthly", 0) * 12 * portfolio_data.get("timeframe", 0))
-            ),
-            "timeframe": portfolio_data.get("timeframe", 0),
-            "risk_label": portfolio_data.get("risk_label", "Unknown"),
-            "goal": portfolio_data.get("goal", "building wealth"),
-            "target_value": portfolio_data.get("target_value", 0),
-            "holdings": portfolio_data.get("results", {}).get("stocks_picked", [])
-        }
-    
-    def _create_educational_performance_prompt(self, data: Dict, user_context: Optional[Dict]) -> str:
-        """Create educational prompt for performance analysis with better formatting"""
-        total_invested = data["total_invested"]
-        total_value = data["total_value"]
-        total_return = data["total_return"]
-        return_percent = (total_return / total_invested * 100) if total_invested > 0 else 0
-        
-        user_level = user_context.get("experience_level", "beginner") if user_context else "beginner"
-        
-        return f"""
-You are teaching a {user_level} investor about their portfolio performance. Create a well-formatted, comprehensive educational response.
-
-THEIR PORTFOLIO NUMBERS:
-- Money They Put In: £{total_invested:,.0f}
-- What It's Worth Now: £{total_value:,.0f}
-- Their Gain/Loss: £{total_return:,.0f} ({return_percent:+.1f}%)
-- Time Invested: {data['timeframe']} years
-- Their Goal: {data['goal']}
-- Risk Level: {data['risk_label']}
-
-FORMAT YOUR RESPONSE WITH:
-- Clear headings using ## and emojis
-- Bullet points for key information
-- Bold text for important numbers
-- Proper paragraph breaks
-- Educational analogies and comparisons
-
-EXPLAIN:
-1. What these numbers mean in simple terms
-2. Whether this is good performance (compare to savings accounts, inflation)
-3. Why portfolios experience ups and downs
-4. What they can learn from this experience
-5. How this fits their long-term goals
-6. Any potential drawdown scenarios and why they happen
-
-Use encouraging language and focus on education. Do NOT limit the response length - provide comprehensive, well-formatted education.
-"""
-    
-    def _get_educational_fallback_analysis(self, portfolio_data: Dict) -> str:
-        """Educational fallback for performance analysis with better formatting"""
-        return """## 📊 Understanding Your Investment Performance
-
-Investment performance is like the weather - it changes daily, but what matters is the long-term pattern.
-
-## 🎢 Why Portfolio Values Change
-
-Your portfolio's value will go up and down, and that's completely normal:
-
-• **Daily market movements**: Thousands of factors influence prices every day
-• **Economic news**: Interest rates, inflation, and economic reports affect markets
-• **Company performance**: Earnings reports and business developments impact stock prices
-• **Global events**: Political changes and world events can cause market reactions
-• **Investor emotions**: Fear and greed drive short-term market movements
-
-## ✈️ Think of It Like Air Travel
-
-Investing is like a plane ride - there's turbulence along the way, but you're still heading toward your destination.
-
-## 🔑 Key Things to Remember
-
-• **Stay diversified**: Don't put all your eggs in one basket
-• **Think long-term**: Successful investing is measured in years, not days
-• **Keep learning**: The more you understand, the more confident you'll feel
-• **Stay consistent**: Regular investing builds wealth over time
-
-## 🌟 You're Building Your Future
-
-Every experienced investor has been where you are now. You're building wealth for your future, and that's something to be proud of! 🎯"""
-    
-    def _get_fallback_lesson(self, topic: str) -> str:
-        """Fallback educational lesson with better formatting"""
-        lessons = {
-            "diversification": """## 🥚 Diversification: Don't Put All Your Eggs in One Basket
-
-Diversification is like not putting all your eggs in one basket. If you drop the basket, you don't lose everything!
-
-## 💡 How It Works
-
-In investing, this means owning different types of investments instead of just one:
-
-• **Multiple companies**: Don't invest in just one business
-• **Different sectors**: Technology, healthcare, finance, etc.
-• **Various regions**: Domestic and international markets
-• **Asset classes**: Stocks, bonds, real estate
-
-## 🍽️ Think of It Like a Balanced Meal
-
-You want vegetables, protein, and grains, not just one food. Your investment portfolio works the same way!
-
-## 🎯 The Benefits
-
-• **Reduced risk**: One bad investment won't ruin your portfolio
-• **Smoother returns**: Ups and downs balance each other out
-• **Better sleep**: Less worry about any single investment""",
-            
-            "compound_interest": """## ❄️ Compound Interest: The Snowball Effect
-
-Compound interest is like a snowball rolling down a hill - it starts small but gets bigger and bigger as it picks up more snow.
-
-## 🔄 How It Works
-
-With investments, you earn money on your original investment, then you earn money on the money you earned! This creates a powerful cycle:
-
-• **Year 1**: Earn money on your initial investment
-• **Year 2**: Earn money on original + Year 1 earnings  
-• **Year 3**: Earn money on everything from Years 1 & 2
-• **And so on**: The growth accelerates over time
-
-## ⚡ Einstein's Opinion
-
-Einstein supposedly called it "the most powerful force in the universe" - and starting early gives you more time for this magic to work!
-
-## 🚀 The Key Takeaway
-
-Time is your greatest asset. The earlier you start, the more compound interest can work its magic! ✨""",
-            
-            "default": f"""## 📚 Understanding {topic.title()}
-
-{topic.title()} is an important part of building wealth over time.
-
-## 🔑 Key Principles
-
-• **Start early**: Time is your greatest advantage
-• **Stay consistent**: Regular investing builds wealth
-• **Keep learning**: Knowledge builds confidence
-• **Be patient**: Good things take time
-
-## 🎯 Remember
-
-You don't need to be an expert to start investing - you just need to begin and keep learning along the way!
-
-## 🌟 Your Journey
-
-Every small step you take today builds toward a more secure financial future."""
-        }
-        
-        return lessons.get(topic.lower(), lessons["default"])
+You're now a more experienced investor with real market battle scars - wear them proudly! 💪"""
