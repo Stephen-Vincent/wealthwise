@@ -658,19 +658,9 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
 
                 {/* Declaration Screen Navigation */}
                 <div
-                  className="flex justify-center items-center gap-6 animate-fade-in-up"
+                  className="flex flex-col items-center gap-4 animate-fade-in-up"
                   style={{ animationDelay: "0.6s" }}
                 >
-                  {/* Back Button */}
-                  <button
-                    onClick={prevStep}
-                    className="bg-gray-500 text-white font-bold px-6 py-4 rounded-[15px] hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-2"
-                    disabled={isLoading}
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                    Back
-                  </button>
-
                   {/* Submit Button */}
                   <button
                     className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
@@ -680,6 +670,16 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
                     {isLoading
                       ? "Creating Portfolio..."
                       : "Let's Build Your Portfolio"}
+                  </button>
+
+                  {/* Back Button - Smaller */}
+                  <button
+                    onClick={prevStep}
+                    className="bg-gray-500 text-white font-medium px-4 py-2 rounded-[12px] hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-2 text-sm"
+                    disabled={isLoading}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
                   </button>
                 </div>
               </div>

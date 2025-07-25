@@ -135,9 +135,6 @@ export default function WelcomeScreen({
               ? `Welcome back${userName ? `, ${userName}` : ""}!`
               : `Welcome${userName ? `, ${userName}` : ""}!`}
           </h2>
-          <p className="text-[#666] text-lg">
-            Ready to continue your investment journey?
-          </p>
         </div>
 
         <div className="space-y-4">
