@@ -11,9 +11,8 @@ from xgboost import XGBRegressor
 import numpy as np
 import math
 
-# Load dataset - USE THE CORRECT PATH
-ai_models_dir = os.path.dirname(os.path.dirname(__file__))  # Go up to ai_models folder
-data_path = os.path.join(ai_models_dir, "training_data", "complete_risk_dataset.csv")
+# FIXED: Use correct path where data generator saves the file
+data_path = os.path.join(os.path.dirname(__file__), "training_data", "complete_risk_dataset.csv")
 
 print(f"📁 Loading data from: {data_path}")
 df = pd.read_csv(data_path)
@@ -88,17 +87,15 @@ print("🧠 Raw predictions range:", y_pred.min(), "-", y_pred.max())
 # Only clamp to valid bounds (1-100) if absolutely necessary
 y_pred_clamped = np.clip(y_pred, 1, 100)
 
-# Define a function to convert numerical scores to risk labels
+# UPDATED risk label function to match new ranges
 def get_risk_label(score):
-    if score < 20:
+    if score < 30:
         return "Ultra Conservative"
-    elif score < 35:
-        return "Conservative" 
     elif score < 50:
-        return "Moderate Conservative"
-    elif score < 65:
+        return "Conservative" 
+    elif score < 70:
         return "Moderate"
-    elif score < 80:
+    elif score < 85:
         return "Moderate Aggressive"
     else:
         return "Aggressive"
@@ -126,21 +123,19 @@ print(f"   R² Score: {r2_score(y_test, y_pred_clamped):.3f}")
 print(f"   Mean Predicted Risk Score: {np.mean(y_pred_clamped):.1f}")
 print(f"   Risk Score Range: {np.min(y_pred_clamped):.1f} - {np.max(y_pred_clamped):.1f}")
 
-# Check prediction distribution
-pred_ultra_conservative = np.sum(y_pred_clamped < 20)
-pred_conservative = np.sum((y_pred_clamped >= 20) & (y_pred_clamped < 35))
-pred_moderate_conservative = np.sum((y_pred_clamped >= 35) & (y_pred_clamped < 50))
-pred_moderate = np.sum((y_pred_clamped >= 50) & (y_pred_clamped < 65))
-pred_moderate_aggressive = np.sum((y_pred_clamped >= 65) & (y_pred_clamped < 80))
-pred_aggressive = np.sum(y_pred_clamped >= 80)
+# UPDATED prediction distribution with new ranges
+pred_ultra_conservative = np.sum(y_pred_clamped < 30)
+pred_conservative = np.sum((y_pred_clamped >= 30) & (y_pred_clamped < 50))
+pred_moderate = np.sum((y_pred_clamped >= 50) & (y_pred_clamped < 70))
+pred_moderate_aggressive = np.sum((y_pred_clamped >= 70) & (y_pred_clamped < 85))
+pred_aggressive = np.sum(y_pred_clamped >= 85)
 
 print(f"\n🎯 Prediction Distribution:")
-print(f"   Ultra Conservative (1-20): {pred_ultra_conservative} ({pred_ultra_conservative/len(y_pred_clamped)*100:.1f}%)")
-print(f"   Conservative (20-35): {pred_conservative} ({pred_conservative/len(y_pred_clamped)*100:.1f}%)")
-print(f"   Moderate Conservative (35-50): {pred_moderate_conservative} ({pred_moderate_conservative/len(y_pred_clamped)*100:.1f}%)")
-print(f"   Moderate (50-65): {pred_moderate} ({pred_moderate/len(y_pred_clamped)*100:.1f}%)")
-print(f"   Moderate Aggressive (65-80): {pred_moderate_aggressive} ({pred_moderate_aggressive/len(y_pred_clamped)*100:.1f}%)")
-print(f"   Aggressive (80-100): {pred_aggressive} ({pred_aggressive/len(y_pred_clamped)*100:.1f}%)")
+print(f"   Ultra Conservative (1-30): {pred_ultra_conservative} ({pred_ultra_conservative/len(y_pred_clamped)*100:.1f}%)")
+print(f"   Conservative (30-50): {pred_conservative} ({pred_conservative/len(y_pred_clamped)*100:.1f}%)")
+print(f"   Moderate (50-70): {pred_moderate} ({pred_moderate/len(y_pred_clamped)*100:.1f}%)")
+print(f"   Moderate Aggressive (70-85): {pred_moderate_aggressive} ({pred_moderate_aggressive/len(y_pred_clamped)*100:.1f}%)")
+print(f"   Aggressive (85-100): {pred_aggressive} ({pred_aggressive/len(y_pred_clamped)*100:.1f}%)")
 
 # Save model
 model_path = os.path.join(os.path.dirname(__file__), "enhanced_model.pkl")
@@ -186,10 +181,10 @@ ultra_aggressive_test = pd.DataFrame([{
 ultra_conservative_pred = model.predict(ultra_conservative_test)[0]
 ultra_aggressive_pred = model.predict(ultra_aggressive_test)[0]
 
-print(f"   Ultra Conservative Profile: {ultra_conservative_pred:.1f} (Expected: 5-15)")
+print(f"   Ultra Conservative Profile: {ultra_conservative_pred:.1f} (Expected: 5-25)")
 print(f"   Ultra Aggressive Profile: {ultra_aggressive_pred:.1f} (Expected: 85-95)")
 
-if ultra_conservative_pred < 25 and ultra_aggressive_pred > 65:
+if ultra_conservative_pred < 35 and ultra_aggressive_pred > 70:
     print("✅ Model successfully spans risk spectrum!")
 else:
     print("⚠️  Model may need adjustment for full range coverage")
