@@ -92,7 +92,6 @@ export default function Sidebar({ scrollToSection, sectionRefs, onClose }) {
           alt="WealthWise Logo"
           className="w-20 h-20 lg:w-24 lg:h-24 mx-auto mb-2"
         />
-        <div className="text-sm font-semibold text-gray-700">WealthWise</div>
       </div>
 
       {/* Navigation Section */}
