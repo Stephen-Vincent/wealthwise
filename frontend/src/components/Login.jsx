@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.removeItem("access_token");
@@ -49,6 +51,10 @@ export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
     }
   };
 
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
+
   return (
     <div className="flex flex-col justify-center items-center">
       <form
@@ -80,6 +86,18 @@ export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
         >
           Log In
         </button>
+
+        {/* Forgot Password Link */}
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="text-[#00A8FF] text-sm hover:underline focus:outline-none"
+          >
+            Forgot your password?
+          </button>
+        </div>
+
         <p className="text-center text-sm">
           New here?{" "}
           <span
