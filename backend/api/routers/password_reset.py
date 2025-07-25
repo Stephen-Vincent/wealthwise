@@ -1,14 +1,14 @@
 # api/routers/password_reset.py
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, field_validator
 from services.password_reset_service import PasswordResetService
 from database.database import get_db
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/auth", tags=["password-reset"])
+router = APIRouter(tags=["password-reset"])  # REMOVE prefix="/auth" - it's added in main.py
 
 # Initialize password reset service
 password_reset_service = PasswordResetService()
@@ -18,7 +18,7 @@ class PasswordResetRequest(BaseModel):
     email: EmailStr
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "user@example.com"
             }
@@ -29,13 +29,13 @@ class PasswordResetConfirm(BaseModel):
     new_password: str
     confirm_password: str
     
-    @validator('confirm_password')
-    def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
+    @field_validator('confirm_password')
+    def passwords_match(cls, v, info):
+        if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Passwords do not match')
         return v
     
-    @validator('new_password')
+    @field_validator('new_password')
     def validate_password_strength(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -51,7 +51,7 @@ class PasswordResetConfirm(BaseModel):
         return v
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "token": "reset_token_here",
                 "new_password": "NewPassword123!",
@@ -63,7 +63,7 @@ class TokenVerificationRequest(BaseModel):
     token: str
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "token": "reset_token_here"
             }
@@ -173,27 +173,6 @@ async def reset_password(
     except Exception as e:
         logger.error(f"Error resetting password: {str(e)}")
         raise HTTPException(status_code=500, detail="An error occurred while resetting password")
-
-@router.post("/cleanup-expired-tokens")
-async def cleanup_expired_tokens(db: Session = Depends(get_db)):
-    """
-    Admin endpoint to clean up expired password reset tokens
-    
-    This can be called periodically or as part of maintenance
-    """
-    try:
-        count = password_reset_service.cleanup_expired_tokens(db)
-        
-        return {
-            "success": True,
-            "message": f"Cleaned up {count} expired tokens",
-            "tokens_removed": count,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"Error cleaning up tokens: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error cleaning up expired tokens")
 
 @router.get("/password-requirements")
 async def get_password_requirements():

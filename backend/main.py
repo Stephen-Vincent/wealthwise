@@ -9,9 +9,9 @@ from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset  # ADD PASSWORD RESET
 from database.database import engine, Base  # Updated import path
-from database.models import User, Simulation  # Import models to ensure they're registered
+from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -59,7 +59,6 @@ app = FastAPI(
 )
 
 # Enhanced CORS middleware for production deployment
-# Enhanced CORS middleware for production deployment
 def setup_cors():
     """Setup CORS for both development and production"""
     
@@ -84,7 +83,8 @@ def setup_cors():
         "https://wealthwise-six-gamma.vercel.app",
         "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
         "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
-        "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",  # NEW DOMAIN
+        "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",  # Latest domain
         
         # Wildcard pattern for all Vercel deployments
         "https://*.vercel.app"
@@ -156,7 +156,8 @@ async def add_cors_to_errors(request, call_next):
             "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
             "https://wealthwise-six-gamma.vercel.app",
             "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app"
+            "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
+            "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"  # Add latest
         ]
         
         if origin in allowed_origins or origin.endswith(".vercel.app"):
@@ -184,6 +185,7 @@ async def root():
         "endpoints": {
             "health": "/api/health",
             "auth": "/auth",
+            "password_reset": "/auth",  # ADD THIS
             "onboarding": "/onboarding", 
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
@@ -229,6 +231,7 @@ def include_routers():
     """Include all API routers with error handling"""
     routers_config = [
         (auth.router, "/auth", ["auth"]),
+        (password_reset.router, "/auth", ["password-reset"]),  # ADD PASSWORD RESET ROUTER
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
@@ -293,6 +296,7 @@ async def demo_info():
             "Risk assessment and recommendations", 
             "Portfolio simulation and tracking",
             "User authentication and data persistence",
+            "Password reset functionality",  # ADD THIS
             "Cross-database compatibility (SQLite/PostgreSQL)"
         ],
         "technology_stack": {
@@ -300,6 +304,7 @@ async def demo_info():
             "frontend": "React + Vite", 
             "database": "SQLite (dev) / PostgreSQL (prod)",
             "ai": "Groq API (free tier)",
+            "email": "SMTP (configurable)",  # ADD THIS
             "hosting": "Railway (backend) + Vercel (frontend)"
         },
         "deployment": {
@@ -316,11 +321,12 @@ if os.getenv("ENVIRONMENT") == "development":
         """Development endpoint to check database status"""
         try:
             from database.database import SessionLocal
-            from database.models import User, Simulation
+            from database.models import User, Simulation, PasswordResetToken
             
             db = SessionLocal()
             user_count = db.query(User).count()
             simulation_count = db.query(Simulation).count()
+            token_count = db.query(PasswordResetToken).count()  # ADD THIS
             db.close()
             
             return {
@@ -328,7 +334,8 @@ if os.getenv("ENVIRONMENT") == "development":
                 "database_url": os.getenv("DATABASE_URL", "sqlite:///./wealthwise.db"),
                 "tables": {
                     "users": user_count,
-                    "simulations": simulation_count
+                    "simulations": simulation_count,
+                    "password_reset_tokens": token_count  # ADD THIS
                 },
                 "status": "connected"
             }
@@ -339,6 +346,7 @@ if os.getenv("ENVIRONMENT") == "development":
 logger.info("🎓 WealthWise API configured for university project deployment")
 logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
 logger.info("🔗 Health check available at /health and /api/health")
+logger.info("🔑 Password reset functionality enabled")  # ADD THIS
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
