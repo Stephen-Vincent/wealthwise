@@ -40,12 +40,11 @@ export default function App() {
               <Route index element={<Login />} />
               <Route path="signup" element={<Signup />} />
               <Route path="login" element={<Login />} />
-              <Route
-                path="forgot-password"
-                element={<PasswordResetRequest />}
-              />
-              <Route path="reset-password" element={<PasswordResetConfirm />} />
             </Route>
+
+            {/* Password Reset Routes - Moved outside LandingScreen */}
+            <Route path="/forgot-password" element={<PasswordResetRequest />} />
+            <Route path="/reset-password" element={<PasswordResetConfirm />} />
 
             {/* Move loading to top level so it can be accessed from anywhere */}
             <Route path="/loading" element={<LoadingScreen />} />
