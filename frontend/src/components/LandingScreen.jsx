@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/wealthwise.png";
 import Login from "./Login";
 import Signup from "./Signup";
 import WelcomeScreen from "./WelcomeScreen";
-import OnboardingForm from "./OnboardingForm"; // Add this import
-import LoadingScreen from "./LoadingScreen"; // Add this import
-import Simulations from "./Simulations"; // Add this import
+import OnboardingForm from "./OnboardingForm";
+import LoadingScreen from "./LoadingScreen";
+import Simulations from "./Simulations";
 
 export default function LandingScreen() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [panel, setPanel] = useState(null); // 'login', 'signup', 'welcome', 'onboarding', 'loading', 'simulations', or null
   const [logoMovedUp, setLogoMovedUp] = useState(false);
   const [showWelcomeContent, setShowWelcomeContent] = useState(true);
@@ -84,6 +85,11 @@ export default function LandingScreen() {
     setUserName(user?.name || null);
     setPanelVisible(false);
     setTimeout(() => handleShowPanel("welcome"), 300);
+  };
+
+  // Function to handle forgot password navigation
+  const handleShowForgotPassword = () => {
+    navigate("/forgot-password");
   };
 
   // Function to show onboarding (called from WelcomeScreen)
@@ -191,6 +197,7 @@ export default function LandingScreen() {
                   setTimeout(() => handleShowPanel("signup"), 300);
                 }}
                 onShowWelcomeScreen={handleShowWelcomeScreen}
+                onShowForgotPassword={handleShowForgotPassword}
               />
             </div>
           )}
@@ -226,8 +233,8 @@ export default function LandingScreen() {
               <WelcomeScreen
                 onBack={handleBackToWelcome}
                 userName={userName}
-                onShowOnboarding={handleShowOnboarding} // Pass the onboarding function
-                onShowSimulations={handleShowSimulations} // Pass the simulations function
+                onShowOnboarding={handleShowOnboarding}
+                onShowSimulations={handleShowSimulations}
               />
             </div>
           )}
@@ -243,7 +250,7 @@ export default function LandingScreen() {
             >
               <OnboardingForm
                 onBack={handleBackToWelcomeFromOnboarding}
-                onShowLoading={handleShowLoading} // Pass the loading function
+                onShowLoading={handleShowLoading}
               />
             </div>
           )}
@@ -272,7 +279,7 @@ export default function LandingScreen() {
             >
               <Simulations
                 onBack={handleBackToWelcomeFromSimulations}
-                onShowLoading={handleShowLoading} // Pass the loading function
+                onShowLoading={handleShowLoading}
               />
             </div>
           )}

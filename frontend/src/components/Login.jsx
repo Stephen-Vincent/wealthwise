@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
+export default function Login({
+  onBack,
+  onShowSignup,
+  onShowWelcomeScreen,
+  onShowForgotPassword,
+}) {
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
-  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.removeItem("access_token");
@@ -52,7 +55,13 @@ export default function Login({ onBack, onShowSignup, onShowWelcomeScreen }) {
   };
 
   const handleForgotPassword = () => {
-    navigate("/forgot-password");
+    // Use the callback prop instead of navigate
+    if (onShowForgotPassword) {
+      onShowForgotPassword();
+    } else {
+      // Fallback: redirect using window.location
+      window.location.href = "/forgot-password";
+    }
   };
 
   return (
