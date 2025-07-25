@@ -1,13 +1,15 @@
 /**
- * Header.jsx
+ * Header.jsx - Mobile Responsive Version
  * ----------
- * Dashboard header component.
+ * Dashboard header component with mobile optimizations.
  * - Greets the user by name (fetched from localStorage)
  * - Shows main Dashboard title
+ * - Mobile responsive with proper spacing for floating sidebar button
+ * - Includes portfolio quick stats on larger screens
  * - Styled with Tailwind CSS
  */
 
-export default function Header() {
+export default function Header({ portfolioData }) {
   let userName = "user";
 
   // Attempt to get user's name from localStorage
@@ -23,10 +25,60 @@ export default function Header() {
     }
   }
 
+  // Fallback to user_name if user object doesn't have name
+  if (userName === "user") {
+    const storedUserName = localStorage.getItem("user_name");
+    if (storedUserName) {
+      userName = storedUserName;
+    }
+  }
+
   return (
-    <div className="mb-6">
-      <h2 className="text-lg text-gray-600">Hi, {userName}</h2>
-      <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-    </div>
+    <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-6 pl-20 lg:pl-8 mb-6">
+      <div className="flex flex-col space-y-2 lg:space-y-3">
+        {/* Greeting and title - with proper spacing for mobile button */}
+        <div>
+          <h2 className="text-sm lg:text-lg text-gray-600">Hi, {userName}</h2>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
+            Dashboard
+          </h1>
+        </div>
+
+        {/* Quick stats - hidden on very small screens, shown on sm and up */}
+        {portfolioData && (
+          <div className="hidden sm:flex flex-wrap gap-3 lg:gap-6 text-xs lg:text-sm text-gray-600">
+            {portfolioData.target_value && (
+              <div className="flex items-center space-x-1">
+                <span>🎯</span>
+                <span>
+                  Target: £{(portfolioData.target_value / 1000).toFixed(0)}k
+                </span>
+              </div>
+            )}
+            {portfolioData.risk_label && (
+              <div className="flex items-center space-x-1">
+                <span>📊</span>
+                <span>{portfolioData.risk_label} Risk</span>
+              </div>
+            )}
+            {portfolioData.timeframe && (
+              <div className="flex items-center space-x-1">
+                <span>⏰</span>
+                <span>{portfolioData.timeframe} years</span>
+              </div>
+            )}
+            {portfolioData.goal && (
+              <div className="flex items-center space-x-1">
+                <span>💼</span>
+                <span>
+                  {portfolioData.goal.charAt(0).toUpperCase() +
+                    portfolioData.goal.slice(1)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </header>
   );
 }

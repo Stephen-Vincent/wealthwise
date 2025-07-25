@@ -61,14 +61,12 @@ export default function Dashboard() {
           flex items-center justify-center
           transition-all duration-300 ease-in-out
           lg:hidden
-          ${sidebarOpen ? "translate-x-80" : "translate-x-0"}
+          ${sidebarOpen ? "translate-x-72" : "translate-x-0"}
         `}
         aria-label={sidebarOpen ? "Close menu" : "Open menu"}
       >
         <svg
-          className={`w-6 h-6 transition-transform duration-300 ${
-            sidebarOpen ? "rotate-180" : ""
-          }`}
+          className={`w-6 h-6 transition-transform duration-300`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -103,7 +101,7 @@ export default function Dashboard() {
       <div
         className={`
           fixed lg:static top-0 left-0 z-40
-          lg:w-1/6 w-80
+          lg:w-1/6 w-72
           h-screen lg:sticky lg:top-0
           transition-transform duration-300 ease-in-out
           ${
@@ -126,7 +124,7 @@ export default function Dashboard() {
         </div>
 
         {/* Dashboard Content - With proper spacing for floating toggle button */}
-        <div className="p-4 md:p-6 lg:p-8 pt-20 lg:pt-6 space-y-6 md:space-y-8">
+        <div className="p-4 md:p-6 lg:p-8 pt-20 lg:pt-6 space-y-6 md:space-y-8 pl-20 lg:pl-4">
           {/* Attach refs to sections */}
           <section ref={summaryRef}>
             <SummaryCards portfolioData={portfolioData} />
