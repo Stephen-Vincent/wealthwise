@@ -5,6 +5,8 @@ import LoadingScreen from "./components/LoadingScreen";
 import Dashboard from "./components/Dashboard";
 import Signup from "./components/Signup";
 import Login from "./components/Login";
+import PasswordResetRequest from "./components/PasswordResetRequest";
+import PasswordResetConfirm from "./components/PasswordResetConfirm";
 import { PortfolioProvider } from "./context/PortfolioContext";
 import { useEffect } from "react";
 
@@ -38,16 +40,23 @@ export default function App() {
               <Route index element={<Login />} />
               <Route path="signup" element={<Signup />} />
               <Route path="login" element={<Login />} />
+              <Route
+                path="forgot-password"
+                element={<PasswordResetRequest />}
+              />
+              <Route path="reset-password" element={<PasswordResetConfirm />} />
             </Route>
 
             {/* Move loading to top level so it can be accessed from anywhere */}
             <Route path="/loading" element={<LoadingScreen />} />
 
+            {/* Protected Dashboard Routes */}
             <Route
               path="/dashboard/:userId/:simulationId"
               element={<Dashboard />}
             />
 
+            {/* Simulations Route */}
             <Route path="/simulations" element={<Simulations />} />
           </Routes>
         </div>
