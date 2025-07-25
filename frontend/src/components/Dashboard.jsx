@@ -55,18 +55,18 @@ export default function Dashboard() {
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className={`
-          fixed top-4 left-4 z-50
+          fixed top-6 z-50
           w-12 h-12 bg-blue-600 hover:bg-blue-700
           text-white rounded-full shadow-lg
           flex items-center justify-center
           transition-all duration-300 ease-in-out
           lg:hidden
-          ${sidebarOpen ? "translate-x-72" : "translate-x-0"}
+          ${sidebarOpen ? "left-80" : "left-4"}
         `}
         aria-label={sidebarOpen ? "Close menu" : "Open menu"}
       >
         <svg
-          className={`w-6 h-6 transition-transform duration-300`}
+          className="w-6 h-6 transition-transform duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -101,7 +101,7 @@ export default function Dashboard() {
       <div
         className={`
           fixed lg:static top-0 left-0 z-40
-          lg:w-1/6 w-72
+          lg:w-1/6 w-80
           h-screen lg:sticky lg:top-0
           transition-transform duration-300 ease-in-out
           ${

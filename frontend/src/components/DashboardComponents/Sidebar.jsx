@@ -138,7 +138,7 @@ export default function Sidebar({ scrollToSection, sectionRefs, onClose }) {
       <aside
         className={`
           fixed lg:static top-0 left-0 z-40
-          lg:w-1/6 w-80 max-w-full
+          lg:w-1/6 w-72 max-w-full
           h-screen lg:sticky lg:top-0
           flex flex-col
           lg:rounded-tr-3xl lg:rounded-br-3xl
@@ -149,39 +149,14 @@ export default function Sidebar({ scrollToSection, sectionRefs, onClose }) {
           ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Mobile close button inside sidebar */}
-        <div className="lg:hidden w-full flex justify-end p-4">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            aria-label="Close menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Logo Section */}
-        <div className="mb-6 mt-2 lg:mt-4 px-4 text-center">
+        {/* Logo Section - No mobile close button here since we have the floating one */}
+        <div className="mb-6 mt-6 lg:mt-4 px-4 text-center">
           <img
             src={logo}
             alt="WealthWise Logo"
             className="w-20 h-20 lg:w-24 lg:h-24 mx-auto mb-2"
           />
-          <div className="text-sm font-semibold text-gray-700 lg:hidden">
-            WealthWise
-          </div>
+          <div className="text-sm font-semibold text-gray-700">WealthWise</div>
         </div>
 
         {/* Navigation Section */}
