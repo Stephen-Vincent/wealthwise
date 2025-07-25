@@ -1,5 +1,5 @@
 /**
- * PortfolioGraph.jsx
+ * PortfolioGraph.jsx - Mobile Responsive Version
  * -----------------
  * Visualizes the user's portfolio performance over time.
  * - Switch between monthly, quarterly, and yearly views.
@@ -167,12 +167,12 @@ const PortfolioGraph = () => {
 
   if (processedData.isEmpty) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-        <div className="text-gray-400 text-6xl mb-4">📈</div>
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 text-center">
+        <div className="text-gray-400 text-4xl md:text-6xl mb-4">📈</div>
+        <h3 className="text-base md:text-lg font-semibold text-gray-700 mb-2">
           No Portfolio Data Available
         </h3>
-        <p className="text-gray-500">
+        <p className="text-sm md:text-base text-gray-500">
           Complete your onboarding to see your portfolio growth chart.
         </p>
       </div>
@@ -263,7 +263,7 @@ const PortfolioGraph = () => {
   const minY = Math.min(...allValues) * 0.95;
   const maxY = Math.max(...allValues) * 1.05;
 
-  // Chart.js options for styling, tooltips, axes, and legend
+  // Chart.js options for styling, tooltips, axes, and legend - MOBILE OPTIMIZED
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -277,10 +277,10 @@ const PortfolioGraph = () => {
         position: "top",
         labels: {
           usePointStyle: true,
-          padding: 20,
+          padding: window.innerWidth < 768 ? 10 : 20, // Less padding on mobile
           font: {
             family: "system-ui, -apple-system, sans-serif",
-            size: 12,
+            size: window.innerWidth < 768 ? 10 : 12, // Smaller font on mobile
           },
           filter: (legendItem) => {
             // Hide the gain/loss area from legend
@@ -296,6 +296,12 @@ const PortfolioGraph = () => {
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: true,
+        titleFont: {
+          size: window.innerWidth < 768 ? 12 : 14,
+        },
+        bodyFont: {
+          size: window.innerWidth < 768 ? 11 : 13,
+        },
         callbacks: {
           title: (context) => `Period: ${context[0].label}`,
           label: (context) => {
@@ -327,11 +333,11 @@ const PortfolioGraph = () => {
     scales: {
       x: {
         title: {
-          display: true,
+          display: window.innerWidth >= 768, // Hide title on mobile
           text: "Time Period",
           font: {
             family: "system-ui, -apple-system, sans-serif",
-            size: 14,
+            size: window.innerWidth < 768 ? 12 : 14,
             weight: "bold",
           },
         },
@@ -341,16 +347,18 @@ const PortfolioGraph = () => {
         ticks: {
           font: {
             family: "system-ui, -apple-system, sans-serif",
+            size: window.innerWidth < 768 ? 10 : 12,
           },
+          maxTicksLimit: window.innerWidth < 768 ? 6 : 12, // Fewer ticks on mobile
         },
       },
       y: {
         title: {
-          display: true,
+          display: window.innerWidth >= 768, // Hide title on mobile
           text: "Value (£)",
           font: {
             family: "system-ui, -apple-system, sans-serif",
-            size: 14,
+            size: window.innerWidth < 768 ? 12 : 14,
             weight: "bold",
           },
         },
@@ -360,25 +368,36 @@ const PortfolioGraph = () => {
           color: "rgba(0, 0, 0, 0.05)",
         },
         ticks: {
-          callback: (value) => formatCurrency(value),
+          callback: (value) => {
+            // Shorter currency format on mobile
+            if (window.innerWidth < 768) {
+              return value >= 1000
+                ? `£${(value / 1000).toFixed(0)}k`
+                : `£${value.toFixed(0)}`;
+            }
+            return formatCurrency(value);
+          },
           font: {
             family: "system-ui, -apple-system, sans-serif",
+            size: window.innerWidth < 768 ? 10 : 12,
           },
+          maxTicksLimit: window.innerWidth < 768 ? 6 : 8, // Fewer ticks on mobile
         },
       },
     },
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-      {/* Header with controls for view mode and overlays */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+    <div className="bg-white rounded-xl shadow-lg p-3 md:p-6 mb-4 md:mb-6">
+      {/* Header with controls - MOBILE RESPONSIVE */}
+      <div className="flex flex-col space-y-3 md:space-y-4 mb-4 md:mb-6">
+        {/* Title and metrics */}
         <div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">
+          <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2">
             Portfolio Growth
           </h3>
           {metrics.currentValue && (
-            <div className="flex items-center space-x-4 text-sm">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
               <span className="text-gray-600">
                 Current:{" "}
                 <span className="font-semibold text-green-600">
@@ -397,21 +416,22 @@ const PortfolioGraph = () => {
                   {formatPercentage(metrics.totalReturnPercent)}
                 </span>
               </span>
-              <span className="text-gray-600">
+              <span className="text-gray-600 hidden md:inline">
                 {metrics.dataPoints} data points
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+        {/* Controls - Stacked on mobile */}
+        <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
           {/* View Mode Selector buttons */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-1 w-full md:w-auto">
             {["monthly", "quarterly", "yearly"].map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                className={`flex-1 md:flex-none px-2 md:px-3 py-1 text-xs md:text-sm font-medium rounded-md transition-colors ${
                   viewMode === mode
                     ? "bg-white text-blue-600 shadow-sm"
                     : "text-gray-600 hover:text-gray-800"
@@ -422,10 +442,10 @@ const PortfolioGraph = () => {
             ))}
           </div>
 
-          {/* Overlay toggles for target line and gain/loss area */}
-          <div className="flex items-center space-x-3">
+          {/* Overlay toggles - Stacked on mobile */}
+          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-y-0 md:space-x-3">
             {portfolioData?.target_value && (
-              <label className="flex items-center space-x-2 text-sm">
+              <label className="flex items-center space-x-2 text-xs md:text-sm">
                 <input
                   type="checkbox"
                   checked={showTarget}
@@ -436,7 +456,7 @@ const PortfolioGraph = () => {
               </label>
             )}
 
-            <label className="flex items-center space-x-2 text-sm">
+            <label className="flex items-center space-x-2 text-xs md:text-sm">
               <input
                 type="checkbox"
                 checked={showGainLoss}
@@ -449,60 +469,66 @@ const PortfolioGraph = () => {
         </div>
       </div>
 
-      {/* Performance summary cards for current value, contributions, gain/loss, and return */}
+      {/* Performance summary cards - MOBILE RESPONSIVE GRID */}
       {metrics.currentValue && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
-            <div className="text-sm text-green-600 font-medium">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-2 md:p-4 rounded-lg border border-green-200">
+            <div className="text-xs md:text-sm text-green-600 font-medium">
               Portfolio Value
             </div>
-            <div className="text-lg font-bold text-green-700">
-              {formatCurrency(metrics.currentValue)}
+            <div className="text-sm md:text-lg font-bold text-green-700">
+              {window.innerWidth < 768
+                ? `£${(metrics.currentValue / 1000).toFixed(0)}k`
+                : formatCurrency(metrics.currentValue)}
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-            <div className="text-sm text-blue-600 font-medium">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-2 md:p-4 rounded-lg border border-blue-200">
+            <div className="text-xs md:text-sm text-blue-600 font-medium">
               Contributions
             </div>
-            <div className="text-lg font-bold text-blue-700">
-              {formatCurrency(metrics.currentContributions)}
+            <div className="text-sm md:text-lg font-bold text-blue-700">
+              {window.innerWidth < 768
+                ? `£${(metrics.currentContributions / 1000).toFixed(0)}k`
+                : formatCurrency(metrics.currentContributions)}
             </div>
           </div>
 
           <div
-            className={`p-4 rounded-lg border ${
+            className={`p-2 md:p-4 rounded-lg border ${
               metrics.totalGainLoss >= 0
                 ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
                 : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200"
             }`}
           >
             <div
-              className={`text-sm font-medium ${
+              className={`text-xs md:text-sm font-medium ${
                 metrics.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >
               Total {metrics.totalGainLoss >= 0 ? "Gain" : "Loss"}
             </div>
             <div
-              className={`text-lg font-bold ${
+              className={`text-sm md:text-lg font-bold ${
                 metrics.totalGainLoss >= 0 ? "text-green-700" : "text-red-700"
               }`}
             >
               {metrics.totalGainLoss >= 0 ? "+" : ""}
-              {formatCurrency(metrics.totalGainLoss)}
+              {window.innerWidth < 768
+                ? `£${(Math.abs(metrics.totalGainLoss) / 1000).toFixed(1)}k`
+                : formatCurrency(metrics.totalGainLoss)}
             </div>
           </div>
 
           <div
-            className={`p-4 rounded-lg border ${
+            className={`p-2 md:p-4 rounded-lg border ${
               metrics.totalReturnPercent >= 0
                 ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
                 : "bg-gradient-to-r from-red-50 to-rose-50 border-red-200"
             }`}
           >
             <div
-              className={`text-sm font-medium ${
+              className={`text-xs md:text-sm font-medium ${
                 metrics.totalReturnPercent >= 0
                   ? "text-green-600"
                   : "text-red-600"
@@ -511,7 +537,7 @@ const PortfolioGraph = () => {
               Total Return
             </div>
             <div
-              className={`text-lg font-bold ${
+              className={`text-sm md:text-lg font-bold ${
                 metrics.totalReturnPercent >= 0
                   ? "text-green-700"
                   : "text-red-700"
@@ -523,14 +549,14 @@ const PortfolioGraph = () => {
         </div>
       )}
 
-      {/* Main Chart.js line chart */}
-      <div className="h-96 w-full">
+      {/* Main Chart.js line chart - MOBILE RESPONSIVE HEIGHT */}
+      <div className="h-64 md:h-96 w-full">
         <Line data={data} options={options} />
       </div>
 
-      {/* Chart legend/help area explaining the lines */}
-      <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-        <div className="flex flex-wrap items-center justify-center space-x-6">
+      {/* Chart legend/help area - MOBILE RESPONSIVE */}
+      <div className="mt-3 md:mt-4 text-xs text-gray-500 bg-gray-50 p-2 md:p-3 rounded-lg">
+        <div className="flex flex-col space-y-1 md:flex-row md:flex-wrap md:items-center md:justify-center md:space-y-0 md:space-x-6">
           <div className="flex items-center space-x-1">
             <div className="w-3 h-0.5 bg-green-500"></div>
             <span>Portfolio Value (includes gains/losses)</span>
