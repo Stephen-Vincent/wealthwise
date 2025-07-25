@@ -38,7 +38,7 @@ export default function Dashboard() {
     if (ref.current) {
       ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    // Close sidebar on mobile after navigation
+    // Close sidebar after navigation
     setSidebarOpen(false);
   };
 
@@ -50,86 +50,83 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen">
-      {/* Mobile Header with Hamburger Menu */}
-      <div className="lg:hidden bg-white shadow-sm border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-          aria-label="Toggle menu"
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Floating Sidebar Toggle Button - Mobile Only */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className={`
+          fixed top-4 left-4 z-50
+          w-12 h-12 bg-blue-600 hover:bg-blue-700
+          text-white rounded-full shadow-lg
+          flex items-center justify-center
+          transition-all duration-300 ease-in-out
+          lg:hidden
+          ${sidebarOpen ? "translate-x-80" : "translate-x-0"}
+        `}
+        aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+      >
+        <svg
+          className={`w-6 h-6 transition-transform duration-300 ${
+            sidebarOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {sidebarOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
-        </button>
-      </div>
+          {sidebarOpen ? (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          ) : (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          )}
+        </svg>
+      </button>
 
-      {/* Sidebar - Desktop: Fixed, Mobile: Overlay */}
+      {/* Backdrop overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Sliding on mobile, static on desktop */}
       <div
         className={`
-        lg:relative lg:block
-        ${sidebarOpen ? "block" : "hidden"}
-        lg:w-1/6 w-full
-        lg:min-h-screen
-        ${
-          sidebarOpen
-            ? "fixed inset-0 z-50 lg:relative lg:inset-auto lg:z-auto"
-            : ""
-        }
-      `}
-      >
-        {/* Mobile overlay background */}
-        {sidebarOpen && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar content */}
-        <div
-          className={`
-          lg:relative lg:h-full
-          ${sidebarOpen ? "relative z-50 h-full" : ""}
+          fixed lg:static top-0 left-0 z-40
+          lg:w-1/6 w-80
+          h-screen lg:sticky lg:top-0
+          transition-transform duration-300 ease-in-out
+          ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }
         `}
-        >
-          <Sidebar
-            scrollToSection={scrollToSection}
-            sectionRefs={sectionRefs}
-            onClose={() => setSidebarOpen(false)}
-          />
-        </div>
+      >
+        <Sidebar
+          scrollToSection={scrollToSection}
+          sectionRefs={sectionRefs}
+          onClose={() => setSidebarOpen(false)}
+        />
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:w-5/6 w-full">
-        {/* Header - Hidden on mobile (shown in mobile header above) */}
-        <div className="hidden lg:block">
+      <main className="flex-1 w-full lg:w-5/6">
+        {/* Header - Always visible, with mobile spacing */}
+        <div className="w-full">
           <Header portfolioData={portfolioData} />
         </div>
 
-        {/* Dashboard Content */}
-        <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+        {/* Dashboard Content - With proper spacing for floating toggle button */}
+        <div className="p-4 md:p-6 lg:p-8 pt-20 lg:pt-6 space-y-6 md:space-y-8">
           {/* Attach refs to sections */}
           <section ref={summaryRef}>
             <SummaryCards portfolioData={portfolioData} />
