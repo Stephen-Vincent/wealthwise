@@ -79,7 +79,7 @@ export default function Dashboard() {
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="
-            fixed top-24 left-4 z-50
+            fixed top-4 left-4 z-50
             w-12 h-12 bg-blue-600 hover:bg-blue-700
             text-white rounded-full shadow-lg
             flex items-center justify-center
