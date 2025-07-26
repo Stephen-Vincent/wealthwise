@@ -111,12 +111,13 @@ class EnhancedStockRecommender:
             
             # === STEP 2: GOAL-ORIENTED ANALYSIS ===
             goal_calculator = self._get_goal_calculator()
-            required_return = goal_calculator.calculate_required_return(
+            goal_result = goal_calculator.calculate_required_return(
                 target_value, current_investment, timeframe, monthly_contribution
             )
+            required_return = goal_result.get("required_return", 0.0)
             
             feasibility_assessor = self._get_feasibility_assessor()
-            goal_assessment = feasibility_assessor.assess_goal_feasibility(required_return, risk_score)
+            goal_assessment = feasibility_assessor.assess_goal_feasibility(required_return, risk_score, timeframe)
             
             # === STEP 3: RISK CATEGORY DETERMINATION ===
             base_risk_category = get_risk_category(risk_score)
@@ -142,9 +143,9 @@ class EnhancedStockRecommender:
                 
                 logger.info(f"🏆 Factor analysis selected {len(top_stocks)} top-ranked stocks")
                 
-            except ImportError:
+            except (ImportError, AttributeError) as e:
                 # Fallback if advanced modules not available
-                logger.warning("⚠️ Advanced factor analysis not available, using basic selection")
+                logger.warning(f"⚠️ Advanced factor analysis not available: {e}, using basic selection")
                 top_stocks = stock_universe[:8]  # Simple selection
             
             # === STEP 5: VALIDATE STOCKS ===
@@ -157,16 +158,15 @@ class EnhancedStockRecommender:
             
             # === STEP 6: PORTFOLIO OPTIMIZATION ===
             try:
-                portfolio_optimizer = self._get_portfolio_optimizer()
                 initial_weights = {stock: 1.0/len(valid_stocks) for stock in valid_stocks}
-                optimized_weights = portfolio_optimizer.optimize_for_diversification(valid_stocks, initial_weights)
-                portfolio_metrics = portfolio_optimizer.calculate_portfolio_metrics(valid_stocks, optimized_weights)
+                optimized_weights = self.optimize_for_diversification(valid_stocks, initial_weights)
+                portfolio_metrics = self._calculate_portfolio_metrics(valid_stocks, optimized_weights)
                 
                 logger.info(f"📈 Expected Return: {portfolio_metrics['expected_return']:.1%}")
                 logger.info(f"📊 Portfolio Volatility: {portfolio_metrics['volatility']:.1%}")
                 
-            except ImportError:
-                logger.warning("⚠️ Advanced portfolio optimization not available")
+            except (ImportError, AttributeError) as e:
+                logger.warning(f"⚠️ Advanced portfolio optimization not available: {e}")
                 optimized_weights = {stock: 1.0/len(valid_stocks) for stock in valid_stocks}
                 portfolio_metrics = {"expected_return": 0.08, "volatility": 0.15, "sharpe_ratio": 0.5}
             
@@ -188,7 +188,7 @@ class EnhancedStockRecommender:
             logger.info(f"✅ AI-ENHANCED Portfolio Created Successfully:")
             logger.info(f"   🎯 Goal Feasibility: {goal_assessment['feasibility_score']:.0f}%")
             logger.info(f"   🏆 Selected Stocks: {valid_stocks}")
-            logger.info(f"   💡 Recommendation: {goal_assessment['recommendation']}")
+            logger.info(f"   💡 Recommendation: {goal_assessment['recommendations'].get('primary', 'Continue with current plan')}")
             
             return valid_stocks
             
@@ -196,6 +196,46 @@ class EnhancedStockRecommender:
             logger.error(f"❌ AI-enhanced recommendation failed: {str(e)}")
             # Fallback to simple recommendation for reliability
             return self._fallback_recommendation(risk_score)
+    
+    # ===================================================================
+    # PORTFOLIO OPTIMIZATION METHODS (FIXED)
+    # ===================================================================
+    
+    def optimize_for_diversification(self, stocks: List[str], initial_weights: Dict[str, float]) -> Dict[str, float]:
+        """
+        Optimize portfolio weights for diversification.
+        
+        Args:
+            stocks: List of stock symbols
+            initial_weights: Initial weight allocation
+            
+        Returns:
+            Optimized weights dictionary
+        """
+        try:
+            portfolio_optimizer = self._get_portfolio_optimizer()
+            return portfolio_optimizer.optimize_for_diversification(stocks, initial_weights)
+        except (ImportError, AttributeError) as e:
+            logger.warning(f"Portfolio optimization failed: {e}, using equal weights")
+            equal_weight = 1.0 / len(stocks)
+            return {stock: equal_weight for stock in stocks}
+    
+    def _calculate_portfolio_metrics(self, stocks: List[str], weights: Dict[str, float]) -> Dict[str, float]:
+        """
+        Calculate portfolio metrics.
+        
+        Returns basic portfolio metrics like expected return and volatility.
+        """
+        try:
+            portfolio_optimizer = self._get_portfolio_optimizer()
+            return portfolio_optimizer.calculate_portfolio_metrics(stocks, weights)
+        except (ImportError, AttributeError) as e:
+            logger.warning(f"Portfolio metrics calculation failed: {e}, using defaults")
+            return {
+                "expected_return": 0.08,
+                "volatility": 0.15,
+                "sharpe_ratio": 0.53
+            }
     
     # ===================================================================
     # SHAP EXPLAINABLE AI METHODS
@@ -217,8 +257,8 @@ class EnhancedStockRecommender:
             return shap_explainer.explain_recommendation(
                 target_value, timeframe, risk_score, current_investment, monthly_contribution
             )
-        except ImportError:
-            logger.warning("⚠️ SHAP explainability not available")
+        except (ImportError, AttributeError) as e:
+            logger.warning(f"⚠️ SHAP explainability not available: {e}")
             return {
                 "error": "SHAP not available. Install with: pip install shap matplotlib seaborn",
                 "portfolio_quality_score": 50,
@@ -293,18 +333,19 @@ class EnhancedStockRecommender:
             Required annual return as decimal (e.g., 0.08 = 8%)
         """
         goal_calculator = self._get_goal_calculator()
-        return goal_calculator.calculate_required_return(
-            target_value, current_investment, timeframe, monthly_contribution
+        goal_result = goal_calculator.calculate_required_return(
+        target_value, current_investment, timeframe, monthly_contribution
         )
+        return goal_result.get("required_return", 0.0)
     
-    def assess_goal_feasibility(self, required_return: float, risk_score: float) -> Dict[str, Any]:
+    def assess_goal_feasibility(self, required_return: float, risk_score: float, timeframe: int) -> Dict[str, Any]:
         """
         Assess whether the user's goal is realistic given their risk tolerance.
         
         Provides honest feedback about goal achievability and suggests adjustments.
         """
         feasibility_assessor = self._get_feasibility_assessor()
-        return feasibility_assessor.assess_goal_feasibility(required_return, risk_score)
+        return feasibility_assessor.assess_goal_feasibility(required_return, risk_score, timeframe)
     
     # ===================================================================
     # MARKET ANALYSIS METHODS
@@ -338,36 +379,56 @@ class EnhancedStockRecommender:
     def _get_factor_analyzer(self):
         """Lazy load factor analyzer."""
         if self._factor_analyzer is None:
-            from ..analysis.factor_analysis import FactorAnalyzer
-            self._factor_analyzer = FactorAnalyzer()
+            try:
+                from ..analysis.factor_analysis import FactorAnalyzer
+                self._factor_analyzer = FactorAnalyzer()
+            except ImportError:
+                logger.warning("Factor analysis not available")
+                self._factor_analyzer = None
         return self._factor_analyzer
     
     def _get_portfolio_optimizer(self):
         """Lazy load portfolio optimizer."""
         if self._portfolio_optimizer is None:
-            from ..analysis.portfolio_optimizer import PortfolioOptimizer
-            self._portfolio_optimizer = PortfolioOptimizer()
+            try:
+                from ..analysis.portfolio_optimizer import PortfolioOptimizer
+                self._portfolio_optimizer = PortfolioOptimizer()
+            except ImportError:
+                logger.warning("Portfolio optimizer not available")
+                self._portfolio_optimizer = None
         return self._portfolio_optimizer
     
     def _get_shap_explainer(self):
         """Lazy load SHAP explainer."""
         if self._shap_explainer is None:
-            from ..explainable_ai.shap_explainer import SHAPExplainer
-            self._shap_explainer = SHAPExplainer()
+            try:
+                from ..explainable_ai.shap_explainer import SHAPExplainer
+                self._shap_explainer = SHAPExplainer()
+            except ImportError:
+                logger.warning("SHAP explainer not available")
+                self._shap_explainer = None
         return self._shap_explainer
     
     def _get_goal_calculator(self):
         """Lazy load goal calculator."""
         if self._goal_calculator is None:
-            from ..goal_optimization.goal_calculator import GoalCalculator
-            self._goal_calculator = GoalCalculator()
+            try:
+                from ..goal_optimization.goal_calculator import GoalCalculator
+                self._goal_calculator = GoalCalculator()
+            except ImportError:
+                logger.warning("Goal calculator not available")
+                self._goal_calculator = None
         return self._goal_calculator
     
     def _get_feasibility_assessor(self):
         """Lazy load feasibility assessor."""
         if self._feasibility_assessor is None:
-            from ..goal_optimization.feasibility_assessor import FeasibilityAssessor
-            self._feasibility_assessor = FeasibilityAssessor()
+            try:
+                from ..goal_optimization.feasibility_assessor import FeasibilityAssessor
+                self._feasibility_assessor = FeasibilityAssessor()
+            except ImportError:
+                logger.warning("Feasibility assessor not available")
+                self._feasibility_assessor = None
         return self._feasibility_assessor
     
     # ===================================================================
@@ -432,9 +493,19 @@ class EnhancedStockRecommender:
         Dynamically adjusts how different factors are weighted based on
         current market conditions and the user's investment timeframe.
         """
-        from .config import DEFAULT_FACTOR_WEIGHTS
-        
-        base_weights = DEFAULT_FACTOR_WEIGHTS.copy()
+        try:
+            from .config import DEFAULT_FACTOR_WEIGHTS
+            base_weights = DEFAULT_FACTOR_WEIGHTS.copy()
+        except ImportError:
+            # Fallback weights
+            base_weights = {
+                "quality": 0.25,
+                "value": 0.20,
+                "momentum": 0.20,
+                "volatility": 0.15,
+                "technical": 0.10,
+                "size": 0.10
+            }
         
         # Market regime adjustments
         if regime in ["bear", "high_volatility"]:

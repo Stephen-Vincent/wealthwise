@@ -568,16 +568,273 @@ To reach your £{target_value:,.0f} target, you needed {required_return:.1f}% an
 # =============================================================================
 # ENHANCED DATABASE FUNCTIONS
 # =============================================================================
+import json
+import numpy as np
+import pandas as pd
+from typing import Any, Dict, List, Union
+from datetime import datetime
+import logging
 
+logger = logging.getLogger(__name__)
+
+def serialize_for_json(data: Any) -> Any:
+    """
+    Recursively convert NumPy arrays, pandas objects, and other non-serializable objects to JSON-compatible types.
+    
+    This function handles all the common serialization issues when saving AI model results to databases.
+    Specifically designed for WealthWise SHAP explanations and portfolio optimization results.
+    """
+    
+    # Handle None values
+    if data is None:
+        return None
+    
+    # Handle NumPy types
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, (np.integer, np.int64, np.int32)):
+        return int(data)
+    elif isinstance(data, (np.floating, np.float64, np.float32)):
+        return float(data)
+    elif isinstance(data, np.bool_):
+        return bool(data)
+    elif isinstance(data, np.str_):
+        return str(data)
+    
+    # Handle pandas types
+    elif isinstance(data, pd.Series):
+        return data.tolist()
+    elif isinstance(data, pd.DataFrame):
+        return data.to_dict('records')
+    elif isinstance(data, pd.Timestamp):
+        return data.isoformat()
+    
+    # Handle datetime objects
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    
+    # Handle complex numbers (sometimes in SHAP explanations)
+    elif isinstance(data, complex):
+        return {"real": data.real, "imag": data.imag}
+    
+    # Handle dictionaries
+    elif isinstance(data, dict):
+        return {str(key): serialize_for_json(value) for key, value in data.items()}
+    
+    # Handle lists and tuples
+    elif isinstance(data, (list, tuple)):
+        return [serialize_for_json(item) for item in data]
+    
+    # Handle sets
+    elif isinstance(data, set):
+        return list(data)
+    
+    # Handle custom objects with __dict__
+    elif hasattr(data, '__dict__'):
+        return serialize_for_json(data.__dict__)
+    
+    # Handle objects with a to_dict method
+    elif hasattr(data, 'to_dict'):
+        return serialize_for_json(data.to_dict())
+    
+    # Return as-is for basic JSON-serializable types
+    elif isinstance(data, (str, int, float, bool)):
+        return data
+    
+    # For anything else, try to convert to string as fallback
+    else:
+        try:
+            return str(data)
+        except Exception:
+            return f"<non-serializable: {type(data).__name__}>"
+
+def clean_shap_explanation(shap_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Specifically clean SHAP explanation data for JSON serialization.
+    
+    SHAP explanations often contain NumPy arrays and complex nested structures
+    that need special handling.
+    """
+    if not shap_data:
+        return {}
+    
+    try:
+        cleaned_shap = {}
+        
+        # Handle common SHAP fields
+        for key, value in shap_data.items():
+            if key == 'shap_values':
+                # SHAP values are typically NumPy arrays
+                cleaned_shap[key] = serialize_for_json(value)
+            elif key == 'feature_importance':
+                # Feature importance scores
+                cleaned_shap[key] = serialize_for_json(value)
+            elif key == 'expected_value':
+                # Expected value (baseline)
+                cleaned_shap[key] = float(value) if value is not None else None
+            elif key == 'feature_names':
+                # Feature names should be strings
+                cleaned_shap[key] = [str(name) for name in value] if value else []
+            elif key == 'human_readable_explanation':
+                # Text explanations
+                cleaned_shap[key] = {str(k): str(v) for k, v in value.items()} if value else {}
+            elif key == 'portfolio_quality_score':
+                # Quality score
+                cleaned_shap[key] = float(value) if value is not None else None
+            elif key == 'confidence_score':
+                # Confidence score
+                cleaned_shap[key] = float(value) if value is not None else None
+            else:
+                # Generic cleaning for other fields
+                cleaned_shap[key] = serialize_for_json(value)
+        
+        return cleaned_shap
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Error cleaning SHAP explanation: {e}")
+        return {"error": f"SHAP data cleaning failed: {str(e)}"}
+
+def clean_simulation_results_for_db(results: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Clean all simulation results before saving to database.
+    
+    This is the main function to call before saving any simulation results
+    that might contain NumPy arrays or other non-serializable objects.
+    """
+    try:
+        logger.info("🧹 Cleaning simulation results for database storage")
+        
+        # Create a deep copy to avoid modifying the original
+        import copy
+        cleaned_results = copy.deepcopy(results)
+        
+        # Special handling for known problematic fields
+        if 'shap_explanation' in cleaned_results:
+            cleaned_results['shap_explanation'] = clean_shap_explanation(
+                cleaned_results['shap_explanation']
+            )
+        
+        if 'goal_analysis' in cleaned_results:
+            cleaned_results['goal_analysis'] = serialize_for_json(
+                cleaned_results['goal_analysis']
+            )
+        
+        if 'feasibility_assessment' in cleaned_results:
+            cleaned_results['feasibility_assessment'] = serialize_for_json(
+                cleaned_results['feasibility_assessment']
+            )
+        
+        if 'market_regime' in cleaned_results:
+            cleaned_results['market_regime'] = serialize_for_json(
+                cleaned_results['market_regime']
+            )
+        
+        if 'stocks_picked' in cleaned_results:
+            # Clean stock allocation data
+            cleaned_stocks = []
+            for stock in cleaned_results['stocks_picked']:
+                cleaned_stock = {
+                    'symbol': str(stock.get('symbol', '')),
+                    'name': str(stock.get('name', '')),
+                    'allocation': float(stock.get('allocation', 0)),
+                    'explanation': str(stock.get('explanation', ''))
+                }
+                cleaned_stocks.append(cleaned_stock)
+            cleaned_results['stocks_picked'] = cleaned_stocks
+        
+        if 'timeline' in cleaned_results:
+            # Clean timeline data
+            timeline = cleaned_results['timeline']
+            if isinstance(timeline, dict):
+                for key, values in timeline.items():
+                    if isinstance(values, list):
+                        cleaned_timeline = []
+                        for item in values:
+                            if isinstance(item, dict):
+                                cleaned_item = {
+                                    'date': str(item.get('date', '')),
+                                    'value': float(item.get('value', 0))
+                                }
+                                cleaned_timeline.append(cleaned_item)
+                            else:
+                                cleaned_timeline.append(serialize_for_json(item))
+                        timeline[key] = cleaned_timeline
+        
+        # Apply general serialization to the entire structure
+        cleaned_results = serialize_for_json(cleaned_results)
+        
+        # Test that the result is actually JSON serializable
+        json.dumps(cleaned_results)
+        
+        logger.info("✅ Simulation results successfully cleaned for database")
+        return cleaned_results
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to clean simulation results: {e}")
+        
+        # Return a safe fallback structure
+        fallback_results = {
+            "basic_info": {
+                "starting_value": float(results.get("starting_value", 0)),
+                "end_value": float(results.get("end_value", 0)),
+                "portfolio_return": float(results.get("return", 0)),
+                "target_reached": bool(results.get("target_reached", False))
+            },
+            "portfolio_summary": {
+                "stocks": [str(stock.get('symbol', '')) for stock in results.get('stocks_picked', [])],
+                "num_stocks": len(results.get('stocks_picked', []))
+            },
+            "metadata": {
+                "wealthwise_enhanced": bool(results.get("wealthwise_enhanced", False)),
+                "methodology": str(results.get("methodology", "standard")),
+                "serialization_note": f"Full results not serializable: {str(e)}"
+            },
+            "error_info": {
+                "original_error": str(e),
+                "fallback_used": True,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
+        # Test the fallback is serializable
+        try:
+            json.dumps(fallback_results)
+            return fallback_results
+        except Exception as fallback_error:
+            logger.error(f"❌ Even fallback serialization failed: {fallback_error}")
+            # Return absolute minimum
+            return {
+                "status": "serialization_failed",
+                "error": str(e),
+                "fallback_error": str(fallback_error),
+                "timestamp": datetime.now().isoformat()
+            }
+
+def test_json_serialization(data: Any, description: str = "data") -> bool:
+    """
+    Test if data can be JSON serialized.
+    Useful for debugging serialization issues.
+    """
+    try:
+        json.dumps(data)
+        logger.info(f"✅ {description} is JSON serializable")
+        return True
+    except Exception as e:
+        logger.error(f"❌ {description} is NOT JSON serializable: {e}")
+        return False
+
+# Updated save_enhanced_simulation_to_db function
 def save_enhanced_simulation_to_db(
-    db: Session, sim_input: Dict[str, Any], user_data: Dict[str, Any],
+    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
     risk_score: int, risk_label: str, ai_summary: str,
     stocks_picked: List[Dict], simulation_results: Dict[str, Any],
-    shap_explanation: Optional[Dict] = None, goal_analysis: Optional[Dict] = None,
-    feasibility_assessment: Optional[Dict] = None, market_regime: Optional[Dict] = None
-) -> models.Simulation:
+    shap_explanation: Dict[str, Any] = None, 
+    goal_analysis: Dict[str, Any] = None,
+    feasibility_assessment: Dict[str, Any] = None, 
+    market_regime: Dict[str, Any] = None
+):
     """
-    Save enhanced simulation with SHAP explanations and goal analysis.
+    Enhanced version of save_simulation_to_db with proper JSON serialization.
     """
     
     try:
@@ -585,7 +842,7 @@ def save_enhanced_simulation_to_db(
         
         target_reached = simulation_results["end_value"] >= user_data["target_value"]
         
-        # Create enhanced results object
+        # Create enhanced results object with all data
         enhanced_results = {
             "name": user_data["goal"],
             "stocks_picked": stocks_picked,
@@ -602,8 +859,19 @@ def save_enhanced_simulation_to_db(
             "feasibility_assessment": feasibility_assessment,
             "market_regime": market_regime,
             "wealthwise_enhanced": True,
-            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization"
+            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization",
+            "created_timestamp": datetime.now().isoformat()
         }
+        
+        # ⭐ KEY FIX: Clean the results before saving ⭐
+        cleaned_results = clean_simulation_results_for_db(enhanced_results)
+        
+        # Test serialization before database save
+        if not test_json_serialization(cleaned_results, "enhanced_results"):
+            raise ValueError("Enhanced results still not JSON serializable after cleaning")
+        
+        # Import the models here to avoid circular imports
+        from database import models
         
         simulation = models.Simulation(
             user_id=sim_input.get("user_id"),
@@ -618,7 +886,7 @@ def save_enhanced_simulation_to_db(
             risk_score=risk_score,
             risk_label=risk_label,
             ai_summary=ai_summary,
-            results=enhanced_results
+            results=cleaned_results  # ⭐ Use cleaned results ⭐
         )
         
         db.add(simulation)
@@ -631,7 +899,263 @@ def save_enhanced_simulation_to_db(
     except Exception as e:
         logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
         db.rollback()
+        
+        # If enhanced save fails, try to save a basic version
+        try:
+            logger.warning("🔄 Attempting to save basic simulation without enhanced data")
+            
+            basic_results = {
+                "name": user_data["goal"],
+                "stocks_picked": [
+                    {
+                        "symbol": str(stock.get("symbol", "")),
+                        "name": str(stock.get("name", "")),
+                        "allocation": float(stock.get("allocation", 0))
+                    }
+                    for stock in stocks_picked
+                ],
+                "starting_value": float(simulation_results["starting_value"]),
+                "end_value": float(simulation_results["end_value"]),
+                "return": float(simulation_results["portfolio_return"]),
+                "target_reached": target_reached,
+                "risk_score": risk_score,
+                "risk_label": risk_label,
+                "enhanced_save_failed": True,
+                "error_message": str(e)
+            }
+            
+            from database import models
+            
+            basic_simulation = models.Simulation(
+                user_id=sim_input.get("user_id"),
+                name=user_data["goal"],
+                goal=user_data["goal"],
+                target_value=user_data["target_value"],
+                lump_sum=user_data["lump_sum"],
+                monthly=user_data["monthly"],
+                timeframe=user_data["timeframe"],
+                target_achieved=target_reached,
+                income_bracket=user_data["income_bracket"],
+                risk_score=risk_score,
+                risk_label=risk_label,
+                ai_summary=ai_summary,
+                results=basic_results
+            )
+            
+            db.add(basic_simulation)
+            db.commit()
+            db.refresh(basic_simulation)
+            
+            logger.warning(f"⚠️ Saved basic simulation without enhanced data (ID: {basic_simulation.id})")
+            return basic_simulation
+            
+        except Exception as basic_error:
+            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
+            db.rollback()
+            raise
+
+# Example usage in your portfolio_simulator.py:
+"""
+Replace the existing save_enhanced_simulation_to_db call with:
+
+simulation = save_enhanced_simulation_to_db(
+    db=db,
+    sim_input=sim_input,
+    user_data=user_data,
+    risk_score=risk_score,
+    risk_label=risk_label,
+    ai_summary=ai_summary,
+    stocks_picked=stocks_picked,
+    simulation_results=simulation_results,
+    shap_explanation=shap_explanation,
+    goal_analysis=goal_analysis,
+    feasibility_assessment=feasibility_assessment,
+    market_regime=market_regime
+)
+"""
+
+def save_enhanced_simulation_to_db(
+    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
+    risk_score: int, risk_label: str, ai_summary: str,
+    stocks_picked: List[Dict], simulation_results: Dict[str, Any],
+    shap_explanation: Dict[str, Any] = None, 
+    goal_analysis: Dict[str, Any] = None,
+    feasibility_assessment: Dict[str, Any] = None, 
+    market_regime: Dict[str, Any] = None
+):
+    """
+    Enhanced version of save_simulation_to_db with proper JSON serialization.
+    """
+    
+    try:
+        logger.info("💾 Saving enhanced simulation with SHAP data to database")
+        
+        target_reached = simulation_results["end_value"] >= user_data["target_value"]
+        
+        # Create enhanced results object with all data
+        enhanced_results = {
+            "name": user_data["goal"],
+            "stocks_picked": stocks_picked,
+            "starting_value": simulation_results["starting_value"],
+            "end_value": simulation_results["end_value"],
+            "return": simulation_results["portfolio_return"],
+            "target_reached": target_reached,
+            "risk_score": risk_score,
+            "risk_label": risk_label,
+            "timeline": simulation_results["timeline"],
+            # Enhanced data
+            "shap_explanation": shap_explanation,
+            "goal_analysis": goal_analysis,
+            "feasibility_assessment": feasibility_assessment,
+            "market_regime": market_regime,
+            "wealthwise_enhanced": True,
+            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization",
+            "created_timestamp": datetime.now().isoformat()
+        }
+        
+        # ⭐ KEY FIX: Clean the results before saving ⭐
+        cleaned_results = clean_simulation_results_for_db(enhanced_results)
+        
+        # Test serialization before database save
+        if not test_json_serialization(cleaned_results, "enhanced_results"):
+            raise ValueError("Enhanced results still not JSON serializable after cleaning")
+        
+        simulation = models.Simulation(
+            user_id=sim_input.get("user_id"),
+            name=user_data["goal"],
+            goal=user_data["goal"],
+            target_value=user_data["target_value"],
+            lump_sum=user_data["lump_sum"],
+            monthly=user_data["monthly"],
+            timeframe=user_data["timeframe"],
+            target_achieved=target_reached,
+            income_bracket=user_data["income_bracket"],
+            risk_score=risk_score,
+            risk_label=risk_label,
+            ai_summary=ai_summary,
+            results=cleaned_results  # ⭐ Use cleaned results ⭐
+        )
+        
+        db.add(simulation)
+        db.commit()
+        db.refresh(simulation)
+        
+        logger.info(f"✅ Enhanced simulation saved with SHAP data (ID: {simulation.id})")
+        return simulation
+        
+    except Exception as e:
+        logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
+        db.rollback()
+        
+        # If enhanced save fails, try to save a basic version
+        try:
+            logger.warning("🔄 Attempting to save basic simulation without enhanced data")
+            
+            basic_results = {
+                "name": user_data["goal"],
+                "stocks_picked": [
+                    {
+                        "symbol": str(stock.get("symbol", "")),
+                        "name": str(stock.get("name", "")),
+                        "allocation": float(stock.get("allocation", 0))
+                    }
+                    for stock in stocks_picked
+                ],
+                "starting_value": float(simulation_results["starting_value"]),
+                "end_value": float(simulation_results["end_value"]),
+                "return": float(simulation_results["portfolio_return"]),
+                "target_reached": target_reached,
+                "risk_score": risk_score,
+                "risk_label": risk_label,
+                "enhanced_save_failed": True,
+                "error_message": str(e)
+            }
+            
+            basic_simulation = models.Simulation(
+                user_id=sim_input.get("user_id"),
+                name=user_data["goal"],
+                goal=user_data["goal"],
+                target_value=user_data["target_value"],
+                lump_sum=user_data["lump_sum"],
+                monthly=user_data["monthly"],
+                timeframe=user_data["timeframe"],
+                target_achieved=target_reached,
+                income_bracket=user_data["income_bracket"],
+                risk_score=risk_score,
+                risk_label=risk_label,
+                ai_summary=ai_summary,
+                results=basic_results
+            )
+            
+            db.add(basic_simulation)
+            db.commit()
+            db.refresh(basic_simulation)
+            
+            logger.warning(f"⚠️ Saved basic simulation without enhanced data (ID: {basic_simulation.id})")
+            return basic_simulation
+            
+        except Exception as basic_error:
+            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
+            db.rollback()
+            raise
+
+# 4. ALSO UPDATE YOUR REGULAR save_simulation_to_db FUNCTION:
+
+def save_simulation_to_db(db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
+                         risk_score: int, risk_label: str, ai_summary: str,
+                         stocks_picked: List[Dict], simulation_results: Dict[str, Any]):
+    """
+    Original database save function with JSON serialization fix.
+    """
+    try:
+        logger.info("💾 Saving simulation results to database")
+        
+        target_reached = simulation_results["end_value"] >= user_data["target_value"]
+        
+        # Create results object
+        results = {
+            "name": user_data["goal"],
+            "stocks_picked": stocks_picked,
+            "starting_value": simulation_results["starting_value"],
+            "end_value": simulation_results["end_value"],
+            "return": simulation_results["portfolio_return"],
+            "target_reached": target_reached,
+            "risk_score": risk_score,
+            "risk_label": risk_label,
+            "timeline": simulation_results["timeline"]
+        }
+        
+        # ⭐ Clean the results before saving ⭐
+        cleaned_results = clean_simulation_results_for_db(results)
+        
+        simulation = models.Simulation(
+            user_id=sim_input.get("user_id"),
+            name=user_data["goal"],
+            goal=user_data["goal"],
+            target_value=user_data["target_value"],
+            lump_sum=user_data["lump_sum"],
+            monthly=user_data["monthly"],
+            timeframe=user_data["timeframe"],
+            target_achieved=target_reached,
+            income_bracket=user_data["income_bracket"],
+            risk_score=risk_score,
+            risk_label=risk_label,
+            ai_summary=ai_summary,
+            results=cleaned_results  # ⭐ Use cleaned results ⭐
+        )
+        
+        db.add(simulation)
+        db.commit()
+        db.refresh(simulation)
+        
+        logger.info(f"✅ Simulation saved successfully with ID: {simulation.id}")
+        return simulation
+        
+    except Exception as e:
+        logger.error(f"❌ Error saving simulation to database: {str(e)}")
+        db.rollback()
         raise
+
 
 def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
     """
