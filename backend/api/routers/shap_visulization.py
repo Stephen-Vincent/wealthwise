@@ -29,16 +29,20 @@ async def get_shap_explanation_data(
     """
     try:
         # Get simulation from database
+        print(f"Fetching SHAP explanation for simulation ID: {simulation_id}")
         simulation = db.query(models.Simulation).filter(
             models.Simulation.id == simulation_id
         ).first()
+        print(f"Simulation fetched: {simulation}")
         
         if not simulation:
             raise HTTPException(status_code=404, detail="Simulation not found")
         
         # Extract SHAP explanation from results
         results = simulation.results or {}
+        print(f"Results field from simulation: {results}")
         shap_explanation = results.get("shap_explanation")
+        print(f"Extracted SHAP explanation: {shap_explanation}")
         
         if not shap_explanation:
             raise HTTPException(
@@ -47,6 +51,7 @@ async def get_shap_explanation_data(
             )
         
         # Return structured SHAP data for frontend visualization
+        print("Returning SHAP explanation response")
         return {
             "simulation_id": simulation_id,
             "shap_data": {
