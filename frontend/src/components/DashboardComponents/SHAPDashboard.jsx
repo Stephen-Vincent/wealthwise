@@ -29,12 +29,18 @@ const SHAPDashboard = ({ simulationId }) => {
     const baseUrl = import.meta.env.VITE_API_URL;
     try {
       setLoading(true);
+      console.log(
+        "Fetching SHAP data from:",
+        `${baseUrl}/api/shap/simulation/${simulationId}/explanation`
+      );
       const response = await fetch(
         `${baseUrl}/api/shap/simulation/${simulationId}/explanation`
       );
       if (!response.ok) throw new Error("Failed to fetch SHAP data");
       const data = await response.json();
+      console.log("Received SHAP data:", data);
       setShapData(data);
+      console.log("SHAP data set in state.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -94,6 +100,7 @@ const SHAPDashboard = ({ simulationId }) => {
 
 // Overview Tab Component
 const OverviewTab = ({ shapData }) => {
+  console.log("Rendering OverviewTab with shapData:", shapData);
   const { shap_data, portfolio_info, goal_analysis } = shapData;
 
   const metrics = [
@@ -176,6 +183,7 @@ const FactorsTab = ({ shapData, simulationId }) => {
 
   useEffect(() => {
     // Prepare chart data
+    console.log("Preparing chart data from shapData:", shapData);
     const featureImportance = shapData.shap_data.feature_importance || {};
     const data = Object.entries(featureImportance).map(
       ([factor, importance]) => ({
@@ -187,6 +195,7 @@ const FactorsTab = ({ shapData, simulationId }) => {
     setChartData(data.sort((a, b) => b.importance - a.importance));
 
     // Load SHAP visualization image
+    console.log("Setting image URL for SHAP visualization");
     setImageUrl(
       `/api/shap/simulation/${simulationId}/visualization?chart_type=waterfall&t=${Date.now()}`
     );
@@ -303,6 +312,7 @@ const PortfolioTab = ({ shapData }) => {
   const [portfolioBreakdown, setPortfolioBreakdown] = useState([]);
 
   useEffect(() => {
+    console.log("Preparing portfolio breakdown from shapData:", shapData);
     const stocks = shapData.portfolio_info.stocks || [];
     const breakdown = stocks.map((stock, index) => ({
       name: stock,
