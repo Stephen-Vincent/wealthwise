@@ -1,0 +1,47 @@
+{
+  "shap_explainer": {
+    "last_trained": "2025-07-26T22:35:02.894587",
+    "training_result": {
+      "success": true,
+      "num_samples": 2000,
+      "model_type": "RandomForestRegressor",
+      "features": [
+        "target_value_log",
+        "timeframe",
+        "risk_score",
+        "required_return",
+        "monthly_contribution",
+        "market_volatility",
+        "market_trend_score"
+      ]
+    },
+    "model_available": true
+  },
+  "factor_weights": {
+    "last_trained": "2025-07-26T22:17:36.114432",
+    "training_result": {
+      "success": true,
+      "regimes_count": 5,
+      "timeframes_count": 4,
+      "total_configurations": 20
+    },
+    "model_available": true
+  },
+  "correlation_cache": {
+    "last_trained": "2025-07-26T22:17:49.749916",
+    "training_result": {
+      "success": true,
+      "categories_processed": 6,
+      "successful_categories": 6,
+      "cache_entries": [
+        "ultra_conservative",
+        "conservative",
+        "moderate",
+        "moderate_aggressive",
+        "aggressive",
+        "ultra_aggressive"
+      ]
+    },
+    "model_available": true
+  }
+}

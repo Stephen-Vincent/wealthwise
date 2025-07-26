@@ -3,7 +3,7 @@ import os
 import secrets
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
-from .database import Base  
+from .db import Base  
 
 
 class User(Base):

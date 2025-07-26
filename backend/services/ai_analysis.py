@@ -325,7 +325,7 @@ class AIAnalysisService:
         if events:
             high_impact_events = ['earnings', 'merger_acquisition', 'regulatory']
             for event in events:
-                if any(event_type in high_impact_events for event_type in event.get('event_types', [])):
+                if Any(event_type in high_impact_events for event_type in event.get('event_types', [])):
                     event_multiplier = 1.5
                     break
         
@@ -794,7 +794,7 @@ Keep it beginner-friendly and educational. Focus on teaching, not selling.
             sentiment = news_analysis.get('overall_sentiment', 0)
             
             # Identify risk factors from news
-            risk_events = [event for event in events if any(risk_type in event.get('event_types', []) 
+            risk_events = [event for event in events if Any(risk_type in event.get('event_types', []) 
                           for risk_type in ['regulatory', 'legal', 'earnings'])]
             
             risk_context = f"""

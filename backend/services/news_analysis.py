@@ -2,7 +2,7 @@
 import aiohttp
 import asyncio
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import logging
 from textblob import TextBlob
 import os
@@ -256,7 +256,7 @@ class NewsAnalysisService:
             
             detected_events = []
             for event_type, keywords in event_keywords.items():
-                if any(keyword.lower() in text for keyword in keywords):
+                if Any(keyword.lower() in text for keyword in keywords):
                     detected_events.append(event_type)
             
             if detected_events:

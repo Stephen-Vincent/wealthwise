@@ -12,6 +12,7 @@ import sys
 import os
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
+from typing import Any
 
 # Add project root to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -331,7 +332,7 @@ class TestAISummary:
             assert len(summary) > 30, f"Summary too short: {len(summary)} characters"
             
             # Should contain key information regardless of AI success/failure
-            assert any(word in summary.lower() for word in ["portfolio", "investment", "simulation"]), \
+            assert Any(word in summary.lower() for word in ["portfolio", "investment", "simulation"]), \
                 "Summary should mention portfolio/investment concepts"
             
             print("✅ Enhanced summary integration test passed")
@@ -374,7 +375,7 @@ class TestAISummary:
                 "8 years" in summary or "timeframe" in summary.lower(),  # Mentions timeframe
                 "£58,000" in summary or "58000" in summary,  # Starting value
                 "£75,000" in summary or "75000" in summary,  # Ending value
-                any(stock["symbol"] in summary for stock in stocks_picked),  # Mentions stocks
+                Any(stock["symbol"] in summary for stock in stocks_picked),  # Mentions stocks
                 "moderate aggressive" in summary.lower() or "risk" in summary.lower()  # Risk level
             ]
             
@@ -383,7 +384,7 @@ class TestAISummary:
             
             # Check for educational tone
             educational_words = ["demonstrates", "investing", "diversified", "growth", "portfolio"]
-            has_educational_tone = any(word in summary.lower() for word in educational_words)
+            has_educational_tone = Any(word in summary.lower() for word in educational_words)
             assert has_educational_tone, "Summary should have educational tone"
             
             print("✅ Summary content quality test passed")

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import models, schemas
-from database.database import get_db
+from backend.database.db import get_db
 from core.security import get_password_hash, verify_password
 from core.config import settings
 from jose import JWTError, jwt

@@ -1,6 +1,6 @@
 # File: backend/init_db.py (create this)
-from database import engine, Base
-from models import User, Portfolio, Stock  # Import all your models
+from database.db import engine, Base
+from database.models import User, Simulation, PasswordResetToken
 import logging
 
 logger = logging.getLogger(__name__)

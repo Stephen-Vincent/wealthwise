@@ -1,0 +1,70 @@
+# Models Directory
+
+This directory stores trained machine learning models for the WealthWise Enhanced Stock Recommender.
+
+## What gets stored here:
+
+### SHAP Models
+
+- `shap_portfolio_quality_model.joblib` - Trained Random Forest model for portfolio quality prediction
+- `shap_portfolio_quality_scaler.joblib` - Feature scaler for SHAP model inputs
+- `shap_training_metadata.json` - Training metadata and model information
+
+### Factor Analysis Models
+
+- `factor_analysis_weights.json` - Optimized factor weights for different market regimes
+- `stock_ranking_model.joblib` - Trained model for stock ranking (if implemented)
+
+### Portfolio Optimization Models
+
+- `correlation_cache.pickle` - Cached correlation matrices for portfolio optimization
+- `efficient_frontier_cache.pickle` - Cached efficient frontier calculations
+
+### Market Regime Models
+
+- `market_regime_classifier.joblib` - Trained market regime classification model (if implemented)
+- `volatility_prediction_model.joblib` - VIX/volatility prediction model (if implemented)
+
+## Model Lifecycle
+
+1. **Training**: Models are trained using synthetic data or historical market data
+2. **Validation**: Models are validated using cross-validation and backtesting
+3. **Serialization**: Models are saved using joblib or pickle for persistence
+4. **Loading**: Models are loaded at runtime for making predictions
+5. **Updating**: Models can be retrained periodically with new data
+
+## Usage Example
+
+```python
+from ai_models.stock_model.explainable_ai import SHAPExplainer
+
+# Initialize and train SHAP model
+explainer = SHAPExplainer()
+explainer.train_shap_model(num_samples=2000)
+
+# Save the trained model
+explainer.save_model("./ai_models/stock_model/models/shap_portfolio_quality")
+
+# Later, load the model
+explainer.load_model("./ai_models/stock_model/models/shap_portfolio_quality")
+```
+
+## Model Files (Created at Runtime)
+
+The following files will be created when you train and use the models:
+
+- SHAP explainer models (created when first used)
+- Factor analysis cache files (created during analysis)
+- Portfolio optimization cache (created during optimization)
+- Market data cache (created during data downloads)
+
+## Security Note
+
+Models should not contain sensitive user data. They are trained on:
+
+- Synthetic financial scenarios
+- Historical market data (public)
+- Statistical patterns and relationships
+- No personal financial information
+
+Keep this file to maintain the directory structure in version control.

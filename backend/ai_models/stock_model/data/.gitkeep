@@ -1,0 +1,106 @@
+# Data Directory
+
+This directory stores cached market data, analysis results, and temporary data files for the WealthWise Enhanced Stock Recommender.
+
+## What gets stored here:
+
+### Market Data Cache
+- `market_data/` - Historical price and volume data for stocks/ETFs
+  - `AAPL_1y.csv` - Apple stock data for 1 year
+  - `VTI_2y.csv` - VTI ETF data for 2 years
+  - `market_indices/` - S&P 500, VIX, and other index data
+
+### Analysis Results
+- `factor_analysis/` - Multi-factor analysis results
+  - `stock_scores_YYYY-MM-DD.json` - Daily factor scores for stocks
+  - `factor_weights_history.json` - Historical factor weight adjustments
+  
+### Portfolio Optimization Cache
+- `correlation_matrices/` - Cached correlation calculations
+  - `correlation_matrix_YYYY-MM-DD.csv` - Daily correlation matrices
+  - `portfolio_metrics_cache.json` - Cached portfolio performance metrics
+
+### Market Regime Data
+- `market_regimes/` - Market condition analysis
+  - `regime_history.json` - Historical market regime classifications
+  - `vix_data.csv` - VIX volatility index data
+  - `trend_analysis.json` - Market trend analysis results
+
+### User Session Data (Temporary)
+- `sessions/` - Temporary session data (automatically cleaned)
+  - `session_[ID]/` - Individual user session data
+  - `recommendations/` - Generated recommendation cache
+
+## Data Lifecycle
+
+1. **Download**: Market data downloaded from yfinance/APIs
+2. **Cache**: Data cached locally to reduce API calls
+3. **Analysis**: Data analyzed and results cached
+4. **Cleanup**: Old cache files periodically cleaned
+5. **Refresh**: Data refreshed based on age and relevance
+
+## Cache Management
+
+The system automatically manages data caching:
+
+- **Market Data**: Refreshed daily for recent data, weekly for historical
+- **Analysis Results**: Refreshed when market conditions change significantly
+- **Correlation Matrices**: Refreshed weekly or when portfolio composition changes
+- **Session Data**: Cleaned after 24 hours
+
+## File Structure Example
+
+```
+data/
+├── market_data/
+│   ├── stocks/
+│   │   ├── AAPL_1y_2024-01-15.csv
+│   │   ├── GOOGL_2y_2024-01-15.csv
+│   │   └── TSLA_6m_2024-01-15.csv
+│   └── indices/
+│       ├── SPY_5y_2024-01-15.csv
+│       └── VIX_1y_2024-01-15.csv
+├── analysis/
+│   ├── factor_scores_2024-01-15.json
+│   └── correlation_matrix_2024-01-15.csv
+├── cache/
+│   ├── portfolio_metrics.json
+│   └── market_regime_cache.json
+└── sessions/
+    └── [temporary session files]
+```
+
+## Usage Example
+
+```python
+from ai_models.stock_model.utils import DataValidator
+import os
+
+# Data will be automatically cached here
+data_dir = "./ai_models/stock_model/data"
+
+# Market data is automatically downloaded and cached
+validator = DataValidator()
+result = validator.validate_stock_ticker("AAPL")
+
+# Cache files are created automatically:
+# ./data/market_data/AAPL_validation_cache.json
+```
+
+## Data Privacy & Security
+
+- **No Personal Data**: Only public market data and analysis results
+- **No User Information**: User inputs are not permanently stored
+- **Cache Only**: All data is publicly available market information
+- **Automatic Cleanup**: Temporary files are automatically removed
+
+## Performance Benefits
+
+Caching provides significant performance improvements:
+
+- **Reduced API Calls**: Avoid repeated downloads of same data
+- **Faster Analysis**: Reuse previous analysis results when possible
+- **Better User Experience**: Faster response times
+- **Cost Efficiency**: Minimize API usage costs
+
+Keep this file to maintain the directory structure in version control.
