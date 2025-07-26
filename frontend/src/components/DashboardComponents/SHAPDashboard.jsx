@@ -26,10 +26,11 @@ const SHAPDashboard = ({ simulationId }) => {
   }, [simulationId]);
 
   const fetchShapData = async () => {
+    const baseUrl = import.meta.env.VITE_API_URL;
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/shap/simulation/${simulationId}/explanation`
+        `${baseUrl}/api/shap/simulation/${simulationId}/explanation`
       );
       if (!response.ok) throw new Error("Failed to fetch SHAP data");
       const data = await response.json();
