@@ -6,6 +6,7 @@ import PortfolioGraph from "./DashboardComponents/PortfolioGraph";
 import StockPieChart from "./DashboardComponents/StockPieChart";
 import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
 import DashboardButtons from "./DashboardComponents/DashboardButtons";
+import SHAPDashboard from "./DashboardComponents/SHAPDashboard";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { PortfolioContext } from "../context/PortfolioContext";
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const summaryRef = useRef(null);
   const graphRef = useRef(null);
   const aiSummaryRef = useRef(null);
+  const shapRef = useRef(null);
   const pieChartRef = useRef(null);
   const buttonsRef = useRef(null);
 
@@ -28,6 +30,10 @@ export default function Dashboard() {
         Failed to load simulation data. Please try again.
       </div>
     );
+
+  const hasShapExplanation =
+    portfolioData?.results?.wealthwise_enhanced &&
+    portfolioData?.results?.shap_explanation;
 
   const handleSliceClick = (label) => {
     navigate(`/stock/${label}`);
@@ -46,6 +52,7 @@ export default function Dashboard() {
     summaryRef,
     graphRef,
     aiSummaryRef,
+    ...(hasShapExplanation && { shapRef }),
     pieChartRef,
   };
 
@@ -74,6 +81,20 @@ export default function Dashboard() {
       <main className="flex-1 w-full lg:w-5/6 relative">
         {/* Header */}
         <Header portfolioData={portfolioData} />
+
+        {/* Enhanced Portfolio Badge */}
+        {hasShapExplanation && (
+          <div className="sticky top-0 z-30 bg-gradient-to-r from-green-500 to-blue-600 text-white py-2 px-4 shadow-md">
+            <div className="flex items-center justify-center space-x-2">
+              <span className="text-sm font-medium">
+                🤖 AI-Enhanced Portfolio
+              </span>
+              <span className="bg-white bg-opacity-20 rounded-full px-2 py-1 text-xs">
+                Explainable AI Available
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Floating Menu Button - Positioned below header */}
         <button
@@ -122,6 +143,35 @@ export default function Dashboard() {
           <section ref={graphRef}>
             <PortfolioGraph portfolioData={portfolioData} />
           </section>
+          {/* SHAP Explanation Section - Only show if available */}
+          {hasShapExplanation && (
+            <section ref={shapRef}>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                {/* Section Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold">
+                        🔍 AI Decision Explanation
+                      </h2>
+                      <p className="text-blue-100 text-sm">
+                        Understand exactly why our AI recommended this portfolio
+                        for you
+                      </p>
+                    </div>
+                    <div className="bg-white bg-opacity-20 rounded-lg px-3 py-1">
+                      <span className="text-xs font-medium">Enhanced AI</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SHAP Dashboard Content */}
+                <div className="p-6">
+                  <SHAPDashboard simulationId={portfolioData.id} />
+                </div>
+              </div>
+            </section>
+          )}
 
           <section ref={aiSummaryRef}>
             <AIPortfolioSummary portfolioData={portfolioData} />
