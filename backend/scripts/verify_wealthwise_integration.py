@@ -204,7 +204,7 @@ class WealthWiseVerifier:
         
         try:
             from services.portfolio_simulator import simulate_portfolio
-            from backend.database.db import SessionLocal
+            from database.db import SessionLocal
             
             # Create test simulation input
             test_input = {
@@ -299,7 +299,7 @@ class WealthWiseVerifier:
         print("\n🗃️ Testing Database Integration...")
         
         try:
-            from backend.database.db import SessionLocal
+            from database.db import SessionLocal
             from database import models
             
             db = SessionLocal()
@@ -461,7 +461,7 @@ async def test_single_simulation():
     
     try:
         from services.portfolio_simulator import simulate_portfolio
-        from backend.database.db import SessionLocal
+        from database.db import SessionLocal
         
         test_input = {
             "user_id": "manual_test",

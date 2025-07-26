@@ -10,7 +10,7 @@ from sqlalchemy import text
 # Updated imports for new database structure
 from core.config import settings
 from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset  # ADD PASSWORD RESET
-from backend.database.db import engine, Base  # Updated import path
+from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
 # Set up logging
@@ -198,7 +198,7 @@ async def health_check():
     """Health check endpoint for Railway and monitoring"""
     try:
         # Test database connection
-        from backend.database.db import SessionLocal
+        from database.db import SessionLocal
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db.close()
@@ -320,7 +320,7 @@ if os.getenv("ENVIRONMENT") == "development":
     async def dev_database_info():
         """Development endpoint to check database status"""
         try:
-            from backend.database.db import SessionLocal
+            from database.db import SessionLocal
             from database.models import User, Simulation, PasswordResetToken
             
             db = SessionLocal()

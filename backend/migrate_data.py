@@ -2,7 +2,7 @@
 import sqlite3
 import json
 from datetime import datetime
-from backend.database.db import SessionLocal, engine
+from database.db import SessionLocal, engine
 from database.models import User, Simulation, PasswordResetToken, Base
 from sqlalchemy.orm import Session
 import os
