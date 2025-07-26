@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset  # ADD PASSWORD RESET
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization  # ADD PASSWORD RESET, SHAP VISUALIZATION
 from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
@@ -235,7 +235,8 @@ def include_routers():
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
-        (ai_analysis.router, "/api/ai", ["ai-analysis"])
+        (ai_analysis.router, "/api/ai", ["ai-analysis"]),
+        (shap_visualization.router, "/api/shap", ["shap-visualization"]),
     ]
     
     for router, prefix, tags in routers_config:

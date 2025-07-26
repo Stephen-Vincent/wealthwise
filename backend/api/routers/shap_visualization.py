@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from database import get_db
+from database.db import get_db
 from database import models
 from services.portfolio_simulator import get_shap_visualization
 import os
