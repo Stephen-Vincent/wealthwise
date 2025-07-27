@@ -147,7 +147,6 @@ export default function Dashboard() {
           {hasShapExplanation && (
             <section ref={shapRef}>
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                {/* Section Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
                   <div className="flex items-center justify-between">
                     <div>
@@ -165,9 +164,8 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* SHAP Dashboard Content */}
                 <div className="p-6">
-                  <SHAPDashboard simulationId={portfolioData.id} />
+                  <SHAPDashboard portfolioData={portfolioData} />
                 </div>
               </div>
             </section>
