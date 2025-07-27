@@ -1325,41 +1325,145 @@ def calculate_portfolio_weights(data: pd.DataFrame, risk_score: int) -> np.ndarr
 
 def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray, 
                             lump_sum: float, monthly: float, timeframe: int) -> Dict[str, Any]:
-    """Original portfolio growth simulation - unchanged"""
+    """
+    Enhanced portfolio growth simulation with comprehensive debugging and error handling.
+    """
     try:
-        logger.info(f"📈 Simulating growth: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
+        logger.info(f"📈 Starting simulation: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
         
-        normalized = data.div(data.iloc[0])
+        # Debug: Check input data quality
+        logger.info(f"📊 Data shape: {data.shape}")
+        logger.info(f"📊 Data columns: {list(data.columns)}")
+        logger.info(f"📊 Weights: {weights}")
+        logger.info(f"📊 Weights sum: {np.sum(weights)}")
+        
+        # Check for NaN or infinite values in data
+        if data.isnull().any().any():
+            logger.warning("⚠️ Found NaN values in stock data")
+            data = data.fillna(method='ffill').fillna(method='bfill')
+            logger.info("✅ NaN values filled")
+        
+        # Check first few rows of data
+        logger.info(f"📊 First 5 rows of data:\n{data.head()}")
+        
+        # Normalize data (this is where issues often occur)
+        first_row = data.iloc[0]
+        logger.info(f"📊 First row values: {first_row.values}")
+        
+        # Check for zero or near-zero values in first row
+        if (first_row == 0).any() or (np.abs(first_row) < 1e-10).any():
+            logger.error("❌ Found zero or near-zero values in first row of data")
+            logger.info(f"📊 Problematic values: {first_row[first_row == 0]}")
+            raise ValueError("Invalid starting prices in stock data")
+        
+        normalized = data.div(first_row)
+        logger.info(f"📊 Normalized data shape: {normalized.shape}")
+        logger.info(f"📊 First few normalized values:\n{normalized.head()}")
+        
+        # Check normalized data for issues
+        if normalized.isnull().any().any():
+            logger.error("❌ NaN values created during normalization")
+            raise ValueError("Normalization created NaN values")
+        
+        # Apply portfolio weights
         weighted = normalized.dot(weights)
+        logger.info(f"📊 Weighted portfolio length: {len(weighted)}")
+        logger.info(f"📊 First 5 weighted values: {weighted.head().values}")
+        logger.info(f"📊 Last 5 weighted values: {weighted.tail().values}")
         
+        # Check for issues in weighted portfolio
+        if weighted.isnull().any():
+            logger.error("❌ NaN values in weighted portfolio")
+            raise ValueError("Weighted portfolio contains NaN values")
+        
+        if (weighted == 0).any():
+            logger.warning("⚠️ Found zero values in weighted portfolio")
+            zero_count = (weighted == 0).sum()
+            logger.warning(f"⚠️ Number of zero values: {zero_count}")
+        
+        # Initialize tracking variables
         portfolio_values = []
         contributions = []
-        current_value = lump_sum
-        total_contributions = lump_sum
-
+        current_value = float(lump_sum)
+        total_contributions = float(lump_sum)
+        
+        logger.info(f"💰 Starting values - Portfolio: £{current_value}, Contributions: £{total_contributions}")
+        
+        # Simulation loop with enhanced debugging
         for i, (date, growth_factor) in enumerate(weighted.items()):
+            # Add monthly contribution (every ~21 trading days)
             if i > 0 and i % 21 == 0:
                 current_value += monthly
                 total_contributions += monthly
+                if i < 100:  # Log first few contributions
+                    logger.info(f"📅 Month {i//21}: Added £{monthly}, Total contributions: £{total_contributions}")
             
+            # Apply growth (but not on first day)
             if i > 0:
-                growth_rate = growth_factor / weighted.iloc[i - 1]
+                previous_factor = weighted.iloc[i - 1]
+                
+                # Debug growth calculation
+                if i < 10:  # Log first 10 calculations
+                    logger.info(f"📈 Day {i}: prev_factor={previous_factor:.6f}, curr_factor={growth_factor:.6f}")
+                
+                # Check for division by zero
+                if abs(previous_factor) < 1e-10:
+                    logger.error(f"❌ Division by zero at index {i}: previous_factor={previous_factor}")
+                    logger.error(f"❌ Date: {date}, Growth factor: {growth_factor}")
+                    raise ValueError(f"Division by zero in growth calculation at index {i}")
+                
+                growth_rate = growth_factor / previous_factor
+                
+                # Check for invalid growth rate
+                if not np.isfinite(growth_rate):
+                    logger.error(f"❌ Invalid growth rate at index {i}: {growth_rate}")
+                    logger.error(f"❌ Factors: {previous_factor} -> {growth_factor}")
+                    raise ValueError(f"Invalid growth rate: {growth_rate}")
+                
+                # Apply growth
+                old_value = current_value
                 current_value *= growth_rate
-
+                
+                # Debug significant changes
+                if i < 10 or abs(growth_rate - 1) > 0.1:  # Log first 10 or big changes
+                    logger.info(f"📈 Day {i}: Growth {growth_rate:.4f}, Value £{old_value:.2f} -> £{current_value:.2f}")
+                
+                # Check if portfolio value became zero or negative
+                if current_value <= 0:
+                    logger.error(f"❌ Portfolio value became {current_value} at index {i}")
+                    logger.error(f"❌ Growth rate was: {growth_rate}")
+                    logger.error(f"❌ Previous value: £{old_value}")
+                    raise ValueError(f"Portfolio value became {current_value}")
+            
+            # Record values
             contributions.append({
                 "date": date.strftime("%Y-%m-%d"),
                 "value": round(float(total_contributions), 2)
             })
             portfolio_values.append({
-                "date": date.strftime("%Y-%m-%d"),
+                "date": date.strftime("%Y-%m-%d"), 
                 "value": round(float(current_value), 2)
             })
+            
+            # Periodic progress logging
+            if i % 252 == 0:  # Yearly
+                logger.info(f"📅 Year {i//252}: Portfolio £{current_value:,.2f}, Contributions £{total_contributions:,.2f}")
 
+        # Final calculations
         end_value = float(current_value)
         starting_value = float(total_contributions)
         portfolio_return = (end_value - starting_value) / starting_value if starting_value > 0 else 0
 
-        logger.info(f"💰 Simulation results: £{starting_value:,.2f} → £{end_value:,.2f} ({portfolio_return:.1%} return)")
+        logger.info(f"✅ Final results: £{starting_value:,.2f} invested -> £{end_value:,.2f} final ({portfolio_return:.1%} return)")
+        
+        # Validate final results
+        if end_value <= 0:
+            logger.error(f"❌ Final portfolio value is {end_value}")
+            raise ValueError(f"Invalid final portfolio value: {end_value}")
+        
+        if len(portfolio_values) == 0:
+            logger.error("❌ No portfolio values recorded")
+            raise ValueError("No portfolio timeline data generated")
 
         return {
             "starting_value": round(starting_value, 2),
@@ -1373,20 +1477,57 @@ def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray,
 
     except Exception as e:
         logger.error(f"❌ Error in portfolio simulation: {str(e)}")
+        logger.error(f"❌ Error type: {type(e).__name__}")
         
-        logger.info("🔄 Using fallback simulation with 7% annual growth")
-        starting_value = lump_sum + monthly * 12 * timeframe
-        end_value = starting_value * (1.07 ** timeframe)
+        # Enhanced fallback with debugging
+        logger.warning("🔄 Using enhanced fallback simulation")
         
-        return {
-            "starting_value": round(starting_value, 2),
-            "end_value": round(end_value, 2),
-            "portfolio_return": 0.07 * timeframe,
-            "timeline": {
-                "contributions": [{"date": datetime.today().strftime("%Y-%m-%d"), "value": starting_value}],
-                "portfolio": [{"date": datetime.today().strftime("%Y-%m-%d"), "value": end_value}]
+        try:
+            # Calculate total invested
+            starting_value = lump_sum + monthly * 12 * timeframe
+            
+            # Use moderate 7% annual growth as fallback
+            annual_growth = 1.07
+            end_value = lump_sum * (annual_growth ** timeframe)
+            
+            # Add future value of monthly contributions (annuity formula)
+            if monthly > 0:
+                months = timeframe * 12
+                monthly_growth = annual_growth ** (1/12)
+                fv_annuity = monthly * (((monthly_growth ** months) - 1) / (monthly_growth - 1))
+                end_value += fv_annuity
+            
+            portfolio_return = (end_value - starting_value) / starting_value if starting_value > 0 else 0
+            
+            logger.info(f"🔄 Fallback results: £{starting_value:,.2f} -> £{end_value:,.2f} ({portfolio_return:.1%})")
+            
+            # Create simple timeline
+            start_date = datetime.today()
+            end_date = start_date + timedelta(days=timeframe * 365)
+            
+            contributions = [
+                {"date": start_date.strftime("%Y-%m-%d"), "value": round(starting_value, 2)}
+            ]
+            portfolio_values = [
+                {"date": start_date.strftime("%Y-%m-%d"), "value": round(lump_sum, 2)},
+                {"date": end_date.strftime("%Y-%m-%d"), "value": round(end_value, 2)}
+            ]
+            
+            return {
+                "starting_value": round(starting_value, 2),
+                "end_value": round(end_value, 2),
+                "portfolio_return": round(portfolio_return, 4),
+                "timeline": {
+                    "contributions": contributions,
+                    "portfolio": portfolio_values
+                },
+                "fallback_used": True,
+                "original_error": str(e)
             }
-        }
+            
+        except Exception as fallback_error:
+            logger.error(f"❌ Even fallback simulation failed: {fallback_error}")
+            raise ValueError(f"Both main and fallback simulations failed: {e}, {fallback_error}")
 
 def generate_simple_summary(stocks_picked: List[Dict], user_data: Dict[str, Any], 
                           risk_score: int, risk_label: str, 
