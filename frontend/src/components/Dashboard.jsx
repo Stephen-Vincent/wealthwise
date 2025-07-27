@@ -51,8 +51,8 @@ export default function Dashboard() {
   const sectionRefs = {
     summaryRef,
     graphRef,
-    aiSummaryRef,
     ...(hasShapExplanation && { shapRef }),
+    aiSummaryRef,
     pieChartRef,
   };
 
