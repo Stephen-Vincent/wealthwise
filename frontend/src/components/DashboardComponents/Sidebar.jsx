@@ -59,6 +59,8 @@ export default function Sidebar({ scrollToSection, sectionRefs, onClose }) {
         return "📋";
       case "graphRef":
         return "📈";
+      case "ShapRef":
+        return "🔹";
       case "aiSummaryRef":
         return "🤖";
       case "pieChartRef":
