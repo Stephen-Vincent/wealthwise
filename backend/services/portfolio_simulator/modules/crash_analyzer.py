@@ -3,7 +3,6 @@
 
 import pandas as pd
 import numpy as np
-import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import logging
@@ -17,6 +16,9 @@ class MarketCrashAnalyzer:
         self.crash_threshold = crash_threshold
         self.news_service = None
         logger.info(f"📉 MarketCrashAnalyzer initialized with {crash_threshold*100}% threshold")
+        
+        # Debug environment variables on first initialization
+        debug_environment_variables()
 
     def detect_market_crashes(self, data: pd.DataFrame) -> List[Dict[str, Any]]:
         """Fixed version with proper date handling."""
@@ -273,7 +275,7 @@ class MarketCrashAnalyzer:
 
     async def get_news_for_crash_period(self, crash_date: datetime, 
                                        stocks_picked: List[Dict]) -> Dict[str, Any]:
-        """Fixed version with better error handling."""
+        """Fixed version with API key debugging and better error handling."""
         try:
             # Ensure crash_date is datetime
             if isinstance(crash_date, str):
@@ -285,12 +287,41 @@ class MarketCrashAnalyzer:
                 
             logger.info(f"📰 Getting news analysis for crash on {crash_date.strftime('%Y-%m-%d')}")
             
-            # Check if we have Finnhub API key for news analysis
-            finnhub_key = os.getenv("FINNHUB_API_KEY")
+            # DEBUG: Enhanced API key detection
+            logger.info("🔍 Debugging FINNHUB API key...")
+            
+            # Try multiple possible environment variable names
+            possible_keys = [
+                "FINNHUB_API_KEY",
+                "FINNHUB_TOKEN", 
+                "FINNHUB_KEY",
+                "finnhub_api_key",
+                "FINNHUB_API_TOKEN"
+            ]
+            
+            finnhub_key = None
+            for key_name in possible_keys:
+                key_value = os.getenv(key_name)
+                if key_value:
+                    logger.info(f"✅ Found API key with name: {key_name}")
+                    logger.info(f"📝 Key starts with: {key_value[:10]}...")
+                    finnhub_key = key_value
+                    break
+                else:
+                    logger.debug(f"❌ No value found for: {key_name}")
+            
+            # Check all environment variables containing 'FINNHUB'
+            all_env_vars = dict(os.environ)
+            finnhub_vars = {k: v for k, v in all_env_vars.items() if 'FINNHUB' in k.upper()}
+            logger.info(f"📊 Environment variables with FINNHUB: {list(finnhub_vars.keys())}")
             
             if not finnhub_key:
-                logger.warning("⚠️ No Finnhub API key found, using fallback analysis")
+                logger.warning("⚠️ No Finnhub API key found in any expected environment variable")
+                logger.info(f"🔍 Total env vars available: {len(os.environ)}")
+                logger.info(f"🔍 Sample env vars: {list(os.environ.keys())[:5]}...")
                 return self.get_fallback_crash_explanation(crash_date)
+            
+            logger.info(f"🔑 Using Finnhub API key: {finnhub_key[:10]}...{finnhub_key[-4:]}")
             
             # Only analyze crashes from the last 15 years (better news availability)
             if crash_date.year >= 2010:
@@ -298,18 +329,27 @@ class MarketCrashAnalyzer:
                 try:
                     from services.news_analysis import NewsAnalysisService
                     
-                    # Your existing news analysis code here...
-                    # (Implementation depends on your news service)
+                    logger.info("📡 Attempting to use NewsAnalysisService...")
                     
+                    # Your existing news analysis code here...
+                    # For now, return a working response to test the API key detection
                     return {
                         "crash_date": crash_date.isoformat(),
-                        "news_summary": {"fallback_used": False},
-                        "ai_explanation": f"News analysis for crash on {crash_date.strftime('%B %d, %Y')}",
-                        "sentiment_analysis": {"sentiment_category": "Very Negative"}
+                        "news_summary": {
+                            "fallback_used": False,
+                            "api_key_found": True,
+                            "total_articles_analyzed": 0
+                        },
+                        "ai_explanation": f"News analysis for crash on {crash_date.strftime('%B %d, %Y')} - API key found but news service implementation needed.",
+                        "sentiment_analysis": {"sentiment_category": "Very Negative"},
+                        "key_headlines": []
                     }
                     
-                except ImportError:
-                    logger.warning("⚠️ News analysis service not available, using fallback")
+                except ImportError as import_error:
+                    logger.warning(f"⚠️ News analysis service not available: {import_error}")
+                    return self.get_fallback_crash_explanation(crash_date)
+                except Exception as service_error:
+                    logger.error(f"❌ News analysis service error: {service_error}")
                     return self.get_fallback_crash_explanation(crash_date)
             else:
                 return self.get_fallback_crash_explanation(crash_date)
