@@ -17,8 +17,11 @@ class MarketCrashAnalyzer:
         self.news_service = None
         logger.info(f"📉 MarketCrashAnalyzer initialized with {crash_threshold*100}% threshold")
         
-        # Debug environment variables on first initialization
-        debug_environment_variables()
+        # Ensure FINNHUB_API_KEY is available
+        if not os.getenv('FINNHUB_API_KEY'):
+            logger.warning("🔧 FINNHUB_API_KEY not found - setting manually...")
+            os.environ['FINNHUB_API_KEY'] = "d21jd0pr01qpst759isgd21jd0pr01qpst759it0"
+            logger.info("✅ FINNHUB_API_KEY set successfully")
 
     def detect_market_crashes(self, data: pd.DataFrame) -> List[Dict[str, Any]]:
         """Fixed version with proper date handling."""
