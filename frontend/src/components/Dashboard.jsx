@@ -6,8 +6,6 @@ import PortfolioGraph from "./DashboardComponents/PortfolioGraph";
 import StockPieChart from "./DashboardComponents/StockPieChart";
 import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
 import DashboardButtons from "./DashboardComponents/DashboardButtons";
-import SHAPDashboard from "./DashboardComponents/SHAPDashboard";
-
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { PortfolioContext } from "../context/PortfolioContext";
@@ -16,13 +14,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { portfolioData } = useContext(PortfolioContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showDebugger, setShowDebugger] = useState(true); // Toggle this for production
 
   // Add refs for each dashboard section
   const summaryRef = useRef(null);
   const graphRef = useRef(null);
   const aiSummaryRef = useRef(null);
-  const shapRef = useRef(null);
   const pieChartRef = useRef(null);
   const buttonsRef = useRef(null);
 
@@ -32,19 +28,6 @@ export default function Dashboard() {
         Failed to load simulation data. Please try again.
       </div>
     );
-
-  // Add this right after the portfolioData check
-  console.log("🔍 DEBUGGING PORTFOLIO DATA:");
-  console.log("Full portfolioData:", portfolioData);
-  console.log("wealthwise_enhanced:", portfolioData?.wealthwise_enhanced);
-  console.log("shap_explanations:", portfolioData?.shap_explanations);
-  console.log("results:", portfolioData?.results);
-  console.log(
-    "All top-level keys:",
-    portfolioData ? Object.keys(portfolioData) : "No data"
-  );
-
-  const hasShapExplanation = Boolean(portfolioData?.shap_explanations);
 
   const handleSliceClick = (label) => {
     navigate(`/stock/${label}`);
@@ -62,7 +45,6 @@ export default function Dashboard() {
   const sectionRefs = {
     summaryRef,
     graphRef,
-    shapRef, // Always include this, not conditionally
     aiSummaryRef,
     pieChartRef,
   };
@@ -92,20 +74,6 @@ export default function Dashboard() {
       <main className="flex-1 w-full lg:w-5/6 relative">
         {/* Header */}
         <Header portfolioData={portfolioData} />
-
-        {/* Enhanced Portfolio Badge */}
-        {hasShapExplanation && (
-          <div className="sticky top-0 z-30 bg-gradient-to-r from-green-500 to-blue-600 text-white py-2 px-4 shadow-md">
-            <div className="flex items-center justify-center space-x-2">
-              <span className="text-sm font-medium">
-                🤖 AI-Enhanced Portfolio
-              </span>
-              <span className="bg-white bg-opacity-20 rounded-full px-2 py-1 text-xs">
-                Explainable AI Available
-              </span>
-            </div>
-          </div>
-        )}
 
         {/* Floating Menu Button - Positioned below header */}
         <button
@@ -154,34 +122,6 @@ export default function Dashboard() {
           <section ref={graphRef}>
             <PortfolioGraph portfolioData={portfolioData} />
           </section>
-
-          {/* SHAP Explanation Section - Only show if available */}
-          {hasShapExplanation && (
-            <section ref={shapRef}>
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold">
-                        🔍 AI Decision Explanation
-                      </h2>
-                      <p className="text-blue-100 text-sm">
-                        Understand exactly why our AI recommended this portfolio
-                        for you
-                      </p>
-                    </div>
-                    <div className="bg-white bg-opacity-20 rounded-lg px-3 py-1">
-                      <span className="text-xs font-medium">Enhanced AI</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <SHAPDashboard portfolioData={portfolioData} />
-                </div>
-              </div>
-            </section>
-          )}
 
           <section ref={aiSummaryRef}>
             <AIPortfolioSummary portfolioData={portfolioData} />
