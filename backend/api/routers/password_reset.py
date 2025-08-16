@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, field_validator
 from services.password_reset_service import PasswordResetService
-from backend.database.db import get_db
+from database.db import get_db 
 from datetime import datetime
 import logging
 
