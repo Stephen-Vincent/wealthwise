@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from database.db import get_db
 from database import models
-from services.portfolio_simulator import get_shap_visualization
+
 import os
 import logging
 from typing import Dict, Any, Optional

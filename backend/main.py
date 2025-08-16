@@ -11,8 +11,7 @@ from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
-# 🔧 CORRECTED: Removed shap_visualization since it doesn't exist yet
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization
 from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
@@ -247,7 +246,8 @@ def include_routers():
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
         (ai_analysis.router, "/api/ai", ["ai-analysis"]),
-        # 🔧 REMOVED: shap_visualization router (will be added when modular simulator is ready)
+        (shap_visualization.router, "/api/shap", ["shap"]), 
+       
     ]
     
     for router, prefix, tags in routers_config:
