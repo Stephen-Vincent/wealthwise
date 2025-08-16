@@ -8,7 +8,7 @@ and enhanced error handling for complex simulation data.
 import json
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Union
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 from database import models
