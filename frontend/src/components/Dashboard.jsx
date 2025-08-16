@@ -6,7 +6,7 @@ import PortfolioGraph from "./DashboardComponents/PortfolioGraph";
 import StockPieChart from "./DashboardComponents/StockPieChart";
 import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
 import DashboardButtons from "./DashboardComponents/DashboardButtons";
-import SHAPDashboard from "./DashboardComponents/SHAPDashboard"; // ✅ Import SHAP Dashboard
+import SHAPDashboard from "./DashboardComponents/SHAPDashboard";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { PortfolioContext } from "../context/PortfolioContext";
