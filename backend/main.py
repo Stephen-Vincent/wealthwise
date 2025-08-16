@@ -10,7 +10,7 @@ from sqlalchemy import text
 # Updated imports for new database structure
 from core.config import settings
 from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset  # ADD PASSWORD RESET
-from backend.database.db import engine, Base  # Updated import path
+from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
 # Set up logging
