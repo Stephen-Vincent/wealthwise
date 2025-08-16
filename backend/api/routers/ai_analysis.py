@@ -8,7 +8,7 @@ from services.portfolio_simulator import (
 )
 from services.ai_analysis import AIAnalysisService
 from services.news_analysis import NewsAnalysisService
-from database.db import get_db
+from backend.database.db import get_db
 import os
 import asyncio
 from datetime import datetime

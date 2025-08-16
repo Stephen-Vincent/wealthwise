@@ -23,54 +23,53 @@ class ComprehensiveRiskDataGenerator:
         self.investment_goal_options = ['buy a house', 'vacation', 'emergency fund', 'retirement', 'save for a car', 'wealth building']
         self.income_options = ['low', 'medium', 'high']
         
-        # IMPROVED scoring system for BALANCED AI training
+        # Scoring system 
         self.loss_tolerance_scores = {
-            'sell_immediately': 5,   # Very conservative
-            'wait_and_see': 20,      # Moderate 
-            'buy_more': 35          # Aggressive (reduced from 55)
+            'sell_immediately': 5,   
+            'wait_and_see': 20,      
+            'buy_more': 35         
         }
         
         self.panic_behavior_scores = {
-            'yes_always': 0,         # Panic seller
-            'yes_sometimes': 12,     # Sometimes emotional 
-            'no_never': 30,          # Steady investor (reduced from 50)
-            'no_experience': 15      # Unknown/moderate 
+            'yes_always': 0,         
+            'yes_sometimes': 12,     
+            'no_never': 30,          
+            'no_experience': 15      
         }
         
         self.financial_behavior_scores = {
-            'spend_it': 5,           # Present-focused
-            'save_all': 10,          # Very conservative 
-            'save_half': 20,         # Balanced 
-            'invest_all': 35         # Growth-oriented (reduced from 60)
+            'spend_it': 5,           
+            'save_all': 10,           
+            'save_half': 20,          
+            'invest_all': 35         
         }
         
         self.engagement_scores = {
-            'rarely': 5,             # Passive 
-            'quarterly': 12,         # Low engagement 
-            'monthly': 20,           # Moderate 
-            'weekly': 28,            # Active (reduced from 50)
-            'daily': 25              # Overactive (slight penalty)
+            'rarely': 5,             
+            'quarterly': 12,         
+            'monthly': 20,           
+            'weekly': 28,            
+            'daily': 25              
         }
         
-        # BALANCED: Goal-based risk bonuses (reduced)
+        
         self.goal_risk_bonuses = {
-            'emergency fund': -15,    # Conservative penalty (reduced)
-            'vacation': -8,           # Short-term penalty (reduced)
-            'save for a car': 0,      # Neutral
-            'buy a house': 8,         # Moderate bonus (reduced)
-            'wealth building': 15,    # Growth bonus (reduced from 25)
-            'retirement': 20          # Long-term bonus (reduced from 35)
+            'emergency fund': -15,    
+            'vacation': -8,           
+            'save for a car': 0,      
+            'buy a house': 8,         
+            'wealth building': 15,    
+            'retirement': 20          
         }
         
-        # BALANCED: Income capacity bonuses (reduced)
+        
         self.income_bonuses = {
-            'low': -8,       # Penalty for limited capacity (reduced)
-            'medium': 0,     # Neutral
-            'high': 10       # Bonus for high capacity (reduced from 15)
+            'low': -8,       
+            'medium': 0,     
+            'high': 10       
         }
     
     def experience_score(self, years):
-        """BALANCED experience scoring."""
         if years == 0:
             return 5
         elif years <= 2:
@@ -82,65 +81,60 @@ class ComprehensiveRiskDataGenerator:
         elif years <= 20:
             return 35
         else:
-            return 40  # Very experienced (reduced from 70)
+            return 40  
     
     def timeframe_multiplier(self, years):
-        """BALANCED timeframe bonuses."""
         if years <= 1:
-            return -10   # Very short term penalty (reduced)
+            return -10   
         elif years <= 3:
-            return -3    # Short term penalty (reduced)
+            return -3    
         elif years <= 10:
-            return 0     # Medium term neutral
+            return 0     
         elif years <= 20:
-            return 8     # Long term bonus (reduced from 15)
+            return 8     
         else:
-            return 15    # Very long term bonus (reduced from 25)
+            return 15    
     
     def calculate_comprehensive_risk_score(self, row):
-        """
-        Calculate risk score with IMPROVED methodology for full 1-100 range.
-        Uses additive scoring with strategic mapping for AI training.
-        """
         
-        # STEP 1: Core Behavioral Score (0-215 possible)
+        # Core Behavioral Score 
         behavioral_base = (
-            self.loss_tolerance_scores[row['loss_tolerance']] +          # 0-55
-            self.panic_behavior_scores[row['panic_behavior']] +          # 0-50
-            self.financial_behavior_scores[row['financial_behavior']] +  # 0-60
-            self.engagement_scores[row['engagement_level']]              # 0-50
+            self.loss_tolerance_scores[row['loss_tolerance']] +          
+            self.panic_behavior_scores[row['panic_behavior']] +          
+            self.financial_behavior_scores[row['financial_behavior']] + 
+            self.engagement_scores[row['engagement_level']]              
         )
         
-        # STEP 2: Add Experience Score (0-70)
+        #  Add Experience Score 
         experience_score = self.experience_score(row['years_of_experience'])
         
-        # STEP 3: Add Goal Bonus/Penalty (-20 to +35)
+        # Add Goal Bonus/Penalty (-20 to +35)
         goal_bonus = self.goal_risk_bonuses[row['investment_goal']]
         
-        # STEP 4: Add Timeframe Bonus/Penalty (-15 to +25)
+        # Add Timeframe Bonus/Penalty (-15 to +25)
         timeframe_bonus = self.timeframe_multiplier(row['timeframe'])
         
-        # STEP 5: Add Income Bonus/Penalty (-10 to +15)
+        # Add Income Bonus/Penalty (-10 to +15)
         income_bonus = self.income_bonuses[row['income']]
         
-        # STEP 6: Calculate Investment Capacity Bonus (0-30)
+        # Calculate Investment Capacity Bonus (0-30)
         total_investment = row['lump_sum_investment'] + (row['monthly_investment'] * 12 * row['timeframe'])
         if row['target_amount'] > 0:
             capacity_ratio = total_investment / row['target_amount']
             if capacity_ratio >= 2.0:
-                capacity_bonus = 30      # Over-investing (very aggressive)
+                capacity_bonus = 30      
             elif capacity_ratio >= 1.5:
-                capacity_bonus = 20      # Strong capacity
+                capacity_bonus = 20      
             elif capacity_ratio >= 1.0:
-                capacity_bonus = 10      # Meeting target
+                capacity_bonus = 10      
             elif capacity_ratio >= 0.5:
-                capacity_bonus = 5       # Limited capacity
+                capacity_bonus = 5       
             else:
-                capacity_bonus = 0       # Minimal capacity
+                capacity_bonus = 0       
         else:
             capacity_bonus = 5
         
-        # STEP 7: Combine All Components (Additive)
+        # Combine All Components 
         raw_score = (
             behavioral_base +
             experience_score +
@@ -150,11 +144,11 @@ class ComprehensiveRiskDataGenerator:
             capacity_bonus
         )
         
-        # STEP 8: Add REDUCED Randomness
-        noise = np.random.normal(0, 5)  # Reduced noise for more predictability
+        #  Add Reduced Randomness
+        noise = np.random.normal(0, 5)  
         noisy_score = raw_score + noise
         
-        # STEP 9: MUCH MORE CONSERVATIVE MAPPING for Balanced Distribution
+        # CONSERVATIVE MAPPING for Balanced Distribution
         # Map raw scores to ensure balanced distribution across 1-100
         if noisy_score < 40:
             # Map low scores to 1-25 (Ultra Conservative)

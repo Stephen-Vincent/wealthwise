@@ -1,5 +1,5 @@
 /**
- * PortfolioGraph.jsx - Mobile Responsive Version
+ * PortfolioGraph.jsx
  * -----------------
  * Visualizes the user's portfolio performance over time.
  * - Switch between monthly, quarterly, and yearly views.
@@ -49,7 +49,7 @@ const PortfolioGraph = () => {
   // Get portfolio data from context
   const { portfolioData } = useContext(PortfolioContext);
   // State for switching view modes and toggling overlays
-  const [viewMode, setViewMode] = useState("monthly"); // monthly, quarterly, yearly
+  const [viewMode, setViewMode] = useState("monthly");
   const [showTarget, setShowTarget] = useState(true);
   const [showGainLoss, setShowGainLoss] = useState(true);
 
@@ -216,7 +216,7 @@ const PortfolioGraph = () => {
     },
   ];
 
-  // Optionally add target line overlay
+  // add target line overlay
   if (showTarget && processedData.targetLine.length > 0) {
     datasets.push({
       label: "Target Amount",
@@ -232,12 +232,12 @@ const PortfolioGraph = () => {
     });
   }
 
-  // Optionally add gain/loss area overlay (for area under the curve effect)
+  // add gain/loss area overlay (for area under the curve effect)
   if (showGainLoss) {
     datasets.push({
       label: "Gain/Loss Area",
       data: processedData.contributionValues,
-      fill: false,
+      fill: true,
       borderColor: "transparent",
       backgroundColor: "rgba(107, 114, 128, 0.05)",
       pointRadius: 0,
@@ -277,10 +277,10 @@ const PortfolioGraph = () => {
         position: "top",
         labels: {
           usePointStyle: true,
-          padding: window.innerWidth < 768 ? 10 : 20, // Less padding on mobile
+          padding: window.innerWidth < 768 ? 10 : 20,
           font: {
             family: "system-ui, -apple-system, sans-serif",
-            size: window.innerWidth < 768 ? 10 : 12, // Smaller font on mobile
+            size: window.innerWidth < 768 ? 10 : 12,
           },
           filter: (legendItem) => {
             // Hide the gain/loss area from legend

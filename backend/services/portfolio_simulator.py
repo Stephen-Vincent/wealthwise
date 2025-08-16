@@ -30,7 +30,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# WEALTHWISE INTEGRATION - Import the new system
+# WEALTHWISE INTEGRATION - Import the system
 # =============================================================================
 
 try:
@@ -46,12 +46,12 @@ except ImportError as e:
     logger.warning(f"⚠️ WealthWise not available: {e}")
 
 # =============================================================================
-# ENHANCED MAIN PORTFOLIO SIMULATION FUNCTION
+# MAIN PORTFOLIO SIMULATION FUNCTION
 # =============================================================================
 
 async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
     """
-    Enhanced portfolio simulation with WealthWise SHAP integration.
+    portfolio simulation with SHAP integration.
     
     This function now includes:
     1. Goal-oriented portfolio optimization
@@ -65,7 +65,7 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
         db: Database session for saving results
     
     Returns:
-        Enhanced simulation results with SHAP explanations
+        simulation results with SHAP explanations
     """
     
     try:

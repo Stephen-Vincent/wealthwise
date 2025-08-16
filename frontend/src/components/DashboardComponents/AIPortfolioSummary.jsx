@@ -8,7 +8,7 @@
  */
 
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm"; // For GitHub flavored markdown like tables, strikethrough, etc.
+import remarkGfm from "remark-gfm";
 import { usePortfolio } from "../../context/PortfolioContext";
 
 export default function AIPortfolioSummary() {

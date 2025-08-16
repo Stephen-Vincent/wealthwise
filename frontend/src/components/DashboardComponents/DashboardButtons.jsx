@@ -6,7 +6,6 @@ export default function DashboardButtons() {
   const { portfolioData } = usePortfolio();
   const [userName, setUserName] = useState("Investor");
 
-  // Function to get user name dynamically
   const fetchUserName = async () => {
     try {
       const userId = portfolioData?.user_id;
@@ -135,7 +134,7 @@ export default function DashboardButtons() {
       ).toFixed(2)}%`;
     };
 
-    // Extract ALL data from portfolioData - NO HARDCODED VALUES
+    // Extract ALL data from portfolioData
     console.log("🔍 EXTRACTING DATA FROM PORTFOLIO:");
     console.log("portfolioData.results:", portfolioData?.results);
 
@@ -157,7 +156,7 @@ export default function DashboardButtons() {
 
       // CAGR formula: (End Value / Start Value)^(1/years) - 1
       const cagr = Math.pow(portfolioValue / totalInvested, 1 / timeframe) - 1;
-      return cagr * 100; // Convert to percentage
+      return cagr * 100;
     })();
 
     console.log("📊 EXTRACTED VALUES:");

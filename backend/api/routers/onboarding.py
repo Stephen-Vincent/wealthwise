@@ -7,7 +7,7 @@ import logging
 import asyncio
 
 from database import schemas
-from database.db import get_db
+from backend.database.db import get_db
 from services.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
 from services.portfolio_simulator import simulate_portfolio  # Now async
 from services.ai_analysis import AIAnalysisService  # Updated import

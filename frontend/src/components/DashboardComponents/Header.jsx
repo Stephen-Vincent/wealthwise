@@ -1,7 +1,7 @@
 /**
- * Header.jsx - Mobile Responsive Version
+ * Header.jsx
  * ----------
- * Dashboard header component with mobile optimizations.
+ * Dashboard header component.
  * - Greets the user by name (fetched from localStorage)
  * - Shows main Dashboard title
  * - Mobile responsive with proper spacing for floating sidebar button
@@ -36,7 +36,7 @@ export default function Header({ portfolioData }) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-6 pl-20 lg:pl-8 mb-6">
       <div className="flex flex-col space-y-2 lg:space-y-3">
-        {/* Greeting and title - with proper spacing for mobile button */}
+        {/* Greeting and title */}
         <div>
           <h2 className="text-sm lg:text-lg text-gray-600">Hi, {userName}</h2>
           <h1 className="text-xl lg:text-3xl font-bold text-gray-900">
@@ -44,7 +44,7 @@ export default function Header({ portfolioData }) {
           </h1>
         </div>
 
-        {/* Quick stats - hidden on very small screens, shown on sm and up */}
+        {/* Quick stats */}
         {portfolioData && (
           <div className="hidden sm:flex flex-wrap gap-3 lg:gap-6 text-xs lg:text-sm text-gray-600">
             {portfolioData.target_value && (
