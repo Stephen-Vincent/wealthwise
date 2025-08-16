@@ -46,6 +46,110 @@ except ImportError as e:
     logger.warning(f"⚠️ WealthWise not available: {e}")
 
 # =============================================================================
+# SMART REQUIRED RETURN CALCULATION - FIX FOR 0.0% ISSUE
+# =============================================================================
+
+def calculate_smart_required_return(target_value: float, current_investment: float, 
+                                  timeframe: int, monthly_contribution: float) -> Dict[str, Any]:
+    """
+    Calculate required return with smart handling for when contributions alone reach the target.
+    
+    This fixes the 0.0% required return issue by setting a minimum growth rate
+    when monthly contributions alone would reach the target.
+    """
+    
+    try:
+        # Calculate total contributions over the timeframe
+        total_contributions = current_investment + (monthly_contribution * 12 * timeframe)
+        
+        logger.info(f"💰 Goal analysis: Target £{target_value:,.2f}, Contributions £{total_contributions:,.2f}")
+        
+        if total_contributions >= target_value:
+            # Contributions alone will reach target - set minimum growth rate
+            minimum_return_percent = 4.0  # 4% to beat inflation and provide buffer
+            
+            logger.info(f"✅ Contributions alone reach target! Setting minimum return: {minimum_return_percent}%")
+            
+            return {
+                "required_return": minimum_return_percent / 100,  # Convert to decimal
+                "required_return_percent": minimum_return_percent,
+                "can_reach_with_contributions": True,
+                "contributions_total": total_contributions,
+                "excess_amount": total_contributions - target_value,
+                "message": f"Good news! Your contributions alone will reach your goal. We're targeting {minimum_return_percent}% growth to beat inflation and give you extra security.",
+                "feasibility_rating": 5.0,  # High feasibility since contributions alone work
+            }
+        
+        else:
+            # Need growth to reach target - calculate required return
+            # Using compound interest formula: FV = PV(1+r)^t + PMT[((1+r)^t - 1)/r]
+            
+            years = timeframe
+            pv = current_investment
+            pmt_annual = monthly_contribution * 12
+            fv = target_value
+            
+            # Solve for r using iterative method (binary search)
+            low_rate = 0.01  # 1%
+            high_rate = 0.30  # 30%
+            tolerance = 0.0001
+            
+            for _ in range(100):  # Max iterations
+                mid_rate = (low_rate + high_rate) / 2
+                
+                # Calculate future value with this rate
+                fv_calculated = pv * ((1 + mid_rate) ** years)
+                if pmt_annual > 0:
+                    fv_calculated += pmt_annual * (((1 + mid_rate) ** years - 1) / mid_rate)
+                
+                if abs(fv_calculated - fv) < tolerance:
+                    break
+                    
+                if fv_calculated < fv:
+                    low_rate = mid_rate
+                else:
+                    high_rate = mid_rate
+            
+            required_return_percent = mid_rate * 100
+            
+            logger.info(f"📊 Calculated required return: {required_return_percent:.1f}%")
+            
+            # Assess feasibility
+            if required_return_percent > 15:
+                feasibility = 2.0  # Low feasibility
+                message = f"Challenging: You need {required_return_percent:.1f}% annual growth. Consider increasing contributions or extending timeframe."
+            elif required_return_percent > 10:
+                feasibility = 3.0  # Moderate feasibility
+                message = f"Ambitious: You need {required_return_percent:.1f}% annual growth. This requires growth-focused investments."
+            elif required_return_percent > 7:
+                feasibility = 4.0  # Good feasibility
+                message = f"Achievable: You need {required_return_percent:.1f}% annual growth. A balanced approach should work."
+            else:
+                feasibility = 5.0  # High feasibility
+                message = f"Very achievable: You need {required_return_percent:.1f}% annual growth. Conservative investments may suffice."
+            
+            return {
+                "required_return": mid_rate,  # Decimal format
+                "required_return_percent": required_return_percent,
+                "can_reach_with_contributions": False,
+                "feasibility_rating": feasibility,
+                "message": message
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Error calculating smart required return: {e}")
+        
+        # Fallback to reasonable default
+        return {
+            "required_return": 0.06,  # 6% default
+            "required_return_percent": 6.0,
+            "can_reach_with_contributions": False,
+            "feasibility_rating": 3.0,
+            "message": "Using default 6% growth target due to calculation error.",
+            "error": str(e)
+        }
+
+# =============================================================================
 # MAIN PORTFOLIO SIMULATION FUNCTION
 # =============================================================================
 
@@ -214,8 +318,15 @@ async def get_enhanced_ai_recommendations(
     
     if not WEALTHWISE_AVAILABLE:
         logger.warning("⚠️ WealthWise not available, using fallback recommendations")
+        
+        # Use our smart calculation even in fallback mode
+        goal_analysis = calculate_smart_required_return(
+            target_value, current_investment, timeframe, monthly_contribution
+        )
+        
         return {
             "stocks": get_fallback_stocks_by_risk_profile(risk_score, risk_label),
+            "goal_analysis": goal_analysis,
             "method": "fallback"
         }
     
@@ -235,18 +346,18 @@ async def get_enhanced_ai_recommendations(
         # Initialize core components
         recommender = EnhancedStockRecommender()
         shap_explainer = SHAPExplainer()
-        goal_calculator = GoalCalculator()
+        # goal_calculator = GoalCalculator()  # ⭐ REMOVED - Using our smart calculation instead
         feasibility_assessor = FeasibilityAssessor()
         market_detector = MarketRegimeDetector()
         
         logger.info("🔍 Performing goal-oriented analysis")
         
-        # Step 1: Calculate goal requirements
-        goal_analysis = goal_calculator.calculate_required_return(
+        # Step 1: Use our smart calculation instead of WealthWise ⭐ KEY CHANGE
+        goal_analysis = calculate_smart_required_return(
             target_value, current_investment, timeframe, monthly_contribution
         )
         
-        # Step 2: Assess goal feasibility
+        # Step 2: Assess goal feasibility using our result
         feasibility_assessment = feasibility_assessor.assess_goal_feasibility(
             goal_analysis["required_return"], risk_score, timeframe,
             current_investment, monthly_contribution
@@ -288,7 +399,7 @@ async def get_enhanced_ai_recommendations(
         return {
             "stocks": recommended_stocks,
             "shap_explanation": shap_explanation,
-            "goal_analysis": goal_analysis,
+            "goal_analysis": goal_analysis,  # ⭐ Now using our smart calculation
             "feasibility_assessment": feasibility_assessment,
             "market_regime": market_regime,
             "method": "wealthwise_enhanced"
@@ -298,8 +409,14 @@ async def get_enhanced_ai_recommendations(
         logger.error(f"❌ Enhanced AI recommendations failed: {e}")
         logger.warning("🔄 Falling back to original recommendation method")
         
+        # Use our smart calculation in fallback too ⭐ KEY CHANGE
+        goal_analysis = calculate_smart_required_return(
+            target_value, current_investment, timeframe, monthly_contribution
+        )
+        
         return {
             "stocks": get_fallback_stocks_by_risk_profile(risk_score, risk_label),
+            "goal_analysis": goal_analysis,  # ⭐ Include smart goal analysis
             "method": "fallback",
             "error": str(e)
         }
@@ -823,157 +940,6 @@ def test_json_serialization(data: Any, description: str = "data") -> bool:
         logger.error(f"❌ {description} is NOT JSON serializable: {e}")
         return False
 
-# Updated save_enhanced_simulation_to_db function
-def save_enhanced_simulation_to_db(
-    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
-    risk_score: int, risk_label: str, ai_summary: str,
-    stocks_picked: List[Dict], simulation_results: Dict[str, Any],
-    shap_explanation: Dict[str, Any] = None, 
-    goal_analysis: Dict[str, Any] = None,
-    feasibility_assessment: Dict[str, Any] = None, 
-    market_regime: Dict[str, Any] = None
-):
-    """
-    Enhanced version of save_simulation_to_db with proper JSON serialization.
-    """
-    
-    try:
-        logger.info("💾 Saving enhanced simulation with SHAP data to database")
-        
-        target_reached = simulation_results["end_value"] >= user_data["target_value"]
-        
-        # Create enhanced results object with all data
-        enhanced_results = {
-            "name": user_data["goal"],
-            "stocks_picked": stocks_picked,
-            "starting_value": simulation_results["starting_value"],
-            "end_value": simulation_results["end_value"],
-            "return": simulation_results["portfolio_return"],
-            "target_reached": target_reached,
-            "risk_score": risk_score,
-            "risk_label": risk_label,
-            "timeline": simulation_results["timeline"],
-            # Enhanced data
-            "shap_explanation": shap_explanation,
-            "goal_analysis": goal_analysis,
-            "feasibility_assessment": feasibility_assessment,
-            "market_regime": market_regime,
-            "wealthwise_enhanced": True,
-            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization",
-            "created_timestamp": datetime.now().isoformat()
-        }
-        
-        # ⭐ KEY FIX: Clean the results before saving ⭐
-        cleaned_results = clean_simulation_results_for_db(enhanced_results)
-        
-        # Test serialization before database save
-        if not test_json_serialization(cleaned_results, "enhanced_results"):
-            raise ValueError("Enhanced results still not JSON serializable after cleaning")
-        
-        # Import the models here to avoid circular imports
-        from database import models
-        
-        simulation = models.Simulation(
-            user_id=sim_input.get("user_id"),
-            name=user_data["goal"],
-            goal=user_data["goal"],
-            target_value=user_data["target_value"],
-            lump_sum=user_data["lump_sum"],
-            monthly=user_data["monthly"],
-            timeframe=user_data["timeframe"],
-            target_achieved=target_reached,
-            income_bracket=user_data["income_bracket"],
-            risk_score=risk_score,
-            risk_label=risk_label,
-            ai_summary=ai_summary,
-            results=cleaned_results  # ⭐ Use cleaned results ⭐
-        )
-        
-        db.add(simulation)
-        db.commit()
-        db.refresh(simulation)
-        
-        logger.info(f"✅ Enhanced simulation saved with SHAP data (ID: {simulation.id})")
-        return simulation
-        
-    except Exception as e:
-        logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
-        db.rollback()
-        
-        # If enhanced save fails, try to save a basic version
-        try:
-            logger.warning("🔄 Attempting to save basic simulation without enhanced data")
-            
-            basic_results = {
-                "name": user_data["goal"],
-                "stocks_picked": [
-                    {
-                        "symbol": str(stock.get("symbol", "")),
-                        "name": str(stock.get("name", "")),
-                        "allocation": float(stock.get("allocation", 0))
-                    }
-                    for stock in stocks_picked
-                ],
-                "starting_value": float(simulation_results["starting_value"]),
-                "end_value": float(simulation_results["end_value"]),
-                "return": float(simulation_results["portfolio_return"]),
-                "target_reached": target_reached,
-                "risk_score": risk_score,
-                "risk_label": risk_label,
-                "enhanced_save_failed": True,
-                "error_message": str(e)
-            }
-            
-            from database import models
-            
-            basic_simulation = models.Simulation(
-                user_id=sim_input.get("user_id"),
-                name=user_data["goal"],
-                goal=user_data["goal"],
-                target_value=user_data["target_value"],
-                lump_sum=user_data["lump_sum"],
-                monthly=user_data["monthly"],
-                timeframe=user_data["timeframe"],
-                target_achieved=target_reached,
-                income_bracket=user_data["income_bracket"],
-                risk_score=risk_score,
-                risk_label=risk_label,
-                ai_summary=ai_summary,
-                results=basic_results
-            )
-            
-            db.add(basic_simulation)
-            db.commit()
-            db.refresh(basic_simulation)
-            
-            logger.warning(f"⚠️ Saved basic simulation without enhanced data (ID: {basic_simulation.id})")
-            return basic_simulation
-            
-        except Exception as basic_error:
-            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
-            db.rollback()
-            raise
-
-# Example usage in your portfolio_simulator.py:
-"""
-Replace the existing save_enhanced_simulation_to_db call with:
-
-simulation = save_enhanced_simulation_to_db(
-    db=db,
-    sim_input=sim_input,
-    user_data=user_data,
-    risk_score=risk_score,
-    risk_label=risk_label,
-    ai_summary=ai_summary,
-    stocks_picked=stocks_picked,
-    simulation_results=simulation_results,
-    shap_explanation=shap_explanation,
-    goal_analysis=goal_analysis,
-    feasibility_assessment=feasibility_assessment,
-    market_regime=market_regime
-)
-"""
-
 def save_enhanced_simulation_to_db(
     db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
     risk_score: int, risk_label: str, ai_summary: str,
@@ -1098,8 +1064,6 @@ def save_enhanced_simulation_to_db(
             logger.error(f"❌ Even basic simulation save failed: {basic_error}")
             db.rollback()
             raise
-
-# 4. ALSO UPDATE YOUR REGULAR save_simulation_to_db FUNCTION:
 
 def save_simulation_to_db(db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
                          risk_score: int, risk_label: str, ai_summary: str,
@@ -1156,7 +1120,6 @@ def save_simulation_to_db(db, sim_input: Dict[str, Any], user_data: Dict[str, An
         db.rollback()
         raise
 
-
 def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
     """
     Format enhanced simulation response with SHAP explanations.
@@ -1187,7 +1150,7 @@ def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[s
     return response
 
 # =============================================================================
-# FALLBACK FUNCTIONS (unchanged from original)
+# FALLBACK FUNCTIONS
 # =============================================================================
 
 async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
@@ -1256,7 +1219,6 @@ async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) ->
     
     return format_simulation_response(simulation)
 
-# Keep all original functions for backward compatibility
 def get_fallback_stocks_by_risk_profile(risk_score: int, risk_label: str) -> List[str]:
     """Original fallback stock selection method."""
     logger.info(f"📊 Using fallback selection for {risk_label} risk profile (score: {risk_score})")
@@ -1566,53 +1528,6 @@ def get_company_name(ticker: str) -> str:
     }
     return name_mapping.get(ticker, ticker)
 
-def save_simulation_to_db(db: Session, sim_input: Dict[str, Any], user_data: Dict[str, Any],
-                         risk_score: int, risk_label: str, ai_summary: str,
-                         stocks_picked: List[Dict], simulation_results: Dict[str, Any]) -> models.Simulation:
-    """Original database save function - unchanged"""
-    try:
-        logger.info("💾 Saving simulation results to database")
-        
-        target_reached = simulation_results["end_value"] >= user_data["target_value"]
-        
-        simulation = models.Simulation(
-            user_id=sim_input.get("user_id"),
-            name=user_data["goal"],
-            goal=user_data["goal"],
-            target_value=user_data["target_value"],
-            lump_sum=user_data["lump_sum"],
-            monthly=user_data["monthly"],
-            timeframe=user_data["timeframe"],
-            target_achieved=target_reached,
-            income_bracket=user_data["income_bracket"],
-            risk_score=risk_score,
-            risk_label=risk_label,
-            ai_summary=ai_summary,
-            results={
-                "name": user_data["goal"],
-                "stocks_picked": stocks_picked,
-                "starting_value": simulation_results["starting_value"],
-                "end_value": simulation_results["end_value"],
-                "return": simulation_results["portfolio_return"],
-                "target_reached": target_reached,
-                "risk_score": risk_score,
-                "risk_label": risk_label,
-                "timeline": simulation_results["timeline"]
-            }
-        )
-        
-        db.add(simulation)
-        db.commit()
-        db.refresh(simulation)
-        
-        logger.info(f"✅ Simulation saved successfully with ID: {simulation.id}")
-        return simulation
-        
-    except Exception as e:
-        logger.error(f"❌ Error saving simulation to database: {str(e)}")
-        db.rollback()
-        raise
-
 def format_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
     """Original response formatting - unchanged"""
     logger.info("📋 Formatting simulation response for API")
@@ -1736,60 +1651,45 @@ async def analyze_simulation_with_news(simulation_id: int, db: Session) -> Dict[
         return {"error": str(e)}
 
 # =============================================================================
-# MIGRATION NOTES FOR YOUR EXISTING SYSTEM
+# SUMMARY OF KEY CHANGES MADE
 # =============================================================================
 
 """
-INTEGRATION STEPS:
+🎯 KEY CHANGES MADE TO FIX THE 0.0% REQUIRED RETURN ISSUE:
 
-1. REPLACE YOUR EXISTING portfolio_simulator.py WITH THIS FILE
+1. ✅ ADDED calculate_smart_required_return() function:
+   - Detects when contributions alone reach target
+   - Sets minimum 4% return to beat inflation
+   - Provides better user messaging
+   - Uses proper compound interest calculations
 
-2. UPDATE YOUR API ROUTES (api/routers/ai_analysis.py):
-   Add these new endpoints:
+2. ✅ MODIFIED get_enhanced_ai_recommendations():
+   - Replaced WealthWise goal_calculator with our smart function
+   - Works in both enhanced and fallback modes
+   - Ensures goal_analysis always includes smart calculation
 
-   @router.get("/simulation/{simulation_id}/shap-visualization")
-   async def get_simulation_shap_viz(simulation_id: int, db: Session = Depends(get_db)):
-       viz_path = await get_shap_visualization(simulation_id, db)
-       if viz_path:
-           return {"visualization_path": viz_path}
-       else:
-           raise HTTPException(status_code=404, detail="SHAP visualization not available")
+3. ✅ ENHANCED FALLBACK PROTECTION:
+   - Smart calculation works even when WealthWise unavailable
+   - Maintains backward compatibility
+   - Provides consistent user experience
 
-   @router.get("/simulation/{simulation_id}/news-analysis")
-   async def get_simulation_news_analysis(simulation_id: int, db: Session = Depends(get_db)):
-       analysis = await analyze_simulation_with_news(simulation_id, db)
-       return analysis
+4. ✅ IMPROVED USER EXPERIENCE:
+   - "Good news!" messaging when contributions alone work
+   - Clear feasibility ratings (1-5 scale)
+   - Educational explanations for required returns
+   - Proper handling of edge cases
 
-3. BENEFITS YOU'LL GET:
-   - ✅ Goal-oriented portfolio optimization (matches user's specific target)
-   - ✅ SHAP explainable AI (transparent reasoning for every recommendation)
-   - ✅ Market regime detection (adapts to current market conditions)
-   - ✅ Multi-factor analysis (professional-grade stock evaluation)
-   - ✅ Enhanced educational summaries (explains WHY stocks were chosen)
-   - ✅ Backward compatibility (falls back to original system if WealthWise fails)
-   - ✅ Database integration (stores SHAP explanations for future analysis)
+WHAT THIS FIXES:
+❌ Before: 0.0% required return when contributions ≥ target
+✅ After: Minimum 4% return with positive messaging
 
-4. WHAT CHANGES FOR YOUR USERS:
-   - Same API interface - no frontend changes needed
-   - Enhanced portfolio recommendations based on their specific goals
-   - Detailed explanations of why each stock was recommended
-   - Better educational content in AI summaries
-   - Optional new endpoints for SHAP visualizations and news analysis
+IMPACT:
+- Better portfolio recommendations (no more 0% growth targets)
+- More realistic investment strategies
+- Improved user understanding of their financial plan
+- Professional-grade goal analysis
 
-5. FALLBACK PROTECTION:
-   - If WealthWise fails to load, system automatically uses original logic
-   - All existing functionality preserved
-   - Graceful degradation ensures system reliability
-
-6. TESTING:
-   - Test with WEALTHWISE_AVAILABLE = False to ensure fallback works
-   - Test with WEALTHWISE_AVAILABLE = True to see enhanced features
-   - Monitor logs for any integration issues
-
-NEXT STEPS:
-1. Install the WealthWise package in your project directory
-2. Replace portfolio_simulator.py with this enhanced version
-3. Test the enhanced simulation endpoint
-4. Add the new API routes for SHAP visualizations
-5. Monitor performance and user feedback
+The system now intelligently handles cases where users' monthly contributions
+alone would reach their target, ensuring they still get meaningful investment
+growth recommendations while celebrating their strong savings discipline.
 """
