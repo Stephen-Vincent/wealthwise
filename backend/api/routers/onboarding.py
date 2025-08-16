@@ -51,21 +51,6 @@ def sanitize_floats(data):
         return 0.0 if math.isnan(data) or math.isinf(data) else data
     return data
 
-"""
-Enhanced Onboarding Endpoint with Modular Portfolio Simulator
-
-This endpoint automatically detects and uses:
-1. Enhanced modular portfolio simulator (when available)
-2. Standard portfolio simulator (fallback)
-
-Enhanced features include:
-- Smart goal analysis (fixes 0% return issue)
-- Market crash detection with news analysis
-- SHAP explanations (when available)
-- Enhanced AI summaries
-- Robust error handling
-"""
-
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Session = Depends(get_db)):
     try:
@@ -107,6 +92,9 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             
         simulation_result = await simulate_portfolio(simulation_input, db)
         
+        # 🔍 DEBUG: Check what's in simulation_result
+        logger.info(f"🔍 Simulation result keys: {list(simulation_result.keys()) if isinstance(simulation_result, dict) else 'Not a dict'}")
+        
         logger.info(f"✅ Portfolio simulation completed for user {onboarding_data.user_id}")
         
         # Step 5: Extract enhanced features (if available)
@@ -117,6 +105,20 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             "wealthwise_enhanced": simulation_result.get("wealthwise_enhanced", False),
             "methodology": simulation_result.get("methodology", "Standard simulation")
         }
+        
+        # 🔍 CRITICAL: Extract SHAP explanations from simulation result
+        shap_explanations = simulation_result.get("shap_explanations", {})
+        if shap_explanations:
+            logger.info("✅ SHAP explanations found in simulation result")
+            enhanced_features["has_shap_explanations"] = True
+        else:
+            logger.warning("⚠️ No SHAP explanations found in simulation result")
+            # Check if it's nested in results
+            results = simulation_result.get("results", {})
+            if results and "shap_explanations" in results:
+                shap_explanations = results["shap_explanations"]
+                logger.info("✅ Found SHAP explanations in results section")
+                enhanced_features["has_shap_explanations"] = True
         
         # Log enhanced features
         if enhanced_features["has_crash_analysis"]:
@@ -132,6 +134,11 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
         # Generate basic goal analysis if enhanced version not available
         if not goal_analysis and not MODULAR_SIMULATOR_AVAILABLE:
             goal_analysis = _generate_basic_goal_analysis(onboarding_data)
+        
+        # 🎯 CRITICAL: Extract portfolio recommendations with SHAP data
+        portfolio_recommendations = simulation_result.get("recommendations", {})
+        if not portfolio_recommendations and "portfolio_recommendations" in results:
+            portfolio_recommendations = results["portfolio_recommendations"]
         
         # Step 7: Construct comprehensive response
         response_payload = {
@@ -159,6 +166,12 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             # 🎯 Enhanced simulation features
             "enhanced_features": enhanced_features,
             
+            # 🎯 CRITICAL: Include SHAP explanations in response
+            "shap_explanations": shap_explanations,
+            
+            # 🎯 Portfolio recommendations
+            "portfolio_recommendations": portfolio_recommendations,
+            
             # 🎯 Smart goal analysis
             "goal_analysis": {
                 "required_return_percent": goal_analysis.get("required_return_percent"),
@@ -177,9 +190,17 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             } if market_crash_analysis else None,
             
             # Include all simulation results
-            **simulation_result,
+            **{k: v for k, v in simulation_result.items() 
+               if k not in ['shap_explanations', 'portfolio_recommendations']},  # Avoid duplication
             "created_at": datetime.utcnow().isoformat()
         }
+
+        # 🔍 DEBUG: Log what's being returned
+        logger.info(f"🔍 Response payload keys: {list(response_payload.keys())}")
+        if response_payload.get("shap_explanations"):
+            logger.info(f"✅ SHAP explanations included in response: {type(response_payload['shap_explanations'])}")
+        else:
+            logger.warning("⚠️ No SHAP explanations in final response")
 
         success_msg = f"🎉 {'Enhanced' if MODULAR_SIMULATOR_AVAILABLE else 'Standard'} onboarding completed successfully"
         logger.info(f"{success_msg} for user {onboarding_data.user_id}")
@@ -196,6 +217,56 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             detail=f"Onboarding processing failed: {str(e)}"
         )
 
+# 🔍 NEW: Debug endpoint to check SHAP data
+@router.get("/{simulation_id}/debug")
+async def debug_simulation_data(simulation_id: int, db: Session = Depends(get_db)):
+    """
+    Debug endpoint to inspect simulation data structure
+    """
+    try:
+        # Try to get simulation from database
+        from database import models
+        simulation = db.query(models.Simulation).filter(models.Simulation.id == simulation_id).first()
+        
+        if not simulation:
+            raise HTTPException(status_code=404, detail="Simulation not found")
+        
+        # Extract all available data
+        debug_info = {
+            "simulation_id": simulation_id,
+            "available_fields": [],
+            "has_shap_explanations": False,
+            "shap_location": None,
+            "raw_data_keys": []
+        }
+        
+        # Check simulation attributes
+        for attr in dir(simulation):
+            if not attr.startswith('_'):
+                debug_info["available_fields"].append(attr)
+        
+        # Check for SHAP data in various locations
+        if hasattr(simulation, 'shap_explanations') and simulation.shap_explanations:
+            debug_info["has_shap_explanations"] = True
+            debug_info["shap_location"] = "direct_attribute"
+            
+        if hasattr(simulation, 'results') and simulation.results:
+            if isinstance(simulation.results, dict):
+                debug_info["raw_data_keys"] = list(simulation.results.keys())
+                if 'shap_explanations' in simulation.results:
+                    debug_info["has_shap_explanations"] = True
+                    debug_info["shap_location"] = "results.shap_explanations"
+                    
+        if hasattr(simulation, 'recommendations') and simulation.recommendations:
+            if isinstance(simulation.recommendations, dict) and 'shap_explanations' in simulation.recommendations:
+                debug_info["has_shap_explanations"] = True
+                debug_info["shap_location"] = "recommendations.shap_explanations"
+        
+        return debug_info
+        
+    except Exception as e:
+        logger.error(f"❌ Debug failed: {e}")
+        return {"error": str(e)}
 
 @router.post("/legacy", status_code=status.HTTP_201_CREATED)
 async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db: Session = Depends(get_db)):
@@ -248,7 +319,6 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
             detail=f"Legacy onboarding processing failed: {str(e)}"
         )
 
-
 # 🎯 Enhanced feature endpoints
 @router.get("/{simulation_id}/crash-analysis")
 async def get_crash_analysis(simulation_id: int, db: Session = Depends(get_db)):
@@ -277,7 +347,6 @@ async def get_crash_analysis(simulation_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get crash analysis: {str(e)}"
         )
-
 
 @router.get("/{simulation_id}/shap-visualization")
 async def get_shap_visualization(simulation_id: int, db: Session = Depends(get_db)):
@@ -317,7 +386,6 @@ async def get_shap_visualization(simulation_id: int, db: Session = Depends(get_d
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate SHAP visualization: {str(e)}"
         )
-
 
 @router.get("/health/enhanced-features")
 async def check_enhanced_features():
@@ -373,7 +441,6 @@ async def check_enhanced_features():
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat()
         }
-
 
 # 🛠️ Helper Functions
 
