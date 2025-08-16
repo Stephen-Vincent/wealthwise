@@ -20,6 +20,73 @@ class AIAnalysisService:
         self.groq_api_key = os.getenv("GROQ_API_KEY")  # Set from environment
         self.finnhub_api_key = os.getenv("FINNHUB_API_KEY")  # For news analysis
         self.model = "llama3-70b-8192"  # Or mixtral-8x7b-32768
+
+    def generate_portfolio_summary(self, user_data: Dict, risk_score: float, risk_label: str, simulation_results: Dict) -> str:
+        """
+        Generate AI-powered portfolio summary - FIXED METHOD SIGNATURE
+        
+        Args:
+            user_data: User profile information
+            risk_score: Risk assessment score (0-100)
+            risk_label: Risk level label (e.g., "Moderate Aggressive")
+            simulation_results: Complete simulation results
+            
+        Returns:
+            AI-generated portfolio summary
+        """
+        try:
+            logger.info(f"🤖 Generating AI summary for {risk_label} portfolio")
+            
+            # Extract stocks_picked from simulation_results safely
+            results = simulation_results.get('results', simulation_results)
+            if isinstance(results, dict):
+                stocks_picked = results.get('stocks_picked', [])
+            else:
+                stocks_picked = getattr(results, 'stocks_picked', [])
+            
+            # Analyze market movements from timeline data
+            market_analysis = self._analyze_market_movements(simulation_results, user_data)
+            
+            # Get news sentiment analysis for the portfolio stocks (async function - needs to be handled)
+            try:
+                import asyncio
+                if asyncio.iscoroutinefunction(self._analyze_portfolio_news):
+                    # If we're in an async context, we can await
+                    try:
+                        loop = asyncio.get_event_loop()
+                        news_analysis = loop.run_until_complete(self._analyze_portfolio_news(stocks_picked))
+                    except RuntimeError:
+                        # Create new event loop if none exists
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        news_analysis = loop.run_until_complete(self._analyze_portfolio_news(stocks_picked))
+                else:
+                    news_analysis = self._analyze_portfolio_news(stocks_picked)
+            except Exception as e:
+                logger.warning(f"⚠️ News analysis failed: {e}")
+                news_analysis = {"error": "News analysis unavailable"}
+            
+            # Generate comprehensive prompt with market movement insights and news sentiment
+            prompt = self._create_educational_market_prompt_with_news(
+                stocks_picked, user_data, risk_score, risk_label, 
+                simulation_results, market_analysis, news_analysis
+            )
+            
+            # Try to get AI response
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                response = loop.run_until_complete(self._get_groq_response(prompt))
+                return self._format_ai_response(response)
+            except Exception as e:
+                logger.warning(f"⚠️ AI response failed: {e}")
+                raise e
+            
+        except Exception as e:
+            logger.error(f"Error generating AI summary: {e}")
+            return self._get_formatted_fallback_summary_with_movements(
+                user_data, simulation_results, stocks_picked if 'stocks_picked' in locals() else [], risk_label
+            )
     
     def extract_symbols_from_portfolio(self, portfolio_data: dict) -> List[str]:
         """Extract stock symbols from portfolio data"""
@@ -45,41 +112,7 @@ class AIAnalysisService:
                     symbols.append(stock['ticker'].upper())
         
         return list(set(symbols))  # Remove duplicates
-            
-    async def generate_portfolio_summary(
-        self, 
-        stocks_picked: List[Dict], 
-        user_data: Dict[str, Any], 
-        risk_score: int, 
-        risk_label: str, 
-        simulation_results: Dict[str, Any]
-    ) -> str:
-        """
-        Generate AI summary with enhanced market movement explanations
-        Now includes news sentiment analysis
-        """
-        try:
-            # Analyze market movements from timeline data
-            market_analysis = self._analyze_market_movements(simulation_results, user_data)
-            
-            # Get news sentiment analysis for the portfolio stocks
-            news_analysis = await self._analyze_portfolio_news(stocks_picked)
-            
-            # Generate comprehensive prompt with market movement insights and news sentiment
-            prompt = self._create_educational_market_prompt_with_news(
-                stocks_picked, user_data, risk_score, risk_label, 
-                simulation_results, market_analysis, news_analysis
-            )
-            
-            response = await self._get_groq_response(prompt)
-            return self._format_ai_response(response)
-            
-        except Exception as e:
-            logger.error(f"Error generating AI summary: {e}")
-            return self._get_formatted_fallback_summary_with_movements(
-                user_data, simulation_results, stocks_picked, risk_label
-            )
-    
+
     async def analyze_portfolio_performance(self, portfolio_data: dict):
         """Analyze existing portfolio performance with news context"""
         try:
@@ -168,6 +201,11 @@ class AIAnalysisService:
             return {"error": "No valid symbols found in portfolio data"}
         
         try:
+            # Check if news service is available
+            if not self.finnhub_api_key:
+                logger.warning("⚠️ FINNHUB_API_KEY not available - using fallback analysis")
+                return {"error": "News analysis requires FINNHUB_API_KEY"}
+            
             # Get comprehensive news analysis
             async with NewsAnalysisService(self.finnhub_api_key) as news_service:
                 # Get news and sentiment for all symbols
@@ -210,10 +248,13 @@ class AIAnalysisService:
             # Extract symbols from stocks_picked
             symbols = []
             for stock in stocks_picked:
-                if 'symbol' in stock:
-                    symbols.append(stock['symbol'].upper())
-                elif 'ticker' in stock:
-                    symbols.append(stock['ticker'].upper())
+                if isinstance(stock, dict):
+                    if 'symbol' in stock:
+                        symbols.append(stock['symbol'].upper())
+                    elif 'ticker' in stock:
+                        symbols.append(stock['ticker'].upper())
+                elif isinstance(stock, str):
+                    symbols.append(stock.upper())
             
             if not symbols:
                 return {"error": "No symbols found in portfolio"}
@@ -227,6 +268,9 @@ class AIAnalysisService:
     async def _get_portfolio_news_analysis(self, symbols: List[str], days_back: int = 7) -> Dict:
         """Get comprehensive news analysis for portfolio symbols"""
         try:
+            if not self.finnhub_api_key:
+                return {"error": "FINNHUB_API_KEY not available"}
+            
             async with NewsAnalysisService(self.finnhub_api_key) as news_service:
                 # Get news for all symbols
                 news_data = await news_service.get_market_news(symbols, days_back)
@@ -325,7 +369,7 @@ class AIAnalysisService:
         if events:
             high_impact_events = ['earnings', 'merger_acquisition', 'regulatory']
             for event in events:
-                if Any(event_type in high_impact_events for event_type in event.get('event_types', [])):
+                if any(event_type in high_impact_events for event_type in event.get('event_types', [])):  # FIXED: any instead of Any
                     event_multiplier = 1.5
                     break
         
@@ -371,7 +415,7 @@ Provide 2-3 sentences of actionable insights about this stock's current situatio
             logger.error(f"Error generating stock insights for {symbol}: {e}")
             return f"Unable to generate insights for {symbol} due to analysis error."
 
-    # ... [Keep all your existing market movement analysis methods] ...
+    # Market movement analysis methods
     def _analyze_market_movements(self, simulation_results: Dict, user_data: Dict) -> Dict:
         """
         Comprehensive analysis of market movements throughout the simulation
@@ -794,7 +838,7 @@ Keep it beginner-friendly and educational. Focus on teaching, not selling.
             sentiment = news_analysis.get('overall_sentiment', 0)
             
             # Identify risk factors from news
-            risk_events = [event for event in events if Any(risk_type in event.get('event_types', []) 
+            risk_events = [event for event in events if any(risk_type in event.get('event_types', []) 
                           for risk_type in ['regulatory', 'legal', 'earnings'])]
             
             risk_context = f"""
@@ -860,6 +904,9 @@ Focus on teaching how news and market sentiment influence investment decisions.
     async def _get_groq_response(self, prompt: str) -> str:
         """Get response from GROQ API"""
         try:
+            if not self.groq_api_key:
+                raise Exception("GROQ_API_KEY not available")
+            
             headers = {
                 "Authorization": f"Bearer {self.groq_api_key}",
                 "Content-Type": "application/json"

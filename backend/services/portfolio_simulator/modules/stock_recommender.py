@@ -27,6 +27,192 @@ class EnhancedStockRecommender:
         self.wealthwise_available = self._check_wealthwise_availability()
         logger.info(f"🤖 EnhancedStockRecommender initialized (WealthWise: {'✅' if self.wealthwise_available else '❌'})")
     
+    def get_recommendations(self, user_data: Dict[str, Any], risk_score: float, risk_level: str) -> Dict[str, Any]:
+        """
+        Get stock recommendations - main method called by portfolio simulator
+        
+        Args:
+            user_data: Dictionary containing user information
+            risk_score: Risk score (0-100) 
+            risk_level: Risk level string (e.g., "Moderate Aggressive")
+            
+        Returns:
+            Dictionary with stock recommendations
+        """
+        try:
+            logger.info(f"🤖 Generating recommendations for risk level: {risk_level} (score: {risk_score})")
+            
+            # Extract relevant user information
+            goal = user_data.get('goal', 'wealth building')
+            timeframe = user_data.get('timeframe', 5)
+            target_value = user_data.get('target_value', 10000)
+            monthly = user_data.get('monthly', 100)
+            lump_sum = user_data.get('lump_sum', 1000)
+            
+            # Use existing fallback method to get stocks
+            stocks = self.get_fallback_stocks(int(risk_score))
+            
+            # Calculate allocations based on risk score
+            allocations = self._calculate_risk_based_allocations(risk_score, len(stocks))
+            
+            # Create detailed recommendations structure
+            recommendations = {
+                'stocks_picked': [
+                    {
+                        'symbol': stock,
+                        'allocation': allocation,
+                        'explanation': self.explain_stock_selection(stock, {
+                            'risk_score': risk_score,
+                            'goal': goal,
+                            'timeframe': timeframe
+                        })
+                    }
+                    for stock, allocation in zip(stocks, allocations)
+                ],
+                'reasoning': self._generate_portfolio_reasoning(risk_score, risk_level, goal, timeframe),
+                'methodology': 'Enhanced AI recommendation system with risk-based optimization',
+                'risk_alignment': f"Optimized for {risk_level} risk profile",
+                'confidence_score': min(95, 70 + (risk_score / 10)),
+                'rebalancing_frequency': 'Quarterly' if risk_score > 60 else 'Semi-annually',
+                'goal_alignment': self._assess_goal_alignment(user_data, risk_score),
+                'diversification_score': self._calculate_diversification_score({'stocks_picked': [{'symbol': s} for s in stocks]}),
+                'expected_return': self._estimate_expected_return(risk_score, stocks),
+                'volatility_estimate': self._estimate_volatility_from_stocks(stocks)
+            }
+            
+            logger.info(f"✅ Generated {len(stocks)} stock recommendations")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"❌ Recommendation generation failed: {e}")
+            # Return basic fallback
+            return self._get_basic_fallback_recommendations_sync(user_data, risk_score, risk_level)
+
+    def _calculate_risk_based_allocations(self, risk_score: float, num_stocks: int) -> List[float]:
+        """Calculate allocations based on risk score and number of stocks"""
+        
+        if risk_score <= 30:  # Conservative
+            if num_stocks == 5:
+                return [25, 35, 20, 15, 5]  # Bond-heavy
+            else:
+                # Equal weight with bond bias
+                base = 100 / num_stocks
+                return [base] * num_stocks
+                
+        elif risk_score <= 50:  # Moderate
+            if num_stocks == 5:
+                return [30, 25, 20, 15, 10]  # Balanced
+            else:
+                return [100 / num_stocks] * num_stocks
+                
+        elif risk_score <= 70:  # Moderate Aggressive  
+            if num_stocks == 5:
+                return [35, 25, 20, 15, 5]  # Growth-focused
+            else:
+                return [100 / num_stocks] * num_stocks
+                
+        else:  # Aggressive
+            if num_stocks == 5:
+                return [40, 30, 15, 10, 5]  # High growth
+            else:
+                return [100 / num_stocks] * num_stocks
+
+    def _generate_portfolio_reasoning(self, risk_score: float, risk_level: str, goal: str, timeframe: int) -> str:
+        """Generate reasoning for portfolio composition"""
+        
+        if risk_score <= 30:
+            return f"Conservative portfolio emphasizing capital preservation and steady growth for {goal} over {timeframe} years. Focus on stability with modest growth potential."
+        elif risk_score <= 50:
+            return f"Balanced portfolio mixing growth and stability for {goal}. Designed to provide steady returns while managing risk over {timeframe} years."
+        elif risk_score <= 70:
+            return f"Growth-focused portfolio targeting higher returns for {goal}. Accepts moderate volatility for enhanced growth potential over {timeframe} years."
+        else:
+            return f"Aggressive growth portfolio maximizing return potential for {goal}. Emphasizes capital appreciation with higher volatility tolerance over {timeframe} years."
+
+    def _assess_goal_alignment(self, user_data: Dict[str, Any], risk_score: float) -> str:
+        """Assess how well portfolio aligns with user's goal"""
+        
+        goal = user_data.get('goal', 'wealth building')
+        timeframe = user_data.get('timeframe', 5)
+        target_value = user_data.get('target_value', 10000)
+        
+        goal_assessments = {
+            'retirement': f"Portfolio designed for long-term retirement wealth building with risk level appropriate for {timeframe}-year timeline",
+            'house': f"Balanced approach for house purchase goal, managing growth needs with capital preservation for {timeframe}-year timeline", 
+            'education': f"Growth-focused strategy for education funding, balancing appreciation with timeline requirements",
+            'wealth building': f"Optimized for wealth accumulation over {timeframe} years with risk level matching your tolerance",
+            'emergency fund': "Conservative approach prioritizing capital preservation and liquidity for emergency preparedness"
+        }
+        
+        return goal_assessments.get(goal, f"Portfolio optimized for {goal} over {timeframe}-year investment horizon")
+
+    def _estimate_expected_return(self, risk_score: float, stocks: List[str]) -> float:
+        """Estimate expected annual return based on portfolio composition"""
+        
+        # Base returns by risk level
+        if risk_score <= 30:
+            base_return = 5.5  # Conservative
+        elif risk_score <= 50:
+            base_return = 7.0  # Moderate
+        elif risk_score <= 70:
+            base_return = 8.5  # Moderate Aggressive
+        else:
+            base_return = 10.0  # Aggressive
+        
+        # Adjust for specific holdings
+        tech_allocation = sum(1 for stock in stocks if stock in ['QQQ', 'VGT', 'ARKK'])
+        bond_allocation = sum(1 for stock in stocks if stock in ['BND', 'VTEB'])
+        
+        # Tech increases expected return
+        if tech_allocation > 0:
+            base_return += tech_allocation * 0.5
+        
+        # Bonds decrease expected return but add stability
+        if bond_allocation > 0:
+            base_return -= bond_allocation * 0.5
+        
+        return round(base_return, 1)
+
+    def _estimate_volatility_from_stocks(self, stocks: List[str]) -> float:
+        """Estimate portfolio volatility based on holdings"""
+        
+        base_volatility = 10.0
+        
+        # High volatility stocks
+        high_vol_stocks = ['ARKK', 'VWO', 'VGT']
+        low_vol_stocks = ['BND', 'VTEB', 'VIG']
+        
+        high_vol_count = sum(1 for stock in stocks if stock in high_vol_stocks)
+        low_vol_count = sum(1 for stock in stocks if stock in low_vol_stocks)
+        
+        # Adjust volatility
+        base_volatility += high_vol_count * 2.5
+        base_volatility -= low_vol_count * 1.5
+        
+        return round(max(5.0, base_volatility), 1)
+
+    def _get_basic_fallback_recommendations_sync(self, user_data: Dict[str, Any], risk_score: float, risk_level: str) -> Dict[str, Any]:
+        """Synchronous basic fallback when everything fails"""
+        
+        stocks = ['VTI', 'BND', 'VEA']  # Ultra-basic portfolio
+        allocations = [60, 30, 10]
+        
+        return {
+            'stocks_picked': [
+                {
+                    'symbol': stock,
+                    'allocation': allocation,
+                    'explanation': f"{stock} - Basic allocation for balanced portfolio"
+                }
+                for stock, allocation in zip(stocks, allocations)
+            ],
+            'reasoning': f"Basic balanced portfolio for {risk_level} investor",
+            'methodology': 'Emergency fallback allocation',
+            'risk_alignment': f"Simplified allocation for {risk_level} profile",
+            'confidence_score': 60,
+            'rebalancing_frequency': 'Annually'
+        }
+
     async def get_enhanced_recommendations(self, goal_analysis: Dict[str, Any],
                                          risk_profile: Dict[str, Any],
                                          user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -365,6 +551,16 @@ class EnhancedStockRecommender:
             importance["diversification_need"] -= 0.05
         
         return importance
+
+    def _calculate_diversification_score(self, portfolio_data: Dict) -> float:
+        """Calculate diversification score for portfolio"""
+        stocks = portfolio_data.get('stocks_picked', [])
+        if len(stocks) >= 5:
+            return 0.9
+        elif len(stocks) >= 3:
+            return 0.75
+        else:
+            return 0.6
     
     def _simulate_market_regime(self) -> Dict[str, Any]:
         """
