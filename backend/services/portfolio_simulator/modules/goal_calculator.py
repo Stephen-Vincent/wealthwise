@@ -6,7 +6,7 @@ It fixes the 0.0% required return issue by properly handling cases where contrib
 alone would reach the target.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
