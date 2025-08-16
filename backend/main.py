@@ -5,8 +5,9 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 # Updated imports for new database structure
@@ -60,114 +61,159 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enhanced CORS middleware for production deployment
+# 🔧 IMPROVED CORS CONFIGURATION
 def setup_cors():
-    """Setup CORS for both development and production"""
+    """Setup comprehensive CORS for all deployment scenarios"""
     
-    # Start with default CORS origins from settings
-    cors_origins = getattr(settings, 'BACKEND_CORS_ORIGINS', [])
-    
-    # Add essential development origins
+    # Essential development origins
     dev_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:8080",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080"
     ]
     
-    # Add ALL current Vercel deployment URLs
-    prod_origins = [
-        # Old deployment URLs
+    # All known Vercel deployment URLs (current and historical)
+    vercel_origins = [
+        # Current primary domain
+        "https://wealthwise-six-gamma.vercel.app",
+        
+        # Git-based deployments
+        "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
+        
+        # Historical deployments
         "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
         "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
-        
-        # Current deployment URLs (from Vercel dashboard)
-        "https://wealthwise-six-gamma.vercel.app",
-        "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
         "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
         "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",
-        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",  # Latest domain
+        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",
         
-        # Wildcard pattern for all Vercel deployments
-        "https://*.vercel.app"
+        # Common Vercel patterns
+        "https://wealthwise.vercel.app",
+        "https://wealthwise-stephen-vincents-projects.vercel.app"
     ]
     
-    # Combine all origins
-    all_origins = list(set(cors_origins + dev_origins + prod_origins))
-    
-    # Get environment
+    # Environment-specific origins
     environment = os.getenv("ENVIRONMENT", "development")
+    additional_origins = []
     
-    # Add environment-specific URLs
-    if environment == "production":
-        # Add common production patterns
-        vercel_url = os.getenv("VERCEL_URL")
-        if vercel_url and f"https://{vercel_url}" not in all_origins:
-            all_origins.append(f"https://{vercel_url}")
-        
-        # Add Railway frontend URL pattern (if using Railway for both)
-        railway_frontend = os.getenv("RAILWAY_STATIC_URL") 
-        if railway_frontend and railway_frontend not in all_origins:
-            all_origins.append(railway_frontend)
+    # Add dynamic Vercel URL if available
+    vercel_url = os.getenv("VERCEL_URL")
+    if vercel_url:
+        if not vercel_url.startswith("http"):
+            additional_origins.append(f"https://{vercel_url}")
+        else:
+            additional_origins.append(vercel_url)
     
-    # For development/testing, you might want to be more permissive
+    # Railway frontend URL (if using Railway for frontend)
+    railway_url = os.getenv("RAILWAY_STATIC_URL")
+    if railway_url:
+        additional_origins.append(railway_url)
+    
+    # Combine all origins
+    all_origins = dev_origins + vercel_origins + additional_origins
+    
+    # Remove duplicates while preserving order
+    unique_origins = list(dict.fromkeys(all_origins))
+    
+    # For development, be more permissive
     if environment == "development":
-        # Add localhost variants
-        localhost_variants = [
-            "http://localhost:3001",
-            "http://localhost:8080",
-            "http://127.0.0.1:8080"
-        ]
-        all_origins.extend(localhost_variants)
+        unique_origins.append("*")  # Allow all in development
     
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=all_origins,
+        allow_origins=unique_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
-        expose_headers=["*"]
+        expose_headers=["*"],
+        max_age=3600,  # Cache preflight requests for 1 hour
     )
     
-    logger.info(f"🌐 CORS configured for origins: {all_origins}")
+    logger.info(f"🌐 CORS configured for {len(unique_origins)} origins")
+    logger.info(f"🔗 Primary origins: {unique_origins[:5]}...")  # Log first 5
+    
+    return unique_origins
 
-# Setup CORS
-setup_cors()
+# Setup CORS and store allowed origins
+allowed_origins = setup_cors()
 
-# Add this after setup_cors() call
+# 🔧 ENHANCED CORS MIDDLEWARE FOR ERROR RESPONSES
 @app.middleware("http")
-async def add_cors_to_errors(request, call_next):
-    """Ensure CORS headers are present on all responses, including errors"""
-    response = await call_next(request)
+async def enhanced_cors_middleware(request: Request, call_next):
+    """Enhanced CORS middleware that handles all responses including errors"""
     
     # Get origin from request
     origin = request.headers.get("origin")
     
-    # Add CORS headers to all responses (including errors)
-    if origin:
-        # Updated allowed origins list to match current deployments
-        allowed_origins = [
-            # Development
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5173",
+    # Handle preflight OPTIONS requests
+    if request.method == "OPTIONS":
+        if origin:
+            # Check if origin is allowed
+            origin_allowed = (
+                origin in allowed_origins or
+                origin.endswith(".vercel.app") or
+                "localhost" in origin or
+                "127.0.0.1" in origin
+            )
             
-            # All current Vercel deployments
-            "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-six-gamma.vercel.app",
-            "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"  # Add latest
-        ]
+            if origin_allowed:
+                response = JSONResponse(content={}, status_code=200)
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Max-Age"] = "3600"
+                
+                logger.info(f"✅ CORS preflight approved for: {origin}")
+                return response
         
-        if origin in allowed_origins or origin.endswith(".vercel.app"):
+        # Fallback preflight response
+        response = JSONResponse(content={}, status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+    
+    # Process the actual request
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        logger.error(f"❌ Request failed: {e}")
+        response = JSONResponse(
+            content={"error": "Internal server error", "message": str(e)},
+            status_code=500
+        )
+    
+    # Add CORS headers to all responses
+    if origin:
+        origin_allowed = (
+            origin in allowed_origins or
+            origin.endswith(".vercel.app") or
+            "localhost" in origin or
+            "127.0.0.1" in origin
+        )
+        
+        if origin_allowed:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
             response.headers["Access-Control-Allow-Headers"] = "*"
     
+    return response
+
+# 🔧 REQUEST LOGGING MIDDLEWARE
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all requests for debugging"""
+    origin = request.headers.get("origin", "No origin")
+    logger.info(f"📨 {request.method} {request.url} from {origin}")
+    
+    response = await call_next(request)
+    
+    logger.info(f"📤 Response: {response.status_code}")
     return response
 
 # Health check endpoints (important for Railway deployment)
@@ -183,6 +229,7 @@ async def root():
         "environment": environment,
         "database": database_type,
         "status": "healthy",
+        "cors_enabled": True,
         "docs": "/docs",
         "endpoints": {
             "health": "/api/health",
@@ -192,10 +239,11 @@ async def root():
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
             "instruments": "/api/instruments",
-            # 🎯 NEW: Enhanced features endpoints
+            # 🎯 Enhanced features endpoints
             "enhanced_features": "/onboarding/health/enhanced-features",
             "crash_analysis": "/onboarding/{simulation_id}/crash-analysis",
-            "shap_visualization": "/onboarding/{simulation_id}/shap-visualization"
+            "shap_visualization": "/onboarding/{simulation_id}/shap-visualization",
+            "debug": "/onboarding/{simulation_id}/debug"
         }
     }
 
@@ -217,16 +265,17 @@ async def health_check():
     groq_api_key = os.getenv("GROQ_API_KEY")
     ai_status = "configured" if groq_api_key else "missing_api_key"
     
-    # 🎯 NEW: Check enhanced features availability
+    # Check enhanced features availability
     enhanced_features_status = _check_enhanced_features()
     
     return {
         "status": "healthy",
         "message": "WealthWise API is running",
-        "timestamp": os.times(),
         "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
         "ai_service": ai_status,
+        "cors_enabled": True,
+        "cors_origins_count": len(allowed_origins),
         "enhanced_features": enhanced_features_status,
         "version": settings.APP_VERSION
     }
@@ -235,6 +284,27 @@ async def health_check():
 async def api_health_check():
     """Alternative health endpoint for API monitoring"""
     return await health_check()
+
+# 🔧 CORS TEST ENDPOINT
+@app.get("/api/cors-test")
+async def cors_test(request: Request):
+    """Test endpoint specifically for CORS debugging"""
+    origin = request.headers.get("origin", "No origin")
+    user_agent = request.headers.get("user-agent", "Unknown")
+    
+    return {
+        "message": "CORS test successful",
+        "origin": origin,
+        "user_agent": user_agent,
+        "allowed_origins_count": len(allowed_origins),
+        "cors_working": True,
+        "timestamp": str(os.times())
+    }
+
+@app.options("/api/cors-test")
+async def cors_test_preflight():
+    """Handle preflight for CORS test"""
+    return {"message": "Preflight successful"}
 
 # Include API routers with proper error handling
 def include_routers():
@@ -246,8 +316,7 @@ def include_routers():
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
         (ai_analysis.router, "/api/ai", ["ai-analysis"]),
-        (shap_visualization.router, "/api/shap", ["shap"]), 
-       
+        (shap_visualization.router, "/api/shap", ["shap"]),
     ]
     
     for router, prefix, tags in routers_config:
@@ -261,25 +330,46 @@ def include_routers():
 # Include all routers
 include_routers()
 
-# Error handlers for better debugging
+# 🔧 ENHANCED ERROR HANDLERS
 @app.exception_handler(500)
-async def internal_server_error(request, exc):
+async def internal_server_error_handler(request: Request, exc):
     logger.error(f"Internal server error: {exc}")
-    return {
-        "error": "Internal server error",
-        "message": "Something went wrong. Please try again later.",
-        "status_code": 500
-    }
+    
+    response = JSONResponse(
+        content={
+            "error": "Internal server error",
+            "message": "Something went wrong. Please try again later.",
+            "status_code": 500
+        },
+        status_code=500
+    )
+    
+    # Ensure CORS headers on error responses
+    origin = request.headers.get("origin")
+    if origin and (origin in allowed_origins or origin.endswith(".vercel.app")):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return response
 
-# Middleware to log requests in development
-if os.getenv("DEBUG", "true").lower() == "true":
-    @app.middleware("http")
-    async def log_requests(request, call_next):
-        origin = request.headers.get("origin", "No origin")
-        logger.info(f"📨 {request.method} {request.url} from {origin}")
-        response = await call_next(request)
-        logger.info(f"📤 Response: {response.status_code}")
-        return response
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    response = JSONResponse(
+        content={
+            "error": "Not found",
+            "message": "The requested resource was not found",
+            "status_code": 404
+        },
+        status_code=404
+    )
+    
+    # Ensure CORS headers on error responses
+    origin = request.headers.get("origin")
+    if origin and (origin in allowed_origins or origin.endswith(".vercel.app")):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return response
 
 # Railway deployment specific configurations
 def configure_for_railway():
@@ -312,11 +402,10 @@ async def demo_info():
             "User authentication and data persistence",
             "Password reset functionality",
             "Cross-database compatibility (SQLite/PostgreSQL)",
-            # 🎯 NEW: Enhanced features status
-            "Enhanced portfolio simulation (ready for deployment)",
+            "Enhanced portfolio simulation with SHAP explanations",
             "Market crash detection and analysis",
-            "SHAP explainable AI integration",
-            "Smart goal calculation (fixes 0% return issue)"
+            "Smart goal calculation",
+            "CORS-enabled API for web applications"
         ],
         "technology_stack": {
             "backend": "FastAPI + SQLAlchemy",
@@ -325,7 +414,6 @@ async def demo_info():
             "ai": "Groq API (free tier)",
             "email": "SMTP (configurable)",
             "hosting": "Railway (backend) + Vercel (frontend)",
-            # 🎯 NEW: Enhanced tech stack
             "enhanced_ai": "WealthWise SHAP system (optional)",
             "news_analysis": "Finnhub API integration (optional)",
             "portfolio_optimization": "Multi-algorithm optimization"
@@ -334,6 +422,7 @@ async def demo_info():
             "cost": "$0/month (free tier services)",
             "performance": "Production-ready",
             "scalability": "Handles concurrent users",
+            "cors_enabled": True,
             "enhanced_features": enhanced_features
         }
     }
@@ -375,7 +464,7 @@ def _check_enhanced_features():
         # Check modular simulator
         modular_simulator = False
         try:
-            from portfolio_simulator.main import simulate_portfolio
+            from services.portfolio_simulator.main import simulate_portfolio
             modular_simulator = True
         except ImportError:
             pass
@@ -410,14 +499,15 @@ def _check_enhanced_features():
             "wealthwise_shap_system": wealthwise_available,
             "news_analysis_service": news_analysis,
             "ai_analysis_service": ai_analysis,
-            "smart_goal_calculation": True,  # Always available in updated onboarding
+            "smart_goal_calculation": True,
+            "cors_enabled": True,
             "status": "ready_for_deployment" if modular_simulator else "standard_mode"
         }
     except Exception as e:
         logger.error(f"Error checking enhanced features: {e}")
         return {"status": "error", "error": str(e)}
 
-# 🎯 NEW: Enhanced features test endpoint
+# 🎯 Enhanced features test endpoint
 @app.get("/api/enhanced-features/test")
 async def test_enhanced_features():
     """Test endpoint for enhanced features"""
@@ -427,17 +517,21 @@ async def test_enhanced_features():
         "endpoints_available": {
             "crash_analysis": "/onboarding/{simulation_id}/crash-analysis",
             "shap_visualization": "/onboarding/{simulation_id}/shap-visualization", 
-            "enhanced_health": "/onboarding/health/enhanced-features"
+            "enhanced_health": "/onboarding/health/enhanced-features",
+            "debug": "/onboarding/{simulation_id}/debug",
+            "shap_explanations": "/onboarding/{simulation_id}/shap-explanations"
         },
+        "cors_test": "/api/cors-test",
         "note": "Enhanced features will be fully activated when modular simulator is deployed"
     }
 
-# Startup message
+# Startup messages
 logger.info("🎓 WealthWise API configured for university project deployment")
 logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
 logger.info("🔗 Health check available at /health and /api/health")
 logger.info("🔑 Password reset functionality enabled")
 logger.info("🎯 Enhanced portfolio features ready for deployment")
+logger.info("🌐 CORS enabled for Vercel deployments")
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
