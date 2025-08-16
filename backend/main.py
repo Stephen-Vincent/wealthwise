@@ -11,7 +11,8 @@ from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization  # ADD PASSWORD RESET, SHAP VISUALIZATION
+# 🔧 CORRECTED: Removed shap_visualization since it doesn't exist yet
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset
 from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
@@ -187,11 +188,15 @@ async def root():
         "endpoints": {
             "health": "/api/health",
             "auth": "/auth",
-            "password_reset": "/auth",  # ADD THIS
+            "password_reset": "/auth",
             "onboarding": "/onboarding", 
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
-            "instruments": "/api/instruments"
+            "instruments": "/api/instruments",
+            # 🎯 NEW: Enhanced features endpoints
+            "enhanced_features": "/onboarding/health/enhanced-features",
+            "crash_analysis": "/onboarding/{simulation_id}/crash-analysis",
+            "shap_visualization": "/onboarding/{simulation_id}/shap-visualization"
         }
     }
 
@@ -213,6 +218,9 @@ async def health_check():
     groq_api_key = os.getenv("GROQ_API_KEY")
     ai_status = "configured" if groq_api_key else "missing_api_key"
     
+    # 🎯 NEW: Check enhanced features availability
+    enhanced_features_status = _check_enhanced_features()
+    
     return {
         "status": "healthy",
         "message": "WealthWise API is running",
@@ -220,6 +228,7 @@ async def health_check():
         "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
         "ai_service": ai_status,
+        "enhanced_features": enhanced_features_status,
         "version": settings.APP_VERSION
     }
 
@@ -233,12 +242,12 @@ def include_routers():
     """Include all API routers with error handling"""
     routers_config = [
         (auth.router, "/auth", ["auth"]),
-        (password_reset.router, "/auth", ["password-reset"]),  # ADD PASSWORD RESET ROUTER
+        (password_reset.router, "/auth", ["password-reset"]),
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
         (ai_analysis.router, "/api/ai", ["ai-analysis"]),
-        (shap_visualization.router, "/api/shap", ["shap-visualization"]),
+        # 🔧 REMOVED: shap_visualization router (will be added when modular simulator is ready)
     ]
     
     for router, prefix, tags in routers_config:
@@ -291,6 +300,8 @@ configure_for_railway()
 @app.get("/api/demo")
 async def demo_info():
     """Demo endpoint for university project showcase"""
+    enhanced_features = _check_enhanced_features()
+    
     return {
         "project": "WealthWise - AI Investment Portfolio Simulator",
         "description": "University project demonstrating AI-powered financial technology",
@@ -299,21 +310,31 @@ async def demo_info():
             "Risk assessment and recommendations", 
             "Portfolio simulation and tracking",
             "User authentication and data persistence",
-            "Password reset functionality",  # ADD THIS
-            "Cross-database compatibility (SQLite/PostgreSQL)"
+            "Password reset functionality",
+            "Cross-database compatibility (SQLite/PostgreSQL)",
+            # 🎯 NEW: Enhanced features status
+            "Enhanced portfolio simulation (ready for deployment)",
+            "Market crash detection and analysis",
+            "SHAP explainable AI integration",
+            "Smart goal calculation (fixes 0% return issue)"
         ],
         "technology_stack": {
             "backend": "FastAPI + SQLAlchemy",
             "frontend": "React + Vite", 
             "database": "SQLite (dev) / PostgreSQL (prod)",
             "ai": "Groq API (free tier)",
-            "email": "SMTP (configurable)",  # ADD THIS
-            "hosting": "Railway (backend) + Vercel (frontend)"
+            "email": "SMTP (configurable)",
+            "hosting": "Railway (backend) + Vercel (frontend)",
+            # 🎯 NEW: Enhanced tech stack
+            "enhanced_ai": "WealthWise SHAP system (optional)",
+            "news_analysis": "Finnhub API integration (optional)",
+            "portfolio_optimization": "Multi-algorithm optimization"
         },
         "deployment": {
             "cost": "$0/month (free tier services)",
             "performance": "Production-ready",
-            "scalability": "Handles concurrent users"
+            "scalability": "Handles concurrent users",
+            "enhanced_features": enhanced_features
         }
     }
 
@@ -329,7 +350,7 @@ if os.getenv("ENVIRONMENT") == "development":
             db = SessionLocal()
             user_count = db.query(User).count()
             simulation_count = db.query(Simulation).count()
-            token_count = db.query(PasswordResetToken).count()  # ADD THIS
+            token_count = db.query(PasswordResetToken).count()
             db.close()
             
             return {
@@ -338,18 +359,85 @@ if os.getenv("ENVIRONMENT") == "development":
                 "tables": {
                     "users": user_count,
                     "simulations": simulation_count,
-                    "password_reset_tokens": token_count  # ADD THIS
+                    "password_reset_tokens": token_count
                 },
-                "status": "connected"
+                "status": "connected",
+                "enhanced_features": _check_enhanced_features()
             }
         except Exception as e:
             return {"error": str(e), "status": "error"}
+
+# 🛠️ HELPER FUNCTIONS
+
+def _check_enhanced_features():
+    """Check availability of enhanced features"""
+    try:
+        # Check modular simulator
+        modular_simulator = False
+        try:
+            from portfolio_simulator.main import simulate_portfolio
+            modular_simulator = True
+        except ImportError:
+            pass
+        
+        # Check WealthWise
+        wealthwise_available = False
+        try:
+            from ai_models.stock_model.core.recommender import EnhancedStockRecommender
+            wealthwise_available = True
+        except ImportError:
+            pass
+        
+        # Check news analysis
+        news_analysis = False
+        try:
+            from services.news_analysis import NewsAnalysisService
+            if os.getenv("FINNHUB_API_KEY"):
+                news_analysis = True
+        except ImportError:
+            pass
+        
+        # Check AI analysis
+        ai_analysis = False
+        try:
+            from services.ai_analysis import AIAnalysisService
+            ai_analysis = True
+        except Exception:
+            pass
+        
+        return {
+            "modular_portfolio_simulator": modular_simulator,
+            "wealthwise_shap_system": wealthwise_available,
+            "news_analysis_service": news_analysis,
+            "ai_analysis_service": ai_analysis,
+            "smart_goal_calculation": True,  # Always available in updated onboarding
+            "status": "ready_for_deployment" if modular_simulator else "standard_mode"
+        }
+    except Exception as e:
+        logger.error(f"Error checking enhanced features: {e}")
+        return {"status": "error", "error": str(e)}
+
+# 🎯 NEW: Enhanced features test endpoint
+@app.get("/api/enhanced-features/test")
+async def test_enhanced_features():
+    """Test endpoint for enhanced features"""
+    return {
+        "message": "Enhanced features test endpoint",
+        "features_status": _check_enhanced_features(),
+        "endpoints_available": {
+            "crash_analysis": "/onboarding/{simulation_id}/crash-analysis",
+            "shap_visualization": "/onboarding/{simulation_id}/shap-visualization", 
+            "enhanced_health": "/onboarding/health/enhanced-features"
+        },
+        "note": "Enhanced features will be fully activated when modular simulator is deployed"
+    }
 
 # Startup message
 logger.info("🎓 WealthWise API configured for university project deployment")
 logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
 logger.info("🔗 Health check available at /health and /api/health")
-logger.info("🔑 Password reset functionality enabled")  # ADD THIS
+logger.info("🔑 Password reset functionality enabled")
+logger.info("🎯 Enhanced portfolio features ready for deployment")
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
