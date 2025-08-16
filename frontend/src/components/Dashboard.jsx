@@ -33,9 +33,18 @@ export default function Dashboard() {
       </div>
     );
 
-  const hasShapExplanation =
-    portfolioData?.results?.wealthwise_enhanced &&
-    portfolioData?.results?.shap_explanation;
+  // Add this right after the portfolioData check
+  console.log("🔍 DEBUGGING PORTFOLIO DATA:");
+  console.log("Full portfolioData:", portfolioData);
+  console.log("wealthwise_enhanced:", portfolioData?.wealthwise_enhanced);
+  console.log("shap_explanations:", portfolioData?.shap_explanations);
+  console.log("results:", portfolioData?.results);
+  console.log(
+    "All top-level keys:",
+    portfolioData ? Object.keys(portfolioData) : "No data"
+  );
+
+  const hasShapExplanation = Boolean(portfolioData?.shap_explanations);
 
   const handleSliceClick = (label) => {
     navigate(`/stock/${label}`);
@@ -53,7 +62,7 @@ export default function Dashboard() {
   const sectionRefs = {
     summaryRef,
     graphRef,
-    ...(hasShapExplanation && { shapRef }),
+    shapRef, // Always include this, not conditionally
     aiSummaryRef,
     pieChartRef,
   };
