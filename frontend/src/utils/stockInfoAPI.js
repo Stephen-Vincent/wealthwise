@@ -1,204 +1,338 @@
-// utils/stockInfoAPI.js - Financial Modeling Prep Integration
+// utils/stockInfoAPI.js - Multi-Source Stock Data API
 
 class StockInfoAPI {
   constructor() {
-    // Get free API key at: https://financialmodelingprep.com/developer/docs
-    this.apiKey = import.meta.env.VITE_FMP_API_KEY || "demo"; // Use 'demo' for testing
-    this.baseURL = "https://financialmodelingprep.com/api/v3";
     this.cache = new Map();
     this.cacheTimeout = 1000 * 60 * 60; // 1 hour cache
+
+    // API Keys (get free keys from these services)
+    this.apis = {
+      // 1. Alpha Vantage - Most reliable free option
+      alphaVantage: {
+        key: import.meta.env.VITE_ALPHA_VANTAGE_KEY || "demo",
+        baseURL: "https://www.alphavantage.co/query",
+        limit: 5, // 5 calls per minute (free tier)
+      },
+
+      // 2. Polygon.io - Great free tier
+      polygon: {
+        key: import.meta.env.VITE_POLYGON_KEY,
+        baseURL: "https://api.polygon.io",
+        limit: 5, // 5 calls per minute (free tier)
+      },
+
+      // 3. Yahoo Finance (unofficial but works)
+      yahoo: {
+        baseURL: "https://query1.finance.yahoo.com/v8/finance/chart",
+        limit: 100, // Very generous
+      },
+
+      // 4. Twelve Data - Good free tier
+      twelveData: {
+        key: import.meta.env.VITE_TWELVE_DATA_KEY,
+        baseURL: "https://api.twelvedata.com",
+        limit: 8, // 8 calls per minute (free tier)
+      },
+    };
   }
 
-  // Get comprehensive stock/ETF information
+  // Main method - tries multiple sources
   async getStockInfo(symbol) {
     const cacheKey = `stock_${symbol}`;
     const cached = this.cache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      console.log(`📦 Using cached data for ${symbol}`);
       return cached.data;
     }
 
-    try {
-      // Get multiple data points in parallel
-      const [profile, quote, ratios] = await Promise.all([
-        this.fetchCompanyProfile(symbol),
-        this.fetchQuote(symbol),
-        this.fetchRatios(symbol),
-      ]);
+    // Try different APIs in order of preference
+    const methods = [
+      () => this.getYahooFinanceData(symbol), // Try Yahoo first (most reliable)
+      () => this.getAlphaVantageData(symbol), // Then Alpha Vantage
+      () => this.getPolygonData(symbol), // Then Polygon
+      () => this.getTwelveDataInfo(symbol), // Then Twelve Data
+    ];
 
-      const stockInfo = {
-        symbol: symbol.toUpperCase(),
-        name: profile?.companyName || symbol,
-        description: profile?.description || "Investment instrument",
-        sector: profile?.sector || "Unknown",
-        industry: profile?.industry || "Unknown",
-        category: this.categorizeStock(profile, symbol),
-        riskLevel: this.assessRiskLevel(profile, ratios),
-        price: quote?.price || null,
-        marketCap: profile?.mktCap || null,
-        dividendYield: ratios?.dividendYield || 0,
-        beta: ratios?.beta || null,
-        peRatio: ratios?.peRatio || null,
-        exchange: profile?.exchange || "Unknown",
-        country: profile?.country || "Unknown",
-        website: profile?.website || null,
-        logo: profile?.image || null,
-        isETF: profile?.isEtf || this.isETF(symbol),
-        lastUpdated: new Date().toISOString(),
-      };
-
-      // Cache the result
-      this.cache.set(cacheKey, {
-        data: stockInfo,
-        timestamp: Date.now(),
-      });
-
-      return stockInfo;
-    } catch (error) {
-      console.error(`Error fetching info for ${symbol}:`, error);
-      return this.getFallbackInfo(symbol);
-    }
-  }
-
-  // Get multiple stocks at once (batch processing)
-  async getBatchStockInfo(symbols) {
-    const results = {};
-    const batchSize = 5; // Process in batches to avoid rate limits
-
-    for (let i = 0; i < symbols.length; i += batchSize) {
-      const batch = symbols.slice(i, i + batchSize);
-      const promises = batch.map((symbol) =>
-        this.getStockInfo(symbol).catch((error) => {
-          console.error(`Failed to fetch ${symbol}:`, error);
-          return this.getFallbackInfo(symbol);
-        })
-      );
-
-      const batchResults = await Promise.all(promises);
-      batch.forEach((symbol, index) => {
-        results[symbol] = batchResults[index];
-      });
-
-      // Rate limiting delay
-      if (i + batchSize < symbols.length) {
-        await this.delay(200); // 200ms delay between batches
+    for (const method of methods) {
+      try {
+        const data = await method();
+        if (data && data.symbol) {
+          this.cache.set(cacheKey, {
+            data,
+            timestamp: Date.now(),
+          });
+          return data;
+        }
+      } catch (error) {
+        console.warn(`API method failed for ${symbol}:`, error.message);
       }
     }
 
+    // If all APIs fail, return fallback data
+    console.log(`📊 Using fallback data for ${symbol}`);
+    return this.getFallbackInfo(symbol);
+  }
+
+  // 1. Yahoo Finance API (Free, no key required)
+  async getYahooFinanceData(symbol) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+      const response = await fetch(url);
+
+      if (!response.ok) throw new Error(`Yahoo API error: ${response.status}`);
+
+      const data = await response.json();
+      const result = data.chart?.result?.[0];
+
+      if (!result) throw new Error("No data returned");
+
+      const meta = result.meta;
+      const quote = result.indicators?.quote?.[0];
+
+      return {
+        symbol: symbol.toUpperCase(),
+        name: meta.longName || meta.shortName || symbol,
+        price: meta.regularMarketPrice || meta.previousClose,
+        currency: meta.currency || "USD",
+        exchange: meta.exchangeName || meta.fullExchangeName,
+        marketCap: meta.marketCap,
+        sector: this.guessSectorFromName(meta.longName || symbol),
+        category: this.categorizeFromSymbol(symbol),
+        riskLevel: this.assessRiskFromBeta(meta.beta),
+        dividendYield: (meta.dividendYield || 0) * 100,
+        beta: meta.beta,
+        peRatio: meta.trailingPE,
+        isETF: this.isETF(symbol),
+        dataSource: "Yahoo Finance",
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new Error(`Yahoo Finance failed: ${error.message}`);
+    }
+  }
+
+  // 2. Alpha Vantage API (Free tier: 5 calls/minute)
+  async getAlphaVantageData(symbol) {
+    if (!this.apis.alphaVantage.key || this.apis.alphaVantage.key === "demo") {
+      throw new Error("Alpha Vantage API key required");
+    }
+
+    try {
+      // Get overview data
+      const overviewUrl = `${this.apis.alphaVantage.baseURL}?function=OVERVIEW&symbol=${symbol}&apikey=${this.apis.alphaVantage.key}`;
+      const quoteUrl = `${this.apis.alphaVantage.baseURL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.apis.alphaVantage.key}`;
+
+      const [overviewResponse, quoteResponse] = await Promise.all([
+        fetch(overviewUrl),
+        fetch(quoteUrl),
+      ]);
+
+      const overview = await overviewResponse.json();
+      const quote = await quoteResponse.json();
+
+      if (overview.Note || quote.Note) {
+        throw new Error("API rate limit exceeded");
+      }
+
+      const globalQuote = quote["Global Quote"] || {};
+
+      return {
+        symbol: symbol.toUpperCase(),
+        name: overview.Name || symbol,
+        description: overview.Description,
+        price: parseFloat(globalQuote["05. price"]) || null,
+        sector: overview.Sector,
+        industry: overview.Industry,
+        marketCap: parseInt(overview.MarketCapitalization) || null,
+        dividendYield: parseFloat(overview.DividendYield) * 100 || 0,
+        beta: parseFloat(overview.Beta) || null,
+        peRatio: parseFloat(overview.PERatio) || null,
+        exchange: overview.Exchange,
+        country: overview.Country,
+        category: this.categorizeFromSector(overview.Sector, overview.Industry),
+        riskLevel: this.assessRiskFromBeta(parseFloat(overview.Beta)),
+        isETF: overview.AssetType === "ETF" || this.isETF(symbol),
+        dataSource: "Alpha Vantage",
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new Error(`Alpha Vantage failed: ${error.message}`);
+    }
+  }
+
+  // 3. Polygon.io API (Free tier: 5 calls/minute)
+  async getPolygonData(symbol) {
+    if (!this.apis.polygon.key) {
+      throw new Error("Polygon API key required");
+    }
+
+    try {
+      const tickerUrl = `${this.apis.polygon.baseURL}/v3/reference/tickers/${symbol}?apikey=${this.apis.polygon.key}`;
+      const quoteUrl = `${this.apis.polygon.baseURL}/v2/last/trade/${symbol}?apikey=${this.apis.polygon.key}`;
+
+      const [tickerResponse, quoteResponse] = await Promise.all([
+        fetch(tickerUrl),
+        fetch(quoteUrl),
+      ]);
+
+      const tickerData = await tickerResponse.json();
+      const quoteData = await quoteResponse.json();
+
+      if (tickerData.status !== "OK") {
+        throw new Error("Invalid ticker or API error");
+      }
+
+      const ticker = tickerData.results;
+      const lastTrade = quoteData.results;
+
+      return {
+        symbol: symbol.toUpperCase(),
+        name: ticker.name,
+        description: ticker.description,
+        price: lastTrade?.p || null,
+        marketCap: ticker.market_cap,
+        sector: ticker.sic_description,
+        exchange: ticker.primary_exchange,
+        category: this.categorizeFromSymbol(symbol),
+        riskLevel: "Medium", // Polygon doesn't provide beta easily
+        isETF: ticker.type === "ETF",
+        dataSource: "Polygon.io",
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new Error(`Polygon failed: ${error.message}`);
+    }
+  }
+
+  // 4. Twelve Data API (Free tier: 8 calls/minute)
+  async getTwelveDataInfo(symbol) {
+    if (!this.apis.twelveData.key) {
+      throw new Error("Twelve Data API key required");
+    }
+
+    try {
+      const url = `${this.apis.twelveData.baseURL}/profile?symbol=${symbol}&apikey=${this.apis.twelveData.key}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === "error") {
+        throw new Error(data.message);
+      }
+
+      return {
+        symbol: symbol.toUpperCase(),
+        name: data.name,
+        description: data.summary,
+        sector: data.sector,
+        industry: data.industry,
+        country: data.country,
+        exchange: data.exchange,
+        category: this.categorizeFromSector(data.sector, data.industry),
+        riskLevel: "Medium",
+        isETF: data.type === "ETF",
+        dataSource: "Twelve Data",
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new Error(`Twelve Data failed: ${error.message}`);
+    }
+  }
+
+  // Batch processing with rate limiting
+  async getBatchStockInfo(symbols) {
+    console.log(
+      `🔄 Fetching stock information for ${symbols.length} symbols...`
+    );
+    const results = {};
+
+    for (let i = 0; i < symbols.length; i++) {
+      const symbol = symbols[i];
+      try {
+        console.log(`📡 Fetching ${symbol} from Python backend...`);
+        results[symbol] = await this.getStockInfo(symbol);
+        console.log(`✅ Successfully fetched ${symbol}`);
+
+        // Rate limiting - wait between requests
+        if (i < symbols.length - 1) {
+          await this.delay(100); // 100ms between requests
+        }
+      } catch (error) {
+        console.error(`❌ Failed to fetch ${symbol}:`, error);
+        results[symbol] = this.getFallbackInfo(symbol);
+      }
+    }
+
+    console.log(`✅ Successfully fetched info for ${symbols.length} stocks`);
     return results;
   }
 
-  // Individual API calls
-  async fetchCompanyProfile(symbol) {
-    const url = `${this.baseURL}/profile/${symbol}?apikey=${this.apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+  // Helper methods for categorization
+  categorizeFromSymbol(symbol) {
+    const etfMappings = {
+      QQQ: "Technology",
+      SPY: "Broad Market",
+      VTI: "Broad Market",
+      VGT: "Technology",
+      ARKK: "Innovation/Growth",
+      ARKQ: "Autonomous Technology",
+      VWO: "Emerging Markets",
+      BND: "Bonds",
+      VUG: "Large Cap Growth",
+      VNQ: "Real Estate",
+      COIN: "Cryptocurrency",
+      BITO: "Bitcoin/Cryptocurrency",
+      IBB: "Biotechnology",
+      FINX: "Financial Technology",
+    };
+
+    return etfMappings[symbol.toUpperCase()] || this.categorizeFromName(symbol);
   }
 
-  async fetchQuote(symbol) {
-    const url = `${this.baseURL}/quote/${symbol}?apikey=${this.apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+  categorizeFromSector(sector, industry) {
+    if (!sector) return "Other";
+
+    const sectorMappings = {
+      Technology: "Technology",
+      Healthcare: "Healthcare",
+      Financial: "Financial Services",
+      "Consumer Discretionary": "Consumer Discretionary",
+      "Consumer Staples": "Consumer Staples",
+      Energy: "Energy",
+      Industrials: "Industrials",
+      Utilities: "Utilities",
+      "Real Estate": "Real Estate",
+      Materials: "Materials",
+      "Communication Services": "Technology",
+    };
+
+    return sectorMappings[sector] || sector;
   }
 
-  async fetchRatios(symbol) {
-    const url = `${this.baseURL}/ratios/${symbol}?apikey=${this.apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data) ? data[0] : data;
+  guessSectorFromName(name) {
+    if (!name) return "Unknown";
+
+    const nameLower = name.toLowerCase();
+
+    if (nameLower.includes("technology") || nameLower.includes("tech"))
+      return "Technology";
+    if (nameLower.includes("healthcare") || nameLower.includes("biotech"))
+      return "Healthcare";
+    if (nameLower.includes("financial") || nameLower.includes("bank"))
+      return "Financial Services";
+    if (nameLower.includes("energy") || nameLower.includes("oil"))
+      return "Energy";
+    if (nameLower.includes("real estate") || nameLower.includes("reit"))
+      return "Real Estate";
+    if (nameLower.includes("utility") || nameLower.includes("utilities"))
+      return "Utilities";
+
+    return "Unknown";
   }
 
-  // Categorization logic
-  categorizeStock(profile, symbol) {
-    // ETF categorization
-    if (profile?.isEtf || this.isETF(symbol)) {
-      const name = (profile?.companyName || "").toLowerCase();
-      const description = (profile?.description || "").toLowerCase();
+  assessRiskFromBeta(beta) {
+    if (!beta || beta === null) return "Medium";
 
-      if (name.includes("emerging") || description.includes("emerging"))
-        return "Emerging Markets";
-      if (name.includes("technology") || name.includes("tech"))
-        return "Technology";
-      if (name.includes("growth")) return "Large Cap Growth";
-      if (name.includes("small") || name.includes("russell 2000"))
-        return "Small Cap Growth";
-      if (name.includes("bond") || name.includes("fixed income"))
-        return "Bonds";
-      if (name.includes("reit") || name.includes("real estate"))
-        return "Real Estate";
-      if (name.includes("dividend")) return "Dividend Stocks";
-      if (name.includes("value")) return "Large Cap Value";
-      if (name.includes("international") || name.includes("developed"))
-        return "International Developed";
-      if (name.includes("s&p 500") || name.includes("total stock"))
-        return "Broad Market";
-
-      return "Other ETF";
-    }
-
-    // Individual stock categorization
-    const sector = profile?.sector;
-    switch (sector) {
-      case "Technology":
-      case "Communication Services":
-        return "Technology";
-      case "Healthcare":
-        return "Healthcare";
-      case "Financial Services":
-      case "Financial":
-        return "Financial Services";
-      case "Consumer Cyclical":
-      case "Consumer Discretionary":
-        return "Consumer Discretionary";
-      case "Consumer Defensive":
-      case "Consumer Staples":
-        return "Consumer Staples";
-      case "Industrials":
-        return "Industrials";
-      case "Energy":
-        return "Energy";
-      case "Utilities":
-        return "Utilities";
-      case "Real Estate":
-        return "Real Estate";
-      case "Materials":
-        return "Materials";
-      default:
-        // Categorize by market cap if sector unknown
-        const marketCap = profile?.mktCap || 0;
-        if (marketCap > 200000000000) return "Large Cap";
-        if (marketCap > 10000000000) return "Mid Cap";
-        return "Small Cap";
-    }
-  }
-
-  // Risk assessment
-  assessRiskLevel(profile, ratios) {
-    const beta = ratios?.beta || 1;
-    const sector = profile?.sector;
-    const isETF = profile?.isEtf;
-
-    // ETF risk assessment
-    if (isETF) {
-      const name = (profile?.companyName || "").toLowerCase();
-      if (name.includes("ark") || name.includes("leveraged"))
-        return "Very High";
-      if (name.includes("emerging") || name.includes("small cap"))
-        return "High";
-      if (name.includes("technology") || name.includes("growth"))
-        return "Medium-High";
-      if (name.includes("bond") || name.includes("dividend")) return "Low";
-      if (name.includes("s&p 500") || name.includes("total stock"))
-        return "Medium";
-      return "Medium";
-    }
-
-    // Individual stock risk assessment
     if (beta > 1.5) return "Very High";
     if (beta > 1.2) return "High";
     if (beta > 0.8) return "Medium-High";
@@ -206,28 +340,113 @@ class StockInfoAPI {
     return "Low";
   }
 
-  // Helper methods
   isETF(symbol) {
-    const etfPatterns = ["ETF", "FUND", "TRUST"];
-    const etfSuffixes = ["QQQ", "SPY", "IWM", "EEM", "VTI", "VOO"];
+    const commonETFs = [
+      "QQQ",
+      "SPY",
+      "VTI",
+      "VGT",
+      "ARKK",
+      "ARKQ",
+      "VWO",
+      "BND",
+      "VUG",
+      "VNQ",
+      "BITO",
+      "IBB",
+      "FINX",
+      "VEA",
+      "VTEB",
+      "AGG",
+      "IWM",
+    ];
+
     return (
-      etfPatterns.some((pattern) => symbol.includes(pattern)) ||
-      etfSuffixes.some((suffix) => symbol === suffix) ||
-      symbol.length === 3
-    ); // Most ETFs are 3 characters
+      commonETFs.includes(symbol.toUpperCase()) ||
+      symbol.length === 3 ||
+      symbol.includes("ETF")
+    );
   }
 
   getFallbackInfo(symbol) {
+    // Enhanced fallback with better guessing
+    const fallbackData = {
+      QQQ: {
+        name: "Invesco QQQ Trust ETF",
+        sector: "Technology",
+        category: "Technology",
+        riskLevel: "High",
+      },
+      VGT: {
+        name: "Vanguard Information Technology ETF",
+        sector: "Technology",
+        category: "Technology",
+        riskLevel: "High",
+      },
+      ARKK: {
+        name: "ARK Innovation ETF",
+        sector: "Technology",
+        category: "Innovation/Growth",
+        riskLevel: "Very High",
+      },
+      ARKQ: {
+        name: "ARK Autonomous Technology & Robotics ETF",
+        sector: "Technology",
+        category: "Autonomous Technology",
+        riskLevel: "Very High",
+      },
+      VWO: {
+        name: "Vanguard Emerging Markets ETF",
+        sector: "International",
+        category: "Emerging Markets",
+        riskLevel: "High",
+      },
+      VUG: {
+        name: "Vanguard Growth ETF",
+        sector: "Equity",
+        category: "Large Cap Growth",
+        riskLevel: "Medium-High",
+      },
+      COIN: {
+        name: "Coinbase Global Inc",
+        sector: "Financial Services",
+        category: "Cryptocurrency",
+        riskLevel: "Very High",
+      },
+      BITO: {
+        name: "ProShares Bitcoin Strategy ETF",
+        sector: "Alternative",
+        category: "Bitcoin/Cryptocurrency",
+        riskLevel: "Very High",
+      },
+      IBB: {
+        name: "iShares Biotechnology ETF",
+        sector: "Healthcare",
+        category: "Biotechnology",
+        riskLevel: "High",
+      },
+      FINX: {
+        name: "Global X FinTech ETF",
+        sector: "Financial Services",
+        category: "Financial Technology",
+        riskLevel: "High",
+      },
+    };
+
+    const fallback = fallbackData[symbol.toUpperCase()] || {};
+
     return {
       symbol: symbol.toUpperCase(),
-      name: symbol,
-      description: "Investment instrument - data unavailable",
-      category: "Other",
-      riskLevel: "Unknown",
-      sector: "Unknown",
+      name: fallback.name || symbol,
+      description:
+        fallback.description ||
+        "Investment instrument - enhanced data unavailable",
+      sector: fallback.sector || "Unknown",
+      category: fallback.category || this.categorizeFromSymbol(symbol),
+      riskLevel: fallback.riskLevel || "Medium",
       isETF: this.isETF(symbol),
+      dataSource: "Enhanced Fallback",
       lastUpdated: new Date().toISOString(),
-      dataSource: "fallback",
     };
   }
 
@@ -235,23 +454,14 @@ class StockInfoAPI {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // Clear cache
   clearCache() {
     this.cache.clear();
   }
-
-  // Get cache stats
-  getCacheStats() {
-    return {
-      size: this.cache.size,
-      entries: Array.from(this.cache.keys()),
-    };
-  }
 }
 
-// Usage example
+// Enhanced portfolio enhancement function
 export async function enhancePortfolioWithAPI(portfolioData) {
-  const api = new StockInfoAPI();
+  const api = new MultiSourceStockAPI();
   const stocks = portfolioData?.results?.stocks_picked || [];
 
   if (stocks.length === 0) return portfolioData;
@@ -259,29 +469,33 @@ export async function enhancePortfolioWithAPI(portfolioData) {
   try {
     console.log("🔄 Fetching stock information from API...");
     const symbols = stocks.map((stock) => stock.symbol);
+    console.log(
+      `🔄 Fetching stock information for ${symbols.length} symbols...`
+    );
+
     const stockInfo = await api.getBatchStockInfo(symbols);
 
-    // Enhance stocks with API data
     const enhancedStocks = stocks.map((stock) => ({
       ...stock,
       ...stockInfo[stock.symbol],
-      // Keep original allocation
-      allocation: stock.allocation,
+      allocation: stock.allocation, // Preserve original allocation
     }));
 
-    // Update portfolio data
+    console.log(`✅ API enhancement completed`);
+
     return {
       ...portfolioData,
       results: {
         ...portfolioData.results,
         stocks_picked: enhancedStocks,
         api_enhanced: true,
+        api_sources_used: [...new Set(enhancedStocks.map((s) => s.dataSource))],
         last_api_update: new Date().toISOString(),
       },
     };
   } catch (error) {
     console.error("❌ API enhancement failed:", error);
-    return portfolioData; // Return original data if API fails
+    return portfolioData;
   }
 }
 
