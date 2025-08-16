@@ -7,6 +7,7 @@ import StockPieChart from "./DashboardComponents/StockPieChart";
 import AIPortfolioSummary from "./DashboardComponents/AIPortfolioSummary";
 import DashboardButtons from "./DashboardComponents/DashboardButtons";
 import SHAPDashboard from "./DashboardComponents/SHAPDashboard";
+import SHAPDebugger from "./DashboardComponents/ShapDebugger";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { PortfolioContext } from "../context/PortfolioContext";
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { portfolioData } = useContext(PortfolioContext);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showDebugger, setShowDebugger] = useState(true); // Toggle this for production
 
   // Add refs for each dashboard section
   const summaryRef = useRef(null);
@@ -135,6 +137,36 @@ export default function Dashboard() {
 
         {/* Dashboard Content */}
         <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8">
+          {/* SHAP Debugger - Add this at the top for easy access */}
+          {showDebugger && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Debug Information
+                </h2>
+                <button
+                  onClick={() => setShowDebugger(false)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Hide Debugger ✕
+                </button>
+              </div>
+              <SHAPDebugger portfolioData={portfolioData} />
+            </section>
+          )}
+
+          {/* Show debugger toggle if hidden */}
+          {!showDebugger && (
+            <section>
+              <button
+                onClick={() => setShowDebugger(true)}
+                className="mb-4 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors"
+              >
+                🔍 Show SHAP Debugger
+              </button>
+            </section>
+          )}
+
           {/* Attach refs to sections */}
           <section ref={summaryRef}>
             <SummaryCards portfolioData={portfolioData} />
@@ -143,6 +175,7 @@ export default function Dashboard() {
           <section ref={graphRef}>
             <PortfolioGraph portfolioData={portfolioData} />
           </section>
+
           {/* SHAP Explanation Section - Only show if available */}
           {hasShapExplanation && (
             <section ref={shapRef}>
