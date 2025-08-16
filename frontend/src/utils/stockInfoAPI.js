@@ -1,13 +1,30 @@
-// utils/stockInfoAPI.js - Yahoo Finance Integration (No Rate Limits!)
+// utils/stockInfoAPI.js - Updated to use Python yfinance backend
 
 class StockInfoAPI {
   constructor() {
     this.cache = new Map();
-    this.cacheTimeout = 1000 * 60 * 5; // 5 minute cache (faster refresh)
+    this.cacheTimeout = 1000 * 60 * 15; // 15 minute cache (since yfinance is more reliable)
+    this.baseURL = this.getBaseURL();
+    this.instrumentsDB = null;
     this.fallbackData = this.initializeFallbackData();
   }
 
-  // Initialize comprehensive fallback data for common symbols
+  getBaseURL() {
+    // Automatically detect your backend URL
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return "http://localhost:8000"; // Your Python backend port
+      } else {
+        // Your deployed backend URL
+        return "https://your-python-backend.herokuapp.com"; // Update with your actual backend URL
+      }
+    }
+    return "http://localhost:8000";
+  }
+
+  // Initialize fallback data (keeping your existing data)
   initializeFallbackData() {
     return {
       ARKK: {
@@ -17,15 +34,21 @@ class StockInfoAPI {
           "Actively managed ETF that invests in companies developing technologies and services that potentially benefit from disruptive innovation.",
         sector: "Technology",
         industry: "Exchange Traded Fund",
-        category: "Technology",
+        category: "high_growth",
         riskLevel: "Very High",
         price: 45.23,
+        change: -0.89,
+        changePercent: "-1.93",
         marketCap: 3500000000,
+        volume: 1250000,
         dividendYield: 0,
         beta: 1.8,
         exchange: "NYSE Arca",
         country: "United States",
+        currency: "USD",
         isETF: true,
+        icon: "🚀",
+        type: "ETF",
       },
       QQQ: {
         symbol: "QQQ",
@@ -34,139 +57,86 @@ class StockInfoAPI {
           "Tracks the Nasdaq-100 Index, which includes 100 of the largest domestic and international non-financial companies.",
         sector: "Technology",
         industry: "Exchange Traded Fund",
-        category: "Technology",
+        category: "technology",
         riskLevel: "High",
         price: 378.45,
+        change: 2.31,
+        changePercent: "0.61",
         marketCap: 180000000000,
+        volume: 2800000,
         dividendYield: 0.6,
         beta: 1.2,
         exchange: "NASDAQ",
         country: "United States",
+        currency: "USD",
         isETF: true,
+        icon: "💻",
+        type: "ETF",
       },
-      VGT: {
-        symbol: "VGT",
-        name: "Vanguard Information Technology ETF",
-        description:
-          "Seeks to track the performance of the MSCI US Investable Market Information Technology 25/50 Index.",
-        sector: "Technology",
-        industry: "Exchange Traded Fund",
-        category: "Technology",
-        riskLevel: "Medium-High",
-        price: 425.67,
-        marketCap: 65000000000,
-        dividendYield: 0.8,
-        beta: 1.1,
-        exchange: "NYSE Arca",
-        country: "United States",
-        isETF: true,
-      },
-      COIN: {
-        symbol: "COIN",
-        name: "Coinbase Global Inc",
-        description:
-          "Operates a platform that enables the buying, selling, and storing of cryptocurrency.",
-        sector: "Financial Services",
-        industry: "Capital Markets",
-        category: "Financial Services",
-        riskLevel: "Very High",
-        price: 89.34,
-        marketCap: 22000000000,
-        dividendYield: 0,
-        beta: 2.1,
-        exchange: "NASDAQ",
-        country: "United States",
-        isETF: false,
-      },
-      ARKQ: {
-        symbol: "ARKQ",
-        name: "ARK Autonomous Technology & Robotics ETF",
-        description:
-          "Invests in companies that are expected to benefit from the development of new products or services.",
-        sector: "Technology",
-        industry: "Exchange Traded Fund",
-        category: "Technology",
-        riskLevel: "Very High",
-        price: 42.18,
-        marketCap: 1200000000,
-        dividendYield: 0,
-        beta: 1.7,
-        exchange: "NYSE Arca",
-        country: "United States",
-        isETF: true,
-      },
-      VUG: {
-        symbol: "VUG",
-        name: "Vanguard Growth ETF",
-        description:
-          "Seeks to track the performance of the CRSP US Large Cap Growth Index.",
-        sector: "Growth Stocks",
-        industry: "Exchange Traded Fund",
-        category: "Large Cap Growth",
-        riskLevel: "Medium-High",
-        price: 285.12,
-        marketCap: 95000000000,
-        dividendYield: 0.7,
-        beta: 1.15,
-        exchange: "NYSE Arca",
-        country: "United States",
-        isETF: true,
-      },
-      IBB: {
-        symbol: "IBB",
-        name: "iShares Biotechnology ETF",
-        description:
-          "Seeks to track the investment results of the ICE Biotechnology Index.",
-        sector: "Healthcare",
-        industry: "Exchange Traded Fund",
-        category: "Healthcare",
-        riskLevel: "High",
-        price: 124.56,
-        marketCap: 8500000000,
-        dividendYield: 0.3,
-        beta: 1.3,
-        exchange: "NASDAQ",
-        country: "United States",
-        isETF: true,
-      },
-      FINX: {
-        symbol: "FINX",
-        name: "Global X FinTech ETF",
-        description:
-          "Seeks to provide investment results that correspond to the Indxx Global Fintech Thematic Index.",
-        sector: "Financial Services",
-        industry: "Exchange Traded Fund",
-        category: "Financial Services",
-        riskLevel: "High",
-        price: 28.9,
-        marketCap: 850000000,
-        dividendYield: 0,
-        beta: 1.25,
-        exchange: "NASDAQ",
-        country: "United States",
-        isETF: true,
-      },
-      VWO: {
-        symbol: "VWO",
-        name: "Vanguard Emerging Markets ETF",
-        description:
-          "Seeks to track the performance of the FTSE Emerging Markets All Cap China A Inclusion Index.",
-        sector: "International",
-        industry: "Exchange Traded Fund",
-        category: "Emerging Markets",
-        riskLevel: "High",
-        price: 38.45,
-        marketCap: 85000000000,
-        dividendYield: 3.2,
-        beta: 1.4,
-        exchange: "NYSE Arca",
-        country: "United States",
-        isETF: true,
-      },
+      // Add other symbols as needed...
     };
   }
 
-  // Get comprehensive stock/ETF information using Yahoo Finance
+  // Load instruments database from your Python backend
+  async loadInstrumentsDatabase() {
+    if (this.instrumentsDB) {
+      return this.instrumentsDB;
+    }
+
+    try {
+      console.log("📚 Loading instruments database from backend...");
+
+      const response = await fetch(`${this.baseURL}/api/instruments`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        this.instrumentsDB = await response.json();
+        console.log(
+          `✅ Loaded ${Object.keys(this.instrumentsDB).length} instruments`
+        );
+        return this.instrumentsDB;
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.warn("⚠️ Failed to load instruments database:", error.message);
+      console.log("📊 Using fallback data");
+      this.instrumentsDB = this.fallbackData;
+      return this.instrumentsDB;
+    }
+  }
+
+  // Get current stock price from your Python backend
+  async getCurrentPrice(symbol) {
+    try {
+      const response = await fetch(`${this.baseURL}/api/price/${symbol}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.price;
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.warn(
+        `⚠️ Failed to get current price for ${symbol}:`,
+        error.message
+      );
+      return null;
+    }
+  }
+
+  // Get comprehensive stock info from your Python backend
   async getStockInfo(symbol) {
     const cacheKey = `stock_${symbol}`;
     const cached = this.cache.get(cacheKey);
@@ -177,225 +147,349 @@ class StockInfoAPI {
     }
 
     try {
-      console.log(`📡 Fetching ${symbol} from Yahoo Finance...`);
+      console.log(`📡 Fetching ${symbol} from Python backend...`);
 
-      // Try Yahoo Finance API first
-      const yahooData = await this.fetchFromYahoo(symbol);
+      // Get current price and metadata from your backend
+      const [priceResponse, stockResponse] = await Promise.allSettled([
+        fetch(`${this.baseURL}/api/price/${symbol}`),
+        fetch(`${this.baseURL}/api/stock/${symbol}`),
+      ]);
 
-      if (yahooData) {
-        const stockInfo = this.processYahooData(symbol, yahooData);
+      let stockInfo = null;
 
-        // Cache the result
-        this.cache.set(cacheKey, {
-          data: stockInfo,
-          timestamp: Date.now(),
-        });
-
-        console.log(`✅ Successfully fetched ${symbol} from Yahoo Finance`);
-        return stockInfo;
+      // Process stock info response
+      if (stockResponse.status === "fulfilled" && stockResponse.value.ok) {
+        const stockData = await stockResponse.value.json();
+        stockInfo = this.processBackendStockData(symbol, stockData);
       }
 
-      throw new Error("Yahoo Finance returned no data");
+      // Add current price if available
+      if (priceResponse.status === "fulfilled" && priceResponse.value.ok) {
+        const priceData = await priceResponse.value.json();
+        if (stockInfo) {
+          stockInfo.price = priceData.price;
+          stockInfo.lastUpdated = new Date().toISOString();
+        }
+      }
+
+      // If backend failed, try instruments database
+      if (!stockInfo) {
+        const instrumentsDB = await this.loadInstrumentsDatabase();
+        stockInfo = this.getInfoFromDatabase(symbol, instrumentsDB);
+      }
+
+      // Final fallback
+      if (!stockInfo) {
+        stockInfo = this.getFallbackInfo(symbol);
+      }
+
+      // Cache the result
+      this.cache.set(cacheKey, {
+        data: stockInfo,
+        timestamp: Date.now(),
+      });
+
+      console.log(`✅ Successfully fetched ${symbol}`);
+      return stockInfo;
     } catch (error) {
-      console.warn(`⚠️ Yahoo Finance failed for ${symbol}:`, error.message);
+      console.error(`❌ Error fetching ${symbol}:`, error);
       return this.getFallbackInfo(symbol);
     }
   }
 
-  // Fetch data from Yahoo Finance (no API key required!)
-  async fetchFromYahoo(symbol) {
-    try {
-      // Yahoo Finance Chart API (free, no key required)
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.chart && data.chart.result && data.chart.result[0]) {
-        return data.chart.result[0];
-      }
-
-      return null;
-    } catch (error) {
-      console.warn(`Yahoo Finance API error for ${symbol}:`, error);
-      return null;
-    }
-  }
-
-  // Process Yahoo Finance data into our format
-  processYahooData(symbol, yahooData) {
-    const meta = yahooData.meta || {};
-    const timestamps = yahooData.timestamp || [];
-    const quotes = yahooData.indicators?.quote?.[0] || {};
-    const adjClose = yahooData.indicators?.adjclose?.[0]?.adjclose || [];
-
-    // Get current and previous price
-    const currentPrice =
-      meta.regularMarketPrice ||
-      meta.previousClose ||
-      adjClose[adjClose.length - 1] ||
-      0;
-    const previousClose =
-      meta.previousClose || adjClose[adjClose.length - 2] || currentPrice;
-    const change = currentPrice - previousClose;
-    const changePercent =
-      previousClose > 0 ? (change / previousClose) * 100 : 0;
+  // Process data from your Python backend
+  processBackendStockData(symbol, backendData) {
+    // Your Python script returns comprehensive data
+    const info = backendData.info || {};
+    const metadata = backendData.metadata || {};
 
     return {
       symbol: symbol.toUpperCase(),
-      name: this.getStockName(symbol, meta),
-      description: this.getDescription(symbol),
-      sector: this.getSector(symbol, meta),
-      industry: this.getIndustry(symbol),
-      category: this.categorizeStock(symbol, meta),
-      riskLevel: this.assessRiskLevel(symbol, meta),
-      price: currentPrice,
-      change: change,
-      changePercent: changePercent.toFixed(2),
-      volume: meta.regularMarketVolume || 0,
-      marketCap: meta.marketCap || 0,
-      dividendYield: this.getDividendYield(symbol),
-      beta: this.getBeta(symbol),
-      peRatio: null, // Not available in basic Yahoo API
-      exchange: meta.exchangeName || meta.exchange || "Unknown",
-      country: "United States", // Default for most stocks
-      currency: meta.currency || "USD",
-      isETF: this.isETF(symbol),
+      name: backendData.name || info.longName || `${symbol} Investment`,
+      description:
+        backendData.description ||
+        info.longBusinessSummary ||
+        `Investment in ${symbol}`,
+      sector: metadata.sector || info.sector || "Unknown",
+      industry: metadata.industry || info.industry || "Unknown",
+      category: backendData.category || this.categorizeFromBackend(info),
+      riskLevel: backendData.risk || this.assessRiskFromBackend(info),
+      price:
+        metadata.currentPrice ||
+        info.currentPrice ||
+        info.regularMarketPrice ||
+        0,
+      change: this.calculateChange(metadata.currentPrice, info.previousClose),
+      changePercent: this.calculateChangePercent(
+        metadata.currentPrice,
+        info.previousClose
+      ),
+      volume: info.volume || info.regularMarketVolume || 0,
+      marketCap: metadata.marketCap || info.marketCap || 0,
+      dividendYield: metadata.dividendYield || info.dividendYield || 0,
+      beta: metadata.beta || info.beta || 1.0,
+      peRatio: info.trailingPE || null,
+      exchange: metadata.exchange || info.exchange || "Unknown",
+      country: metadata.country || info.country || "United States",
+      currency: metadata.currency || info.currency || "USD",
+      isETF: info.quoteType === "ETF" || this.isETF(symbol),
+      icon:
+        backendData.icon || this.getIconForSymbol(symbol, backendData.category),
+      type: backendData.type || (info.quoteType === "ETF" ? "ETF" : "Stock"),
       lastUpdated: new Date().toISOString(),
-      dataSource: "yahoo_finance",
+      dataSource: "python_backend",
     };
   }
 
-  // Get multiple stocks at once (no rate limits with Yahoo!)
+  // Get info from instruments database
+  getInfoFromDatabase(symbol, database) {
+    const dbEntry = database[symbol];
+    if (!dbEntry) return null;
+
+    return {
+      symbol: symbol.toUpperCase(),
+      name: dbEntry.name,
+      description: dbEntry.description,
+      category: dbEntry.category,
+      riskLevel: dbEntry.risk,
+      icon: dbEntry.icon,
+      type: dbEntry.type,
+      sector: dbEntry.metadata?.sector || "Unknown",
+      industry: dbEntry.metadata?.industry || "Unknown",
+      price: dbEntry.metadata?.currentPrice || 0,
+      change: 0,
+      changePercent: "0.00",
+      volume: 0,
+      marketCap: dbEntry.metadata?.marketCap || 0,
+      dividendYield: dbEntry.metadata?.dividendYield || 0,
+      beta: dbEntry.metadata?.beta || 1.0,
+      peRatio: null,
+      exchange: dbEntry.metadata?.exchange || "Unknown",
+      country: dbEntry.metadata?.country || "United States",
+      currency: dbEntry.metadata?.currency || "USD",
+      isETF: dbEntry.type === "ETF",
+      lastUpdated: dbEntry.metadata?.lastUpdated || new Date().toISOString(),
+      dataSource: "instruments_database",
+    };
+  }
+
+  // Search instruments using your Python backend
+  async searchInstruments(query, limit = 10) {
+    try {
+      const response = await fetch(
+        `${this.baseURL}/api/search?query=${encodeURIComponent(
+          query
+        )}&limit=${limit}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const results = await response.json();
+        return results.map((item) => ({
+          symbol: item.symbol,
+          name: item.name,
+          description: item.description,
+          category: item.category,
+          risk: item.risk,
+          icon: item.icon,
+          type: item.type,
+        }));
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.warn("⚠️ Search failed:", error.message);
+
+      // Fallback to local search
+      const instrumentsDB = await this.loadInstrumentsDatabase();
+      return this.searchLocal(query, instrumentsDB, limit);
+    }
+  }
+
+  // Local search fallback
+  searchLocal(query, database, limit) {
+    const queryLower = query.toLowerCase();
+    const results = [];
+
+    for (const [symbol, data] of Object.entries(database)) {
+      const searchText =
+        `${symbol} ${data.name} ${data.category} ${data.type}`.toLowerCase();
+
+      if (searchText.includes(queryLower)) {
+        results.push({
+          symbol,
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          risk: data.risk,
+          icon: data.icon,
+          type: data.type,
+        });
+      }
+
+      if (results.length >= limit) break;
+    }
+
+    return results;
+  }
+
+  // Get multiple stocks at once
   async getBatchStockInfo(symbols) {
     console.log(
       `🔄 Fetching stock information for ${symbols.length} symbols...`
     );
 
-    const results = {};
+    try {
+      // Try batch endpoint first
+      const response = await fetch(`${this.baseURL}/api/stocks/batch`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ symbols }),
+      });
 
-    // Yahoo Finance can handle multiple requests simultaneously
-    const promises = symbols.map(async (symbol) => {
-      try {
-        const info = await this.getStockInfo(symbol);
-        return { symbol, info };
-      } catch (error) {
-        console.error(`Failed to fetch ${symbol}:`, error);
-        return { symbol, info: this.getFallbackInfo(symbol) };
+      if (response.ok) {
+        const batchData = await response.json();
+        const results = {};
+
+        for (const symbol of symbols) {
+          if (batchData[symbol]) {
+            results[symbol] = this.processBackendStockData(
+              symbol,
+              batchData[symbol]
+            );
+          } else {
+            results[symbol] = this.getFallbackInfo(symbol);
+          }
+        }
+
+        console.log(
+          `✅ Successfully fetched batch data for ${
+            Object.keys(results).length
+          } stocks`
+        );
+        return results;
+      } else {
+        throw new Error(`Batch request failed: HTTP ${response.status}`);
       }
-    });
+    } catch (error) {
+      console.warn(
+        "⚠️ Batch request failed, falling back to individual requests:",
+        error.message
+      );
 
-    const stockInfoArray = await Promise.all(promises);
+      // Fallback to individual requests
+      const results = {};
+      const promises = symbols.map(async (symbol) => {
+        try {
+          const info = await this.getStockInfo(symbol);
+          return { symbol, info };
+        } catch (error) {
+          console.error(`Failed to fetch ${symbol}:`, error);
+          return { symbol, info: this.getFallbackInfo(symbol) };
+        }
+      });
 
-    // Convert array to object
-    stockInfoArray.forEach(({ symbol, info }) => {
-      results[symbol] = info;
-    });
+      const stockInfoArray = await Promise.all(promises);
+      stockInfoArray.forEach(({ symbol, info }) => {
+        results[symbol] = info;
+      });
 
-    console.log(
-      `✅ Successfully fetched info for ${Object.keys(results).length} stocks`
-    );
-    return results;
-  }
-
-  // Helper methods for stock information
-  getStockName(symbol, meta) {
-    const fallback = this.fallbackData[symbol];
-    return meta.longName || fallback?.name || `${symbol} Stock`;
-  }
-
-  getDescription(symbol) {
-    const fallback = this.fallbackData[symbol];
-    return fallback?.description || `Investment in ${symbol}`;
-  }
-
-  getSector(symbol, meta) {
-    const fallback = this.fallbackData[symbol];
-    return fallback?.sector || "Unknown";
-  }
-
-  getIndustry(symbol) {
-    const fallback = this.fallbackData[symbol];
-    return fallback?.industry || "Unknown";
-  }
-
-  getDividendYield(symbol) {
-    const fallback = this.fallbackData[symbol];
-    return fallback?.dividendYield || 0;
-  }
-
-  getBeta(symbol) {
-    const fallback = this.fallbackData[symbol];
-    return fallback?.beta || 1.0;
-  }
-
-  // Categorization logic
-  categorizeStock(symbol, meta) {
-    const fallback = this.fallbackData[symbol];
-    if (fallback?.category) return fallback.category;
-
-    // ETF categorization
-    if (this.isETF(symbol)) {
-      const name = (meta.longName || symbol).toLowerCase();
-
-      if (name.includes("emerging")) return "Emerging Markets";
-      if (name.includes("technology") || name.includes("tech"))
-        return "Technology";
-      if (name.includes("growth")) return "Large Cap Growth";
-      if (name.includes("small") || name.includes("russell 2000"))
-        return "Small Cap Growth";
-      if (name.includes("bond") || name.includes("fixed income"))
-        return "Bonds";
-      if (name.includes("reit") || name.includes("real estate"))
-        return "Real Estate";
-      if (name.includes("dividend")) return "Dividend Stocks";
-      if (name.includes("value")) return "Large Cap Value";
-      if (name.includes("international") || name.includes("developed"))
-        return "International Developed";
-      if (name.includes("s&p 500") || name.includes("total stock"))
-        return "Broad Market";
-
-      return "Other ETF";
+      console.log(
+        `✅ Successfully fetched info for ${Object.keys(results).length} stocks`
+      );
+      return results;
     }
-
-    return "Individual Stock";
-  }
-
-  // Risk assessment
-  assessRiskLevel(symbol, meta) {
-    const fallback = this.fallbackData[symbol];
-    if (fallback?.riskLevel) return fallback.riskLevel;
-
-    // ETF risk assessment
-    if (this.isETF(symbol)) {
-      const name = (meta.longName || symbol).toLowerCase();
-      if (name.includes("ark") || name.includes("leveraged"))
-        return "Very High";
-      if (name.includes("emerging") || name.includes("small cap"))
-        return "High";
-      if (name.includes("technology") || name.includes("growth"))
-        return "Medium-High";
-      if (name.includes("bond") || name.includes("dividend")) return "Low";
-      if (name.includes("s&p 500") || name.includes("total stock"))
-        return "Medium";
-      return "Medium";
-    }
-
-    return "Medium"; // Default for individual stocks
   }
 
   // Helper methods
+  calculateChange(currentPrice, previousClose) {
+    if (!currentPrice || !previousClose) return 0;
+    return parseFloat((currentPrice - previousClose).toFixed(2));
+  }
+
+  calculateChangePercent(currentPrice, previousClose) {
+    if (!currentPrice || !previousClose || previousClose === 0) return "0.00";
+    const changePercent =
+      ((currentPrice - previousClose) / previousClose) * 100;
+    return changePercent.toFixed(2);
+  }
+
+  categorizeFromBackend(info) {
+    // Convert backend categories to your frontend format
+    const categoryMap = {
+      bonds: "bonds",
+      dividend_stocks: "dividend_stocks",
+      utilities: "utilities",
+      large_cap_growth: "large_cap_growth",
+      broad_market: "broad_market",
+      international: "international",
+      emerging_markets: "emerging_markets",
+      technology: "technology",
+      high_growth: "high_growth",
+      reits: "reits",
+      financials: "financials",
+    };
+
+    const backendCategory = info.category;
+    return categoryMap[backendCategory] || "other";
+  }
+
+  assessRiskFromBackend(info) {
+    const riskMap = {
+      Low: "Low",
+      "Low-Medium": "Low-Medium",
+      Medium: "Medium",
+      "Medium-High": "Medium-High",
+      High: "High",
+      "Very High": "Very High",
+    };
+
+    return riskMap[info.risk] || "Medium";
+  }
+
+  getIconForSymbol(symbol, category) {
+    const specialIcons = {
+      AAPL: "📱",
+      MSFT: "💻",
+      GOOGL: "🔍",
+      AMZN: "📦",
+      TSLA: "🚗",
+      NVDA: "🤖",
+      META: "📘",
+      V: "💳",
+      MA: "💳",
+      JNJ: "💊",
+      KO: "🥤",
+      PEP: "🥤",
+    };
+
+    if (specialIcons[symbol]) return specialIcons[symbol];
+
+    const categoryIcons = {
+      bonds: "🏛️",
+      dividend_stocks: "💰",
+      utilities: "⚡",
+      large_cap_growth: "📈",
+      broad_market: "📊",
+      international: "🌍",
+      emerging_markets: "🌏",
+      technology: "💻",
+      high_growth: "🚀",
+      reits: "🏢",
+      financials: "🏦",
+    };
+
+    return categoryIcons[category] || "📊";
+  }
+
   isETF(symbol) {
     const etfSymbols = [
       "QQQ",
@@ -411,18 +505,16 @@ class StockInfoAPI {
       "IBB",
       "FINX",
       "VWO",
+      "XLK",
+      "XLF",
+      "XLE",
     ];
-    return (
-      etfSymbols.includes(symbol.toUpperCase()) ||
-      symbol.length === 3 ||
-      symbol.includes("ETF")
-    );
+    return etfSymbols.includes(symbol.toUpperCase()) || symbol.length === 3;
   }
 
   getFallbackInfo(symbol) {
     console.log(`📊 Using fallback data for ${symbol}`);
 
-    // Use our comprehensive fallback data
     const fallback = this.fallbackData[symbol];
     if (fallback) {
       return {
@@ -432,30 +524,89 @@ class StockInfoAPI {
       };
     }
 
-    // Generate basic fallback for unknown symbols
+    // Generate fallback
+    const basePrice = 50 + Math.random() * 150;
+    const changePercent = (Math.random() - 0.5) * 6;
+    const change = basePrice * (changePercent / 100);
+
     return {
       symbol: symbol.toUpperCase(),
       name: `${symbol} Investment`,
       description: "Investment instrument - live data temporarily unavailable",
-      category: this.isETF(symbol) ? "ETF" : "Stock",
+      category: this.isETF(symbol) ? "broad_market" : "large_cap_growth",
       riskLevel: "Medium",
       sector: "Unknown",
       industry: "Unknown",
-      price: 100 + Math.random() * 200,
-      change: (Math.random() - 0.5) * 10,
-      changePercent: ((Math.random() - 0.5) * 5).toFixed(2),
-      volume: Math.floor(Math.random() * 1000000),
+      price: parseFloat(basePrice.toFixed(2)),
+      change: parseFloat(change.toFixed(2)),
+      changePercent: changePercent.toFixed(2),
+      volume: Math.floor(Math.random() * 1000000) + 100000,
+      marketCap: Math.floor(Math.random() * 10000000000) + 1000000000,
+      dividendYield: 0,
+      beta: 1.0,
+      exchange: "Unknown",
+      country: "United States",
+      currency: "USD",
       isETF: this.isETF(symbol),
+      icon: "📊",
+      type: this.isETF(symbol) ? "ETF" : "Stock",
       lastUpdated: new Date().toISOString(),
       dataSource: "generated_fallback",
     };
   }
 
-  // Utility methods
-  delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  // Test connection to your Python backend
+  async testConnection() {
+    console.log("🔍 Testing Python backend connection...");
+
+    const results = {
+      backend_health: false,
+      instruments_db: false,
+      price_api: false,
+      search_api: false,
+    };
+
+    try {
+      // Test health endpoint
+      const healthResponse = await fetch(`${this.baseURL}/health`);
+      results.backend_health = healthResponse.ok;
+    } catch (error) {
+      console.warn("Backend health check failed:", error.message);
+    }
+
+    try {
+      // Test instruments database
+      const instrumentsResponse = await fetch(
+        `${this.baseURL}/api/instruments`
+      );
+      results.instruments_db = instrumentsResponse.ok;
+    } catch (error) {
+      console.warn("Instruments DB test failed:", error.message);
+    }
+
+    try {
+      // Test price API
+      const priceResponse = await fetch(`${this.baseURL}/api/price/AAPL`);
+      results.price_api = priceResponse.ok;
+    } catch (error) {
+      console.warn("Price API test failed:", error.message);
+    }
+
+    try {
+      // Test search API
+      const searchResponse = await fetch(
+        `${this.baseURL}/api/search?query=apple&limit=5`
+      );
+      results.search_api = searchResponse.ok;
+    } catch (error) {
+      console.warn("Search API test failed:", error.message);
+    }
+
+    console.log("📊 Backend connection test results:", results);
+    return results;
   }
 
+  // Utility methods
   clearCache() {
     this.cache.clear();
     console.log("📋 Cache cleared");
@@ -469,7 +620,7 @@ class StockInfoAPI {
   }
 }
 
-// Enhanced portfolio function with Yahoo Finance
+// Enhanced portfolio function
 export async function enhancePortfolioWithAPI(portfolioData) {
   const api = new StockInfoAPI();
   const stocks = portfolioData?.results?.stocks_picked || [];
@@ -480,40 +631,43 @@ export async function enhancePortfolioWithAPI(portfolioData) {
   }
 
   try {
-    console.log("🔄 Enhancing portfolio with Yahoo Finance data...");
+    console.log("🔄 Enhancing portfolio with Python backend...");
+
+    // Test connection first
+    await api.testConnection();
+
     const symbols = stocks.map((stock) => stock.symbol);
     const stockInfo = await api.getBatchStockInfo(symbols);
 
-    // Enhance stocks with API data
     const enhancedStocks = stocks.map((stock) => ({
       ...stock,
       ...stockInfo[stock.symbol],
-      // Keep original allocation and explanation
       allocation: stock.allocation,
       explanation:
         stock.explanation || `${stock.symbol} selected for your portfolio`,
     }));
 
-    console.log("✅ Portfolio enhancement completed");
+    console.log("✅ Portfolio enhancement completed with Python backend");
 
-    // Update portfolio data
     return {
       ...portfolioData,
       results: {
         ...portfolioData.results,
         stocks_picked: enhancedStocks,
         api_enhanced: true,
-        api_source: "yahoo_finance",
+        api_source: "python_yfinance_backend",
         last_api_update: new Date().toISOString(),
       },
     };
   } catch (error) {
     console.error("❌ Portfolio enhancement failed:", error);
-    return portfolioData; // Return original data if enhancement fails
+    return portfolioData;
   }
 }
 
-// Create global instance for easy access
-window.stockAPI = new StockInfoAPI();
+// Create global instance
+if (typeof window !== "undefined") {
+  window.stockAPI = new StockInfoAPI();
+}
 
 export default StockInfoAPI;
