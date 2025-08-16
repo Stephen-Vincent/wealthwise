@@ -562,6 +562,8 @@ async def generate_enhanced_ai_summary(
                 simulation_results, shap_explanation, goal_analysis, feasibility_assessment
             )
 
+# Replace the generate_shap_enhanced_summary function in your portfolio_simulator.py
+
 async def generate_shap_enhanced_summary(ai_service, context: Dict[str, Any]) -> str:
     """
     Generate AI summary with SHAP explanations integrated.
@@ -573,11 +575,33 @@ async def generate_shap_enhanced_summary(ai_service, context: Dict[str, Any]) ->
     # Extract context
     user_data = context["user_data"]
     simulation_results = context["simulation_results"]
+    stocks_picked = context["stocks_picked"]  # ⭐ Get the actual stocks
     shap_explanation = context.get("shap_explanation")
     goal_analysis = context.get("goal_analysis")
     feasibility_assessment = context.get("feasibility_assessment")
     market_regime = context.get("market_regime")
     
+    # ⭐ Create portfolio details section with actual stocks
+    portfolio_details = ""
+    if stocks_picked:
+        stock_list = []
+        for stock in stocks_picked:
+            symbol = stock.get('symbol', 'Unknown')
+            name = stock.get('name', symbol)
+            allocation = stock.get('allocation', 0) * 100  # Convert to percentage
+            stock_list.append(f"• {symbol} ({name}) - {allocation:.1f}% allocation")
+        
+        portfolio_details = f"""
+SELECTED PORTFOLIO:
+The AI has chosen the following investments:
+{chr(10).join(stock_list)}
+
+Total portfolio: {len(stocks_picked)} investments
+Starting value: £{simulation_results.get('starting_value', 0):,.2f}
+Projected end value: £{simulation_results.get('end_value', 0):,.2f}
+Target: £{user_data.get('target_value', 0):,.2f}
+"""
+
     # Create enhanced prompt with SHAP context
     shap_context = ""
     if shap_explanation and "human_readable_explanation" in shap_explanation:
@@ -611,20 +635,26 @@ CURRENT MARKET CONDITIONS:
     enhanced_prompt = f"""
 Generate an educational portfolio summary that explains both the results AND the AI reasoning:
 
+{portfolio_details}
+
 {shap_context}
 
 {goal_context}
 
 {market_context}
 
+IMPORTANT: In the "Portfolio Selection" section, use the ACTUAL stock symbols and names listed above. 
+Do NOT use placeholders like "[Insert stocks]". List the real investments: {', '.join([stock.get('symbol', 'Unknown') for stock in stocks_picked])}.
+
 Please explain:
-1. Why the AI selected these specific stocks for their goals
+1. Why the AI selected these SPECIFIC stocks for their goals
 2. How the portfolio is designed to achieve their target
 3. What the SHAP analysis reveals about the decision factors
 4. Educational insights about goal-oriented investing
 5. How current market conditions affect the strategy
 
 Make it educational and beginner-friendly while highlighting the AI's transparent decision-making.
+Use the actual stock symbols and company names provided above.
 """
 
     # Use AI service with enhanced context
