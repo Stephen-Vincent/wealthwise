@@ -19,7 +19,7 @@ const SHAPDashboard = ({ portfolioData }) => {
   const [showTooltip, setShowTooltip] = useState(null);
 
   // Extract SHAP data from portfolio results
-  const shapData = portfolioData?.shap_explanation;
+  const shapData = portfolioData?.shap_explanations;
   const hasShapData = Boolean(shapData);
 
   useEffect(() => {
