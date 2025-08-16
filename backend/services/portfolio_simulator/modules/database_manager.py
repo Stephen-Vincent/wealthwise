@@ -166,92 +166,105 @@ class DatabaseManager:
         self.serialization = SerializationManager()
         logger.info("💾 DatabaseManager initialized")
     
-    async def save_enhanced_simulation(self, db, sim_input: Dict[str, Any], 
-                                     user_data: Dict[str, Any], risk_profile: Dict[str, Any],
-                                     ai_summary: str, stocks_picked: List[Dict], 
-                                     simulation_results: Dict[str, Any],
-                                     goal_analysis: Dict[str, Any] = None,
-                                     recommendation_result: Dict[str, Any] = None) -> models.Simulation:
+    async def save_enhanced_simulation(self, db, sim_input, user_data, risk_profile, 
+                                     ai_summary, stocks_picked, simulation_results, 
+                                     goal_analysis, recommendation_result, 
+                                     shap_explanations=None):
         """
-        Save enhanced simulation with all advanced features.
-        
-        Args:
-            db: Database session
-            sim_input: Original simulation input
-            user_data: Processed user data
-            risk_profile: Risk assessment results
-            ai_summary: AI-generated summary
-            stocks_picked: Selected stocks with allocations
-            simulation_results: Portfolio simulation results
-            goal_analysis: Smart goal calculation results
-            recommendation_result: Enhanced AI recommendation results
-            
-        Returns:
-            Saved simulation model instance
+        Save enhanced simulation with proper SHAP data handling.
         """
-        
         try:
             logger.info("💾 Saving enhanced simulation with advanced features")
             
-            target_reached = simulation_results["end_value"] >= user_data["target_value"]
+            # Ensure we have SHAP explanations
+            if not shap_explanations:
+                # Try to extract from recommendation_result
+                if 'shap_explanations' in recommendation_result:
+                    shap_explanations = recommendation_result['shap_explanations']
+                elif 'shap_explanation' in recommendation_result:
+                    shap_explanations = recommendation_result['shap_explanation']
+                else:
+                    shap_explanations = {}
             
-            # Create enhanced results object
+            # Clean simulation results for database storage
+            cleaned_results = self.serialization_manager.clean_for_database(simulation_results)
+            
+            # Prepare comprehensive results structure
             enhanced_results = {
-                "name": user_data["goal"],
-                "stocks_picked": stocks_picked,
-                "starting_value": simulation_results["starting_value"],
-                "end_value": simulation_results["end_value"],
-                "return": simulation_results["portfolio_return"],
-                "target_reached": target_reached,
-                "risk_score": risk_profile["score"],
-                "risk_label": risk_profile["label"],
-                "timeline": simulation_results["timeline"],
+                # Core simulation data
+                'portfolio_performance': cleaned_results.get('portfolio_performance', {}),
+                'target_reached': cleaned_results.get('target_reached', False),
+                'final_value': cleaned_results.get('final_value', 0),
+                'total_return': cleaned_results.get('total_return', 0),
+                'annualized_return': cleaned_results.get('annualized_return', 0),
+                
                 # Enhanced features
-                "goal_analysis": goal_analysis,
-                "recommendation_result": recommendation_result,
-                "market_crash_analysis": simulation_results.get("market_crash_analysis"),
-                "simulation_metadata": simulation_results.get("simulation_metadata"),
-                "wealthwise_enhanced": True,
-                "methodology": "Enhanced portfolio simulation with crash analysis and SHAP explanations",
-                "created_timestamp": datetime.now().isoformat()
+                'goal_analysis': goal_analysis,
+                'market_crash_analysis': cleaned_results.get('market_crash_analysis', {}),
+                'stocks_picked': stocks_picked,
+                
+                # 🔍 CRITICAL: Include SHAP explanations
+                'shap_explanations': shap_explanations,
+                'shap_explanation': shap_explanations,  # Also save as singular for compatibility
+                
+                # Portfolio recommendations
+                'portfolio_recommendations': {
+                    **recommendation_result,
+                    'shap_explanations': shap_explanations  # Ensure it's also here
+                },
+                
+                # Metadata
+                'wealthwise_enhanced': True,
+                'methodology': 'Enhanced WealthWise Portfolio Simulation with SHAP',
+                'simulation_timestamp': datetime.utcnow().isoformat(),
+                'has_shap_data': bool(shap_explanations)
             }
             
-            # Clean the results for database storage
-            cleaned_results = self._clean_simulation_results_for_db(enhanced_results)
-            
-            # Test serialization before database save
-            if not self.serialization.test_json_serialization(cleaned_results, "enhanced_results"):
-                raise ValueError("Enhanced results not JSON serializable after cleaning")
+            # Log what we're saving
+            logger.info(f"💾 Saving SHAP data: {bool(shap_explanations)}")
+            if shap_explanations:
+                logger.info(f"🔍 SHAP data type: {type(shap_explanations)}")
+                if isinstance(shap_explanations, dict):
+                    logger.info(f"🔍 SHAP keys: {list(shap_explanations.keys())}")
             
             # Create simulation model
+            from database import models
+            
             simulation = models.Simulation(
-                user_id=sim_input.get("user_id"),
-                name=user_data["goal"],
-                goal=user_data["goal"],
-                target_value=user_data["target_value"],
-                lump_sum=user_data["lump_sum"],
-                monthly=user_data["monthly"],
-                timeframe=user_data["timeframe"],
-                target_achieved=target_reached,
-                income_bracket=user_data["income_bracket"],
-                risk_score=risk_profile["score"],
-                risk_label=risk_profile["label"],
+                user_id=sim_input['user_id'],
+                name=sim_input['name'],
+                goal=sim_input['goal'],
+                target_value=sim_input['target_value'],
+                lump_sum=sim_input['lump_sum'],
+                monthly=sim_input['monthly'],
+                timeframe=sim_input['timeframe'],
+                target_achieved=enhanced_results['target_reached'],
+                income_bracket=sim_input['income_bracket'],
+                risk_score=sim_input['risk_score'],
+                risk_label=sim_input['risk_label'],
                 ai_summary=ai_summary,
-                results=cleaned_results
+                results=enhanced_results,  # This includes SHAP
+                created_at=datetime.utcnow()
             )
             
-            # Save to database
             db.add(simulation)
             db.commit()
             db.refresh(simulation)
             
             logger.info(f"✅ Enhanced simulation saved successfully (ID: {simulation.id})")
+            
+            # Verify SHAP data was saved
+            if simulation.results and 'shap_explanations' in simulation.results:
+                logger.info("✅ SHAP explanations confirmed saved to database")
+            else:
+                logger.warning("⚠️ SHAP explanations may not have been saved properly")
+            
             return simulation
             
         except Exception as e:
-            logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
+            logger.error(f"❌ Failed to save enhanced simulation: {e}")
             db.rollback()
-            
+        
             # Try to save a basic version if enhanced save fails
             return await self._save_basic_fallback(
                 db, sim_input, user_data, risk_profile, ai_summary, 

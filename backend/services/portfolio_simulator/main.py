@@ -86,6 +86,18 @@ class EnhancedPortfolioSimulator:
                 user_data=user_data
             )
             
+            # 🔍 CRITICAL: Extract SHAP explanations from recommendation result
+            shap_explanations = {}
+            if 'shap_explanations' in recommendation_result:
+                shap_explanations = recommendation_result['shap_explanations']
+                logger.info("✅ SHAP explanations found in recommendation result")
+            elif 'shap_explanation' in recommendation_result:
+                shap_explanations = recommendation_result['shap_explanation']
+                logger.info("✅ SHAP explanation (singular) found in recommendation result")
+            else:
+                logger.warning("⚠️ No SHAP explanations found in recommendation result")
+                logger.info(f"🔍 Recommendation result keys: {list(recommendation_result.keys())}")
+            
             # STEP 4: Download and validate market data
             stock_data = await self.data_manager.download_stock_data(
                 tickers=recommendation_result["stocks"],
@@ -142,14 +154,29 @@ class EnhancedPortfolioSimulator:
                 stocks_picked=stocks_picked,
                 simulation_results=enhanced_results,
                 goal_analysis=goal_analysis,
-                recommendation_result=recommendation_result
+                recommendation_result=recommendation_result,
+                shap_explanations=shap_explanations  # 🔍 Pass SHAP data explicitly
             )
             
             logger.info(f"✅ Enhanced simulation completed successfully (ID: {simulation.id})")
-            return self._format_response(simulation)
+            
+            # 🔍 CRITICAL: Include SHAP in response
+            response = self._format_response(simulation)
+            response["shap_explanations"] = shap_explanations  # Include at top level
+            response["recommendation_result"] = recommendation_result  # Include full recommendation data
+            
+            # Debug logging
+            if shap_explanations:
+                logger.info(f"✅ Including SHAP explanations in response: {type(shap_explanations)}")
+            else:
+                logger.warning("⚠️ No SHAP explanations to include in response")
+            
+            return response
             
         except Exception as e:
             logger.error(f"❌ Enhanced simulation failed: {str(e)}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return await self._handle_fallback_simulation(sim_input, db, str(e))
     
     def _extract_user_data(self, sim_input: Dict[str, Any]) -> Dict[str, Any]:
@@ -195,7 +222,13 @@ class EnhancedPortfolioSimulator:
             "VNQ": "Vanguard Real Estate ETF",
             "VGT": "Vanguard Information Technology ETF",
             "VUG": "Vanguard Growth ETF",
-            "ARKK": "ARK Innovation ETF"
+            "ARKK": "ARK Innovation ETF",
+            "QQQ": "Invesco QQQ Trust ETF",
+            "BITO": "ProShares Bitcoin Strategy ETF",
+            "ARKQ": "ARK Autonomous Technology & Robotics ETF",
+            "IBB": "iShares Biotechnology ETF",
+            "FINX": "Global X FinTech ETF",
+            "COIN": "Coinbase Global Inc"
         }
         return name_mapping.get(ticker, ticker)
     
@@ -205,7 +238,7 @@ class EnhancedPortfolioSimulator:
             return f"{ticker} selected based on risk profile matching"
         
         # Extract explanations from SHAP and factor analysis
-        shap_explanation = recommendation_result.get("shap_explanation", {})
+        shap_explanation = recommendation_result.get("shap_explanations", {}) or recommendation_result.get("shap_explanation", {})
         
         if shap_explanation and "human_readable_explanation" in shap_explanation:
             explanations = shap_explanation["human_readable_explanation"]
@@ -218,6 +251,32 @@ class EnhancedPortfolioSimulator:
     
     def _format_response(self, simulation) -> Dict[str, Any]:
         """Format simulation response for API return."""
+        # Extract SHAP from multiple possible locations
+        shap_data = {}
+        if simulation.results:
+            # Check for shap_explanations (plural)
+            if 'shap_explanations' in simulation.results:
+                shap_data = simulation.results['shap_explanations']
+            # Check for shap_explanation (singular)
+            elif 'shap_explanation' in simulation.results:
+                shap_data = simulation.results['shap_explanation']
+            # Check in portfolio_recommendations
+            elif 'portfolio_recommendations' in simulation.results:
+                recs = simulation.results['portfolio_recommendations']
+                if isinstance(recs, dict):
+                    if 'shap_explanations' in recs:
+                        shap_data = recs['shap_explanations']
+                    elif 'shap_explanation' in recs:
+                        shap_data = recs['shap_explanation']
+        
+        # Log what we found
+        if shap_data:
+            logger.info(f"✅ Found SHAP data in simulation results: {type(shap_data)}")
+        else:
+            logger.warning("⚠️ No SHAP data found in simulation results")
+            if simulation.results:
+                logger.info(f"🔍 Available results keys: {list(simulation.results.keys())}")
+        
         return {
             "id": simulation.id,
             "user_id": simulation.user_id,
@@ -235,10 +294,12 @@ class EnhancedPortfolioSimulator:
             "results": simulation.results,
             "created_at": simulation.created_at.isoformat() if simulation.created_at else datetime.utcnow().isoformat(),
             # Enhanced features
-            "wealthwise_enhanced": simulation.results.get("wealthwise_enhanced", False),
-            "has_crash_analysis": bool(simulation.results.get("market_crash_analysis")),
-            "has_shap_explanations": bool(simulation.results.get("shap_explanation")),
-            "methodology": simulation.results.get("methodology", "Enhanced portfolio simulation")
+            "wealthwise_enhanced": simulation.results.get("wealthwise_enhanced", False) if simulation.results else False,
+            "has_crash_analysis": bool(simulation.results.get("market_crash_analysis")) if simulation.results else False,
+            "has_shap_explanations": bool(shap_data),  # Based on actual SHAP data found
+            "methodology": simulation.results.get("methodology", "Enhanced portfolio simulation") if simulation.results else "Enhanced portfolio simulation",
+            # 🔍 Include SHAP data in response
+            "shap_explanations": shap_data
         }
     
     async def _handle_fallback_simulation(self, sim_input: Dict[str, Any], 
@@ -286,6 +347,8 @@ class EnhancedPortfolioSimulator:
             response = self._format_response(simulation)
             response["fallback_used"] = True
             response["original_error"] = error
+            response["has_shap_explanations"] = False
+            response["shap_explanations"] = {}
             
             return response
             
@@ -327,3 +390,58 @@ async def generate_shap_visualization(simulation_id: int, db: Session) -> Option
     except Exception as e:
         logger.error(f"❌ Error generating SHAP visualization: {e}")
         return None
+
+async def get_shap_explanations(simulation_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Get SHAP explanations for a specific simulation.
+    
+    This function extracts SHAP explanations from the database and returns them
+    in a format suitable for frontend consumption.
+    """
+    try:
+        logger.info(f"🔍 Getting SHAP explanations for simulation {simulation_id}")
+        
+        from database import models
+        simulation = db.query(models.Simulation).filter(models.Simulation.id == simulation_id).first()
+        
+        if not simulation:
+            return {"error": "Simulation not found"}
+        
+        # Extract SHAP data from multiple possible locations
+        shap_data = {}
+        
+        if simulation.results:
+            # Check various possible locations for SHAP data
+            locations_to_check = [
+                ('shap_explanations', simulation.results.get('shap_explanations')),
+                ('shap_explanation', simulation.results.get('shap_explanation')),
+                ('portfolio_recommendations.shap_explanations', 
+                 simulation.results.get('portfolio_recommendations', {}).get('shap_explanations') if isinstance(simulation.results.get('portfolio_recommendations'), dict) else None),
+                ('portfolio_recommendations.shap_explanation', 
+                 simulation.results.get('portfolio_recommendations', {}).get('shap_explanation') if isinstance(simulation.results.get('portfolio_recommendations'), dict) else None)
+            ]
+            
+            for location_name, data in locations_to_check:
+                if data:
+                    shap_data = data
+                    logger.info(f"✅ Found SHAP data at: {location_name}")
+                    break
+        
+        if not shap_data:
+            logger.warning(f"⚠️ No SHAP explanations found for simulation {simulation_id}")
+            return {
+                "simulation_id": simulation_id,
+                "shap_explanations": {},
+                "message": "No SHAP explanations available for this simulation",
+                "available_data": list(simulation.results.keys()) if simulation.results else []
+            }
+        
+        return {
+            "simulation_id": simulation_id,
+            "shap_explanations": shap_data,
+            "message": "SHAP explanations retrieved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting SHAP explanations: {e}")
+        return {"error": str(e)}

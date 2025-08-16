@@ -106,19 +106,58 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             "methodology": simulation_result.get("methodology", "Standard simulation")
         }
         
-        # 🔍 CRITICAL: Extract SHAP explanations from simulation result
-        shap_explanations = simulation_result.get("shap_explanations", {})
+        # 🔍 CRITICAL: Enhanced SHAP extraction from multiple locations
+        shap_explanations = {}
+        
+        # Method 1: Direct from simulation result
+        if 'shap_explanations' in simulation_result:
+            shap_explanations = simulation_result['shap_explanations']
+            logger.info("✅ Found SHAP explanations at top level")
+        
+        # Method 2: From results section
+        elif 'results' in simulation_result and simulation_result['results']:
+            results = simulation_result['results']
+            if 'shap_explanations' in results:
+                shap_explanations = results['shap_explanations']
+                logger.info("✅ Found SHAP explanations in results")
+            elif 'shap_explanation' in results:
+                shap_explanations = results['shap_explanation']
+                logger.info("✅ Found SHAP explanation (singular) in results")
+            elif 'portfolio_recommendations' in results:
+                recs = results['portfolio_recommendations']
+                if isinstance(recs, dict):
+                    if 'shap_explanations' in recs:
+                        shap_explanations = recs['shap_explanations']
+                        logger.info("✅ Found SHAP explanations in portfolio recommendations")
+                    elif 'shap_explanation' in recs:
+                        shap_explanations = recs['shap_explanation']
+                        logger.info("✅ Found SHAP explanation in portfolio recommendations")
+        
+        # Method 3: From recommendation_result
+        elif 'recommendation_result' in simulation_result:
+            rec_result = simulation_result['recommendation_result']
+            if isinstance(rec_result, dict):
+                if 'shap_explanations' in rec_result:
+                    shap_explanations = rec_result['shap_explanations']
+                    logger.info("✅ Found SHAP explanations in recommendation_result")
+                elif 'shap_explanation' in rec_result:
+                    shap_explanations = rec_result['shap_explanation']
+                    logger.info("✅ Found SHAP explanation in recommendation_result")
+        
+        # Update enhanced features based on actual SHAP data found
         if shap_explanations:
-            logger.info("✅ SHAP explanations found in simulation result")
             enhanced_features["has_shap_explanations"] = True
+            logger.info(f"✅ SHAP explanations extracted: {type(shap_explanations)}")
+            if isinstance(shap_explanations, dict):
+                logger.info(f"🔍 SHAP keys: {list(shap_explanations.keys())}")
         else:
-            logger.warning("⚠️ No SHAP explanations found in simulation result")
-            # Check if it's nested in results
-            results = simulation_result.get("results", {})
-            if results and "shap_explanations" in results:
-                shap_explanations = results["shap_explanations"]
-                logger.info("✅ Found SHAP explanations in results section")
-                enhanced_features["has_shap_explanations"] = True
+            logger.warning("⚠️ No SHAP explanations found anywhere in simulation result")
+            # Enhanced debugging
+            logger.info(f"🔍 Simulation result structure:")
+            logger.info(f"   Top level keys: {list(simulation_result.keys())}")
+            if 'results' in simulation_result and simulation_result['results']:
+                logger.info(f"   Results keys: {list(simulation_result['results'].keys())}")
+            enhanced_features["has_shap_explanations"] = False
         
         # Log enhanced features
         if enhanced_features["has_crash_analysis"]:
@@ -249,24 +288,117 @@ async def debug_simulation_data(simulation_id: int, db: Session = Depends(get_db
         if hasattr(simulation, 'shap_explanations') and simulation.shap_explanations:
             debug_info["has_shap_explanations"] = True
             debug_info["shap_location"] = "direct_attribute"
+            debug_info["shap_data"] = simulation.shap_explanations
             
         if hasattr(simulation, 'results') and simulation.results:
             if isinstance(simulation.results, dict):
                 debug_info["raw_data_keys"] = list(simulation.results.keys())
+                
                 if 'shap_explanations' in simulation.results:
                     debug_info["has_shap_explanations"] = True
                     debug_info["shap_location"] = "results.shap_explanations"
+                    debug_info["shap_data"] = simulation.results['shap_explanations']
+                    
+                elif 'shap_explanation' in simulation.results:
+                    debug_info["has_shap_explanations"] = True
+                    debug_info["shap_location"] = "results.shap_explanation"
+                    debug_info["shap_data"] = simulation.results['shap_explanation']
+                    
+                elif 'portfolio_recommendations' in simulation.results:
+                    portfolio_recs = simulation.results['portfolio_recommendations']
+                    if isinstance(portfolio_recs, dict):
+                        if 'shap_explanations' in portfolio_recs:
+                            debug_info["has_shap_explanations"] = True
+                            debug_info["shap_location"] = "results.portfolio_recommendations.shap_explanations"
+                            debug_info["shap_data"] = portfolio_recs['shap_explanations']
+                        elif 'shap_explanation' in portfolio_recs:
+                            debug_info["has_shap_explanations"] = True
+                            debug_info["shap_location"] = "results.portfolio_recommendations.shap_explanation"
+                            debug_info["shap_data"] = portfolio_recs['shap_explanation']
                     
         if hasattr(simulation, 'recommendations') and simulation.recommendations:
             if isinstance(simulation.recommendations, dict) and 'shap_explanations' in simulation.recommendations:
                 debug_info["has_shap_explanations"] = True
                 debug_info["shap_location"] = "recommendations.shap_explanations"
+                debug_info["shap_data"] = simulation.recommendations['shap_explanations']
         
         return debug_info
         
     except Exception as e:
         logger.error(f"❌ Debug failed: {e}")
         return {"error": str(e)}
+
+# 🔍 NEW: Dedicated SHAP endpoint
+@router.get("/{simulation_id}/shap-explanations")
+async def get_shap_explanations_endpoint(simulation_id: int, db: Session = Depends(get_db)):
+    """
+    Get SHAP explanations for a specific simulation
+    """
+    try:
+        logger.info(f"🔍 Getting SHAP explanations for simulation {simulation_id}")
+        
+        # Get simulation from database
+        from database import models
+        simulation = db.query(models.Simulation).filter(models.Simulation.id == simulation_id).first()
+        
+        if not simulation:
+            raise HTTPException(status_code=404, detail="Simulation not found")
+        
+        # Extract SHAP data from multiple possible locations
+        shap_data = {}
+        shap_location = None
+        
+        if simulation.results and isinstance(simulation.results, dict):
+            # Check various possible locations for SHAP data
+            locations_to_check = [
+                ('results.shap_explanations', simulation.results.get('shap_explanations')),
+                ('results.shap_explanation', simulation.results.get('shap_explanation')),
+            ]
+            
+            # Check in portfolio_recommendations
+            if 'portfolio_recommendations' in simulation.results:
+                portfolio_recs = simulation.results['portfolio_recommendations']
+                if isinstance(portfolio_recs, dict):
+                    locations_to_check.extend([
+                        ('results.portfolio_recommendations.shap_explanations', 
+                         portfolio_recs.get('shap_explanations')),
+                        ('results.portfolio_recommendations.shap_explanation', 
+                         portfolio_recs.get('shap_explanation'))
+                    ])
+            
+            for location_name, data in locations_to_check:
+                if data:
+                    shap_data = data
+                    shap_location = location_name
+                    logger.info(f"✅ Found SHAP data at: {location_name}")
+                    break
+        
+        if not shap_data:
+            logger.warning(f"⚠️ No SHAP explanations found for simulation {simulation_id}")
+            return {
+                "simulation_id": simulation_id,
+                "shap_explanations": {},
+                "message": "No SHAP explanations available for this simulation",
+                "available_data": list(simulation.results.keys()) if simulation.results else [],
+                "has_shap_data": False
+            }
+        
+        return {
+            "simulation_id": simulation_id,
+            "shap_explanations": shap_data,
+            "shap_location": shap_location,
+            "message": "SHAP explanations retrieved successfully",
+            "has_shap_data": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting SHAP explanations: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get SHAP explanations: {str(e)}"
+        )
 
 @router.post("/legacy", status_code=status.HTTP_201_CREATED)
 async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db: Session = Depends(get_db)):
