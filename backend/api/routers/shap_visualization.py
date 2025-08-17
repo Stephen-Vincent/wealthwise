@@ -11,7 +11,7 @@ from typing import Dict, Any
 import io
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/shap", tags=["SHAP Visualization"])
+router = APIRouter(tags=["SHAP Visualization"])
 
 @router.get("/simulation/{simulation_id}/explanation")
 async def get_shap_explanation_data(
