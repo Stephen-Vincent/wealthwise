@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 # Updated imports for new database structure
 from core.config import settings
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset  # ADD PASSWORD RESET
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization  # ✅ ADD SHAP
 from database.db import engine, Base  # Updated import path
 from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
 
@@ -185,11 +185,12 @@ async def root():
         "endpoints": {
             "health": "/api/health",
             "auth": "/auth",
-            "password_reset": "/auth",  # ADD THIS
+            "password_reset": "/auth",
             "onboarding": "/onboarding", 
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
-            "instruments": "/api/instruments"
+            "instruments": "/api/instruments",
+            "shap": "/api/shap"  # ✅ ADD SHAP ENDPOINT INFO
         }
     }
 
@@ -231,11 +232,12 @@ def include_routers():
     """Include all API routers with error handling"""
     routers_config = [
         (auth.router, "/auth", ["auth"]),
-        (password_reset.router, "/auth", ["password-reset"]),  # ADD PASSWORD RESET ROUTER
+        (password_reset.router, "/auth", ["password-reset"]),
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
         (instruments.router, "/api/instruments", ["instruments"]),
-        (ai_analysis.router, "/api/ai", ["ai-analysis"])
+        (ai_analysis.router, "/api/ai", ["ai-analysis"]),
+        (shap_visualization.router, "/api/shap", ["shap"])  # ✅ ADD SHAP ROUTER
     ]
     
     for router, prefix, tags in routers_config:
@@ -296,15 +298,16 @@ async def demo_info():
             "Risk assessment and recommendations", 
             "Portfolio simulation and tracking",
             "User authentication and data persistence",
-            "Password reset functionality",  # ADD THIS
+            "Password reset functionality",
+            "SHAP explainable AI visualizations",  # ✅ ADD SHAP FEATURE
             "Cross-database compatibility (SQLite/PostgreSQL)"
         ],
         "technology_stack": {
             "backend": "FastAPI + SQLAlchemy",
             "frontend": "React + Vite", 
             "database": "SQLite (dev) / PostgreSQL (prod)",
-            "ai": "Groq API (free tier)",
-            "email": "SMTP (configurable)",  # ADD THIS
+            "ai": "Groq API (free tier) + SHAP",  # ✅ MENTION SHAP
+            "email": "SMTP (configurable)",
             "hosting": "Railway (backend) + Vercel (frontend)"
         },
         "deployment": {
@@ -326,7 +329,7 @@ if os.getenv("ENVIRONMENT") == "development":
             db = SessionLocal()
             user_count = db.query(User).count()
             simulation_count = db.query(Simulation).count()
-            token_count = db.query(PasswordResetToken).count()  # ADD THIS
+            token_count = db.query(PasswordResetToken).count()
             db.close()
             
             return {
@@ -335,9 +338,48 @@ if os.getenv("ENVIRONMENT") == "development":
                 "tables": {
                     "users": user_count,
                     "simulations": simulation_count,
-                    "password_reset_tokens": token_count  # ADD THIS
+                    "password_reset_tokens": token_count
                 },
                 "status": "connected"
+            }
+        except Exception as e:
+            return {"error": str(e), "status": "error"}
+
+# ✅ ADD SHAP-specific development endpoint
+if os.getenv("ENVIRONMENT") == "development":
+    @app.get("/api/dev/shap-info")
+    async def dev_shap_info():
+        """Development endpoint to check SHAP functionality"""
+        try:
+            from backend.database.db import SessionLocal
+            from database.models import Simulation
+            
+            db = SessionLocal()
+            
+            # Count simulations with SHAP data
+            simulations_with_shap = db.query(Simulation).filter(
+                Simulation.results.op('->>')('shap_explanation').isnot(None)
+            ).count()
+            
+            # Get latest simulation with SHAP data
+            latest_shap_sim = db.query(Simulation).filter(
+                Simulation.results.op('->>')('shap_explanation').isnot(None)
+            ).order_by(Simulation.created_at.desc()).first()
+            
+            db.close()
+            
+            return {
+                "total_simulations_with_shap": simulations_with_shap,
+                "latest_shap_simulation": {
+                    "id": latest_shap_sim.id if latest_shap_sim else None,
+                    "name": latest_shap_sim.name if latest_shap_sim else None,
+                    "created_at": latest_shap_sim.created_at.isoformat() if latest_shap_sim else None
+                },
+                "shap_endpoints": [
+                    "/api/shap/simulation/{id}/explanation",
+                    "/api/shap/simulation/{id}/visualization", 
+                    "/api/shap/simulation/{id}/chart-data"
+                ]
             }
         except Exception as e:
             return {"error": str(e), "status": "error"}
@@ -346,7 +388,8 @@ if os.getenv("ENVIRONMENT") == "development":
 logger.info("🎓 WealthWise API configured for university project deployment")
 logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
 logger.info("🔗 Health check available at /health and /api/health")
-logger.info("🔑 Password reset functionality enabled")  # ADD THIS
+logger.info("🔑 Password reset functionality enabled")
+logger.info("🧠 SHAP explainable AI endpoints enabled")  # ✅ ADD SHAP LOG
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
