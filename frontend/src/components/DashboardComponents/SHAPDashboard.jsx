@@ -12,6 +12,17 @@ import {
   Cell,
 } from "recharts";
 
+// 🔀 Utility to read either snake_case or camelCase
+const pick = (obj, ...keys) => {
+  for (const k of keys) {
+    const parts = k.split(".");
+    let val = obj;
+    for (const p of parts) val = val?.[p];
+    if (val !== undefined && val !== null) return val;
+  }
+  return undefined;
+};
+
 /**
  * 🔧 SHAP Debug + Recovery Utilities (integrated)
  */
@@ -56,8 +67,12 @@ export function getShapExplanationData(portfolioData) {
   const possiblePaths = [
     portfolioData?.results?.shap_explanation,
     portfolioData?.shap_explanation,
+    portfolioData?.results?.shapExplanation,
+    portfolioData?.shapExplanation,
     portfolioData?.results?.shap_data,
     portfolioData?.shap_data,
+    portfolioData?.results?.shapData,
+    portfolioData?.shapData,
     portfolioData?.explanation,
     portfolioData?.results?.explanation,
   ];
@@ -125,9 +140,14 @@ export function useShapDashboard(portfolioData) {
   const [error, setError] = React.useState(null);
 
   const hasIndicators = Boolean(
-    portfolioData?.has_shap_explanations ||
-      portfolioData?.wealthwise_enhanced ||
-      portfolioData?.methodology
+    pick(
+      portfolioData,
+      "has_shap_explanations",
+      "hasShapExplanations",
+      "hasShapExplanation"
+    ) ||
+      pick(portfolioData, "wealthwise_enhanced", "wealthwiseEnhanced") ||
+      pick(portfolioData, "methodology", "analysisMethodology")
   );
 
   React.useEffect(() => {
@@ -193,8 +213,19 @@ export function useShapDashboard(portfolioData) {
     debugInfo,
     loading,
     error,
-    hasShap: !!shapData || portfolioData?.has_shap_explanations,
-    shouldShow: !!shapData || portfolioData?.wealthwise_enhanced,
+    hasShap:
+      !!shapData ||
+      Boolean(
+        pick(
+          portfolioData,
+          "has_shap_explanations",
+          "hasShapExplanations",
+          "hasShapExplanation"
+        )
+      ),
+    shouldShow:
+      !!shapData ||
+      Boolean(pick(portfolioData, "wealthwise_enhanced", "wealthwiseEnhanced")),
   };
 }
 
@@ -206,13 +237,20 @@ const SHAPDashboard = ({ portfolioData }) => {
   const [chartData, setChartData] = React.useState([]);
 
   const hasResults = Boolean(portfolioData?.results);
-  const isWealthWiseEnhanced = Boolean(portfolioData?.wealthwise_enhanced);
+  const isWealthWiseEnhanced = Boolean(
+    pick(portfolioData, "wealthwise_enhanced", "wealthwiseEnhanced")
+  );
 
   const { shapData, loading, error, hasShap, shouldShow } =
     useShapDashboard(portfolioData);
 
   const hasShapIndicators = Boolean(
-    portfolioData?.has_shap_explanations || portfolioData?.methodology
+    pick(
+      portfolioData,
+      "has_shap_explanations",
+      "hasShapExplanations",
+      "hasShapExplanation"
+    ) || pick(portfolioData, "methodology", "analysisMethodology")
   );
 
   const hasShapData = Boolean(shapData);
@@ -223,8 +261,13 @@ const SHAPDashboard = ({ portfolioData }) => {
     isWealthWiseEnhanced,
     hasShapData,
     hasShapIndicators,
-    methodology: portfolioData?.methodology,
-    hasShapExplanationsFlag: portfolioData?.has_shap_explanations,
+    methodology: pick(portfolioData, "methodology", "analysisMethodology"),
+    hasShapExplanationsFlag: pick(
+      portfolioData,
+      "has_shap_explanations",
+      "hasShapExplanations",
+      "hasShapExplanation"
+    ),
     portfolioId: portfolioData?.id,
     loading,
     error,
@@ -234,7 +277,8 @@ const SHAPDashboard = ({ portfolioData }) => {
   // Build chart data from SHAP feature_importance
   React.useEffect(() => {
     if (hasShapData) {
-      const featureImportance = shapData.feature_importance || {};
+      const featureImportance =
+        shapData.feature_importance || shapData.featureImportance || {};
       const data = Object.entries(featureImportance).map(
         ([factor, importance]) => ({
           factor: formatFactorName(factor),
@@ -349,8 +393,13 @@ const SHAPDashboard = ({ portfolioData }) => {
         </h3>
         <p className="text-green-600">
           Confidence:{" "}
-          {shapData.confidence_score || shapData.confidence || "N/A"}% | Method:{" "}
-          {shapData.methodology || "SHAP Analysis"}
+          {pick(
+            shapData,
+            "confidence_score",
+            "confidence",
+            "confidenceScore"
+          ) || "N/A"}
+          % | Method: {shapData.methodology || "SHAP Analysis"}
         </p>
       </div>
 
@@ -423,22 +472,30 @@ const BasicPortfolioInfo = ({ portfolioData }) => (
         <strong>Portfolio ID:</strong> {portfolioData.id}
       </p>
       <p>
-        <strong>Goal:</strong> {portfolioData.goal}
+        <strong>Goal:</strong>{" "}
+        {pick(portfolioData, "goal", "investment_goal", "investmentGoal")}
       </p>
       <p>
         <strong>Target Value:</strong> £
-        {portfolioData.target_value?.toLocaleString()}
+        {pick(portfolioData, "target_value", "targetValue")?.toLocaleString?.()}
       </p>
       <p>
-        <strong>Risk Score:</strong> {portfolioData.risk_score}/100
+        <strong>Risk Score:</strong>{" "}
+        {pick(portfolioData, "risk_score", "riskScore")}/100
       </p>
       <p>
-        <strong>Risk Label:</strong> {portfolioData.risk_label}
+        <strong>Risk Label:</strong>{" "}
+        {pick(portfolioData, "risk_label", "riskLabel")}
       </p>
-      {portfolioData.results?.stocks_picked && (
+      {pick(portfolioData, "results.stocks_picked", "results.stocksPicked") && (
         <p>
           <strong>Stocks Selected:</strong>{" "}
-          {portfolioData.results.stocks_picked.length} stocks
+          {pick(
+            portfolioData,
+            "results.stocks_picked.length",
+            "results.stocksPicked.length"
+          )}{" "}
+          stocks
         </p>
       )}
     </div>
@@ -473,91 +530,109 @@ const ShapIndicatorsPanel = ({ portfolioData }) => (
   </div>
 );
 
-const AIAnalysisFallback = ({ portfolioData }) => (
-  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-    <div className="text-4xl mb-2 text-center">🧠</div>
-    <h3 className="text-lg font-bold text-blue-800 mb-2 text-center">
-      AI Analysis Available (No SHAP Data)
-    </h3>
-    <p className="text-blue-600 mb-4 text-center">
-      While detailed SHAP explanations aren't available, we have AI-generated
-      insights for your portfolio.
-    </p>
+const AIAnalysisFallback = ({ portfolioData }) => {
+  const aiSummary = pick(portfolioData, "ai_summary", "aiSummary");
+  const riskExplanation = pick(
+    portfolioData,
+    "risk_explanation",
+    "riskExplanation"
+  );
+  const allocationGuidance = pick(
+    portfolioData,
+    "allocation_guidance",
+    "allocationGuidance"
+  );
+  const riskScore = pick(portfolioData, "risk_score", "riskScore");
+  const riskLabel = pick(portfolioData, "risk_label", "riskLabel");
+  const targetValue = pick(portfolioData, "target_value", "targetValue");
+  const timeframe = pick(
+    portfolioData,
+    "timeframe",
+    "timeHorizon",
+    "timeHorizonYears"
+  );
+  const stocksPicked =
+    pick(portfolioData, "results.stocks_picked", "results.stocksPicked") || [];
 
-    <div className="space-y-4">
-      {portfolioData.ai_summary && (
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+      <div className="text-4xl mb-2 text-center">🧠</div>
+      <h3 className="text-lg font-bold text-blue-800 mb-2 text-center">
+        AI Analysis Available (No SHAP Data)
+      </h3>
+      <p className="text-blue-600 mb-4 text-center">
+        While detailed SHAP explanations aren't available, we have AI-generated
+        insights for your portfolio.
+      </p>
+
+      <div className="space-y-4">
+        {aiSummary && (
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="font-semibold mb-2 flex items-center">
+              <span className="mr-2">🤖</span>
+              AI Summary
+            </h4>
+            <p className="text-gray-700 text-sm leading-relaxed">{aiSummary}</p>
+          </div>
+        )}
+
+        {riskExplanation && (
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="font-semibold mb-2 flex items-center">
+              <span className="mr-2">⚠️</span>
+              Risk Explanation
+            </h4>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              {riskExplanation}
+            </p>
+          </div>
+        )}
+
+        {allocationGuidance && (
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="font-semibold mb-2 flex items-center">
+              <span className="mr-2">📊</span>
+              Allocation Guidance
+            </h4>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              {allocationGuidance}
+            </p>
+          </div>
+        )}
+
         <div className="bg-white rounded-lg p-4">
           <h4 className="font-semibold mb-2 flex items-center">
-            <span className="mr-2">🤖</span>
-            AI Summary
+            <span className="mr-2">📈</span>
+            Portfolio Metrics
           </h4>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {portfolioData.ai_summary}
-          </p>
-        </div>
-      )}
-
-      {portfolioData.risk_explanation && (
-        <div className="bg-white rounded-lg p-4">
-          <h4 className="font-semibold mb-2 flex items-center">
-            <span className="mr-2">⚠️</span>
-            Risk Explanation
-          </h4>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {portfolioData.risk_explanation}
-          </p>
-        </div>
-      )}
-
-      {portfolioData.allocation_guidance && (
-        <div className="bg-white rounded-lg p-4">
-          <h4 className="font-semibold mb-2 flex items-center">
-            <span className="mr-2">📊</span>
-            Allocation Guidance
-          </h4>
-          <p className="text-gray-700 text-sm leading-relaxed">
-            {portfolioData.allocation_guidance}
-          </p>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg p-4">
-        <h4 className="font-semibold mb-2 flex items-center">
-          <span className="mr-2">📈</span>
-          Portfolio Metrics
-        </h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="font-medium">Risk Score:</span>
-            <span className="ml-2">{portfolioData.risk_score}/100</span>
-          </div>
-          <div>
-            <span className="font-medium">Risk Level:</span>
-            <span className="ml-2">{portfolioData.risk_label}</span>
-          </div>
-          <div>
-            <span className="font-medium">Target:</span>
-            <span className="ml-2">
-              £{portfolioData.target_value?.toLocaleString()}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium">Timeframe:</span>
-            <span className="ml-2">{portfolioData.timeframe} years</span>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium">Risk Score:</span>
+              <span className="ml-2">{riskScore}/100</span>
+            </div>
+            <div>
+              <span className="font-medium">Risk Level:</span>
+              <span className="ml-2">{riskLabel}</span>
+            </div>
+            <div>
+              <span className="font-medium">Target:</span>
+              <span className="ml-2">£{targetValue?.toLocaleString?.()}</span>
+            </div>
+            <div>
+              <span className="font-medium">Timeframe:</span>
+              <span className="ml-2">{timeframe} years</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {portfolioData.results?.stocks_picked && (
-        <div className="bg-white rounded-lg p-4">
-          <h4 className="font-semibold mb-2 flex items-center">
-            <span className="mr-2">📋</span>
-            Selected Stocks ({portfolioData.results.stocks_picked.length})
-          </h4>
-          <div className="grid grid-cols-1 gap-2 text-sm">
-            {portfolioData.results.stocks_picked
-              .slice(0, 5)
-              .map((stock, index) => (
+        {stocksPicked.length > 0 && (
+          <div className="bg-white rounded-lg p-4">
+            <h4 className="font-semibold mb-2 flex items-center">
+              <span className="mr-2">📋</span>
+              Selected Stocks ({stocksPicked.length})
+            </h4>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              {stocksPicked.slice(0, 5).map((stock, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <span className="font-medium">{stock.symbol}</span>
                   <span>
@@ -567,32 +642,38 @@ const AIAnalysisFallback = ({ portfolioData }) => (
                   </span>
                 </div>
               ))}
-            {portfolioData.results.stocks_picked.length > 5 && (
-              <p className="text-gray-500 italic">
-                ... and {portfolioData.results.stocks_picked.length - 5} more
-              </p>
-            )}
+              {stocksPicked.length > 5 && (
+                <p className="text-gray-500 italic">
+                  ... and {stocksPicked.length - 5} more
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
 
-    <button
-      onClick={() => console.log("🔍 Full Portfolio Data:", portfolioData)}
-      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
-    >
-      🔍 Debug Portfolio Data
-    </button>
-  </div>
-);
+      <button
+        onClick={() => console.log("🔍 Full Portfolio Data:", portfolioData)}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+      >
+        🔍 Debug Portfolio Data
+      </button>
+    </div>
+  );
+};
 
 const OverviewTab = ({ shapData, portfolioData }) => {
-  const confidence = shapData?.confidence_score || shapData?.confidence || 75;
+  const confidence =
+    pick(shapData, "confidence_score", "confidence", "confidenceScore") || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
   const explanation =
-    shapData?.explanation ||
-    shapData?.human_readable_explanation?.summary ||
-    portfolioData?.ai_summary ||
+    pick(
+      shapData,
+      "explanation",
+      "human_readable_explanation.summary",
+      "humanReadableExplanation.summary"
+    ) ||
+    pick(portfolioData, "ai_summary", "aiSummary") ||
     "AI-powered portfolio optimization";
 
   const metrics = [
@@ -607,7 +688,9 @@ const OverviewTab = ({ shapData, portfolioData }) => {
     },
     {
       title: "Portfolio Quality",
-      value: shapData?.portfolio_quality_score || 85,
+      value:
+        pick(shapData, "portfolio_quality_score", "portfolioQualityScore") ||
+        85,
       maxValue: 100,
       unit: "/100",
       color: "text-blue-600",
@@ -616,7 +699,7 @@ const OverviewTab = ({ shapData, portfolioData }) => {
     },
     {
       title: "Risk Score",
-      value: portfolioData?.risk_score || 50,
+      value: pick(portfolioData, "risk_score", "riskScore") || 50,
       maxValue: 100,
       unit: "/100",
       color: "text-orange-600",
@@ -625,7 +708,9 @@ const OverviewTab = ({ shapData, portfolioData }) => {
     },
     {
       title: "Target Progress",
-      value: portfolioData?.target_achieved ? 100 : 75,
+      value: pick(portfolioData, "target_achieved", "targetAchieved")
+        ? 100
+        : 75,
       maxValue: 100,
       unit: "%",
       color: "text-purple-600",
@@ -655,24 +740,24 @@ const OverviewTab = ({ shapData, portfolioData }) => {
           <p className="text-gray-700 leading-relaxed">{explanation}</p>
         </div>
 
-        {portfolioData?.risk_explanation && (
+        {pick(portfolioData, "risk_explanation", "riskExplanation") && (
           <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 mb-4">
             <div className="font-semibold text-yellow-800 mb-2">
               Risk Analysis
             </div>
             <p className="text-gray-700 leading-relaxed">
-              {portfolioData.risk_explanation}
+              {pick(portfolioData, "risk_explanation", "riskExplanation")}
             </p>
           </div>
         )}
 
-        {portfolioData?.allocation_guidance && (
+        {pick(portfolioData, "allocation_guidance", "allocationGuidance") && (
           <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500 mb-4">
             <div className="font-semibold text-green-800 mb-2">
               Allocation Guidance
             </div>
             <p className="text-gray-700 leading-relaxed">
-              {portfolioData.allocation_guidance}
+              {pick(portfolioData, "allocation_guidance", "allocationGuidance")}
             </p>
           </div>
         )}
