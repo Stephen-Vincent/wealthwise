@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   BarChart,
   Bar,
@@ -12,67 +12,214 @@ import {
   Cell,
 } from "recharts";
 
-// Enhanced SHAP Dashboard that fetches from dedicated endpoint
+/**
+ * 🔧 SHAP Debug + Recovery Utilities (integrated)
+ */
+export function debugShapDataFlow(portfolioData, location = "unknown") {
+  console.log(`🔍 SHAP Debug at ${location}:`, {
+    hasShapExplanations: portfolioData?.has_shap_explanations,
+    wealthwiseEnhanced: portfolioData?.wealthwise_enhanced,
+    resultsShapExplanation: portfolioData?.results?.shap_explanation,
+    resultsHasShap: !!portfolioData?.results?.shap_explanation,
+    shapInResults: Object.keys(portfolioData?.results || {}).filter((key) =>
+      key.toLowerCase().includes("shap")
+    ),
+    allResultsKeys: Object.keys(portfolioData?.results || {}),
+    humanReadableExplanations:
+      portfolioData?.results?.shap_explanation?.human_readable_explanation,
+    portfolioQualityScore:
+      portfolioData?.results?.shap_explanation?.portfolio_quality_score,
+    rawResultsObject: portfolioData?.results,
+  });
+
+  const searchForShap = (obj, path = "") => {
+    if (!obj || typeof obj !== "object") return [];
+    let findings = [];
+    for (const [key, value] of Object.entries(obj)) {
+      const currentPath = path ? `${path}.${key}` : key;
+      if (key.toLowerCase().includes("shap")) {
+        findings.push({ path: currentPath, value });
+      }
+      if (typeof value === "object" && value !== null) {
+        findings = findings.concat(searchForShap(value, currentPath));
+      }
+    }
+    return findings;
+  };
+
+  const shapFindings = searchForShap(portfolioData);
+  console.log("🔍 All SHAP-related data found:", shapFindings);
+  return shapFindings;
+}
+
+export function getShapExplanationData(portfolioData) {
+  const possiblePaths = [
+    portfolioData?.results?.shap_explanation,
+    portfolioData?.shap_explanation,
+    portfolioData?.results?.shap_data,
+    portfolioData?.shap_data,
+    portfolioData?.explanation,
+    portfolioData?.results?.explanation,
+  ];
+  for (const path of possiblePaths) {
+    if (path && typeof path === "object") {
+      console.log("✅ Found SHAP data at path:", path);
+      return path;
+    }
+  }
+  console.log("❌ No SHAP data found in any expected location");
+  return null;
+}
+
+export async function verifyBackendShapData(simulationId) {
+  try {
+    const response = await fetch(`/api/simulations/${simulationId}`);
+    const data = await response.json();
+    console.log("🔍 Backend SHAP Verification:", {
+      simulationId,
+      hasShapInResults: !!data?.results?.shap_explanation,
+      hasShapFlag: data?.has_shap_explanations,
+      wealthwiseEnhanced: data?.wealthwise_enhanced,
+      rawResults: data?.results,
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Failed to verify backend SHAP data:", error);
+    return null;
+  }
+}
+
+export function recoverShapData(portfolioData) {
+  const searchDeep = (obj, targetKey) => {
+    if (!obj || typeof obj !== "object") return null;
+    if (obj[targetKey]) return obj[targetKey];
+    for (const value of Object.values(obj)) {
+      if (typeof value === "object" && value !== null) {
+        const found = searchDeep(value, targetKey);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const shapData =
+    searchDeep(portfolioData, "shap_explanation") ||
+    searchDeep(portfolioData, "shap_data") ||
+    searchDeep(portfolioData, "explanation");
+
+  if (shapData) {
+    console.log("✅ Recovered SHAP data from deep search:", shapData);
+    return shapData;
+  }
+  console.log("❌ Could not recover SHAP data");
+  return null;
+}
+
+/**
+ * 🔁 Hook: centralizes SHAP loading + debug + fallback fetching
+ */
+export function useShapDashboard(portfolioData) {
+  const [shapData, setShapData] = React.useState(null);
+  const [debugInfo, setDebugInfo] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  const hasIndicators = Boolean(
+    portfolioData?.has_shap_explanations ||
+      portfolioData?.wealthwise_enhanced ||
+      portfolioData?.methodology
+  );
+
+  React.useEffect(() => {
+    let isActive = true;
+    async function run() {
+      if (!portfolioData) return;
+
+      // 1) Debug
+      const dbg = debugShapDataFlow(portfolioData, "useShapDashboard");
+      if (!isActive) return;
+      setDebugInfo(dbg);
+
+      // 2) Try inline
+      let explanation = getShapExplanationData(portfolioData);
+
+      // 3) Try recover
+      if (!explanation) explanation = recoverShapData(portfolioData);
+
+      // 4) If still nothing but indicators present, try dedicated endpoint
+      if (!explanation && hasIndicators && portfolioData?.id) {
+        try {
+          setLoading(true);
+          setError(null);
+          const baseUrl =
+            import.meta.env.VITE_API_URL ||
+            "https://wealthwise-dwfq.onrender.com";
+          const resp = await fetch(
+            `${baseUrl}/api/shap/simulation/${portfolioData.id}/explanation`
+          );
+          if (resp.ok) {
+            const json = await resp.json();
+            explanation = json?.shap_data || json || null;
+            console.log("✅ SHAP data fetched from dedicated endpoint:", json);
+          } else {
+            setError(`SHAP data not available (${resp.status})`);
+            console.log(`❌ SHAP endpoint returned ${resp.status}`);
+          }
+        } catch (e) {
+          setError(e?.message || "Failed to fetch SHAP data");
+          console.error("❌ Error fetching SHAP data:", e);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // 5) Verify backend if still nothing
+      if (!explanation && portfolioData?.id) {
+        verifyBackendShapData(portfolioData.id);
+      }
+
+      if (!isActive) return;
+      setShapData(explanation || null);
+    }
+
+    run();
+    return () => {
+      isActive = false;
+    };
+  }, [portfolioData, hasIndicators]);
+
+  return {
+    shapData,
+    debugInfo,
+    loading,
+    error,
+    hasShap: !!shapData || portfolioData?.has_shap_explanations,
+    shouldShow: !!shapData || portfolioData?.wealthwise_enhanced,
+  };
+}
+
+/**
+ * 🎛️ SHAP Dashboard (integrated with hook + utils)
+ */
 const SHAPDashboard = ({ portfolioData }) => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [chartData, setChartData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [shapData, setShapData] = useState(null);
-  const [shapError, setShapError] = useState(null);
+  const [activeTab, setActiveTab] = React.useState("overview");
+  const [chartData, setChartData] = React.useState([]);
 
-  // ✅ FIXED: Check your actual data structure
   const hasResults = Boolean(portfolioData?.results);
-  const hasAISummary = Boolean(portfolioData?.ai_summary);
-  const hasRiskExplanation = Boolean(portfolioData?.risk_explanation);
-  const hasAllocationGuidance = Boolean(portfolioData?.allocation_guidance);
-
-  // ✅ Use the actual wealthwise_enhanced flag from your data
   const isWealthWiseEnhanced = Boolean(portfolioData?.wealthwise_enhanced);
+
+  const { shapData, loading, error, hasShap, shouldShow } =
+    useShapDashboard(portfolioData);
+
   const hasShapIndicators = Boolean(
     portfolioData?.has_shap_explanations || portfolioData?.methodology
   );
+
   const hasShapData = Boolean(shapData);
 
-  // ✅ Fetch SHAP data from dedicated endpoint
-  useEffect(() => {
-    const fetchShapData = async () => {
-      if (!portfolioData?.id || !hasShapIndicators) return;
-
-      setLoading(true);
-      try {
-        const baseUrl =
-          import.meta.env.VITE_API_URL ||
-          "https://wealthwise-dwfq.onrender.com";
-        const response = await fetch(
-          `${baseUrl}/api/shap/simulation/${portfolioData.id}/explanation`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log("✅ SHAP data fetched successfully:", data);
-          setShapData(data.shap_data); // Extract shap_data from response
-          setShapError(null);
-        } else {
-          console.log(`❌ SHAP endpoint returned ${response.status}`);
-          setShapError(`SHAP data not available (${response.status})`);
-        }
-      } catch (error) {
-        console.error("❌ Error fetching SHAP data:", error);
-        setShapError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchShapData();
-  }, [portfolioData?.id, hasShapIndicators]);
-
-  // 🔍 Enhanced debug logging for your actual data structure
+  // 🔍 Component-level debug snapshot
   console.log("🔍 SHAPDashboard Debug:", {
     hasResults,
-    hasAISummary,
-    hasRiskExplanation,
-    hasAllocationGuidance,
     isWealthWiseEnhanced,
     hasShapData,
     hasShapIndicators,
@@ -80,11 +227,31 @@ const SHAPDashboard = ({ portfolioData }) => {
     hasShapExplanationsFlag: portfolioData?.has_shap_explanations,
     portfolioId: portfolioData?.id,
     loading,
-    shapError,
+    error,
     shapDataKeys: shapData ? Object.keys(shapData) : null,
   });
 
-  // ✅ Handle loading state
+  // Build chart data from SHAP feature_importance
+  React.useEffect(() => {
+    if (hasShapData) {
+      const featureImportance = shapData.feature_importance || {};
+      const data = Object.entries(featureImportance).map(
+        ([factor, importance]) => ({
+          factor: formatFactorName(factor),
+          importance: parseFloat(importance),
+          color: getFactorColor(factor),
+          description: getFactorDescription(factor),
+        })
+      );
+      setChartData(
+        data.sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
+      );
+    } else {
+      setChartData([]);
+    }
+  }, [hasShapData, shapData]);
+
+  // ✅ Loading state
   if (loading) {
     return (
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
@@ -99,15 +266,15 @@ const SHAPDashboard = ({ portfolioData }) => {
     );
   }
 
-  // ✅ Handle SHAP fetch error
-  if (shapError && hasShapIndicators) {
+  // ✅ Error state (only when indicators imply SHAP exists)
+  if (error && hasShapIndicators) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <div className="text-4xl mb-2">❌</div>
         <h3 className="text-lg font-bold text-red-800 mb-2">
           Failed to Load SHAP Data
         </h3>
-        <p className="text-red-600 mb-4">Error: {shapError}</p>
+        <p className="text-red-600 mb-4">Error: {error}</p>
         <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
@@ -118,25 +285,7 @@ const SHAPDashboard = ({ portfolioData }) => {
     );
   }
 
-  // ✅ Process SHAP data when loaded
-  useEffect(() => {
-    if (hasShapData) {
-      const featureImportance = shapData.feature_importance || {};
-      const data = Object.entries(featureImportance).map(
-        ([factor, importance]) => ({
-          factor: formatFactorName(factor),
-          importance: parseFloat(importance),
-          color: getFactorColor(factor),
-          description: getFactorDescription(factor),
-        })
-      );
-      setChartData(
-        data.sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
-      );
-    }
-  }, [hasShapData, shapData]);
-
-  // ✅ FIXED: Better handling of different scenarios
+  // ✅ No portfolio results yet
   if (!hasResults) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
@@ -151,6 +300,7 @@ const SHAPDashboard = ({ portfolioData }) => {
     );
   }
 
+  // ✅ Not WealthWise enhanced
   if (!isWealthWiseEnhanced) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
@@ -162,46 +312,12 @@ const SHAPDashboard = ({ portfolioData }) => {
           This portfolio simulation doesn't include comprehensive AI
           explanations.
         </p>
-
-        {/* Show basic portfolio information */}
-        <div className="bg-white rounded-lg p-4 mt-4">
-          <h4 className="font-semibold mb-2">Portfolio Information:</h4>
-          <div className="text-left space-y-2 text-sm">
-            <p>
-              <strong>Portfolio ID:</strong> {portfolioData.id}
-            </p>
-            <p>
-              <strong>Goal:</strong> {portfolioData.goal}
-            </p>
-            <p>
-              <strong>Target Value:</strong> £
-              {portfolioData.target_value?.toLocaleString()}
-            </p>
-            <p>
-              <strong>Risk Score:</strong> {portfolioData.risk_score}/100
-            </p>
-            <p>
-              <strong>Risk Label:</strong> {portfolioData.risk_label}
-            </p>
-            {portfolioData.results?.stocks_picked && (
-              <p>
-                <strong>Stocks Selected:</strong>{" "}
-                {portfolioData.results.stocks_picked.length} stocks
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4 text-xs text-yellow-600">
-          <p>
-            <strong>Available keys:</strong>{" "}
-            {Object.keys(portfolioData).join(", ")}
-          </p>
-        </div>
+        <BasicPortfolioInfo portfolioData={portfolioData} />
       </div>
     );
   }
 
+  // ✅ Indicators say SHAP exists, but none returned yet
   if (!hasShapData && hasShapIndicators) {
     return (
       <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
@@ -211,221 +327,21 @@ const SHAPDashboard = ({ portfolioData }) => {
         </h3>
         <p className="text-orange-600 mb-4 text-center">
           The backend generated SHAP explanations, but they weren't included in
-          the API response.
+          the API response yet.
         </p>
-
-        {/* Show SHAP indicators */}
-        <div className="bg-white rounded-lg p-4 mb-4">
-          <h4 className="font-semibold mb-2 flex items-center">
-            <span className="mr-2">🔍</span>
-            SHAP Analysis Indicators
-          </h4>
-          <div className="text-sm space-y-1">
-            <p>
-              <strong>Has SHAP Explanations:</strong>{" "}
-              {portfolioData?.has_shap_explanations ? "✅ Yes" : "❌ No"}
-            </p>
-            <p>
-              <strong>Analysis Method:</strong>{" "}
-              {portfolioData?.methodology || "Not specified"}
-            </p>
-            <p>
-              <strong>WealthWise Enhanced:</strong>{" "}
-              {portfolioData?.wealthwise_enhanced ? "✅ Yes" : "❌ No"}
-            </p>
-          </div>
-        </div>
-
-        {/* Backend investigation button */}
-        <button
-          onClick={() => {
-            console.log("🔍 Investigating SHAP data location...");
-            console.log("Portfolio Data:", portfolioData);
-
-            // Try to fetch SHAP data from different endpoints
-            if (portfolioData.id && portfolioData.user_id) {
-              fetchShapDataSeparately(portfolioData.user_id, portfolioData.id);
-            }
-          }}
-          className="mb-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 w-full"
-        >
-          🔍 Try to Fetch Missing SHAP Data
-        </button>
-
-        {/* Show available AI information while SHAP is missing */}
-        <div className="space-y-4">
-          {portfolioData.ai_summary && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">🤖</span>
-                AI Summary
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.ai_summary}
-              </p>
-            </div>
-          )}
-
-          {portfolioData.risk_explanation && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">⚠️</span>
-                Risk Explanation
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.risk_explanation}
-              </p>
-            </div>
-          )}
-
-          {portfolioData.allocation_guidance && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">📊</span>
-                Allocation Guidance
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.allocation_guidance}
-              </p>
-            </div>
-          )}
-        </div>
+        <ShapIndicatorsPanel portfolioData={portfolioData} />
       </div>
     );
   }
 
+  // ✅ AI analysis available but no SHAP at all
   if (!hasShapData) {
-    return (
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <div className="text-4xl mb-2 text-center">🧠</div>
-        <h3 className="text-lg font-bold text-blue-800 mb-2 text-center">
-          AI Analysis Available (No SHAP Data)
-        </h3>
-        <p className="text-blue-600 mb-4 text-center">
-          While detailed SHAP explanations aren't available, we have
-          AI-generated insights for your portfolio.
-        </p>
-
-        {/* Show available AI information */}
-        <div className="space-y-4">
-          {portfolioData.ai_summary && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">🤖</span>
-                AI Summary
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.ai_summary}
-              </p>
-            </div>
-          )}
-
-          {portfolioData.risk_explanation && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">⚠️</span>
-                Risk Explanation
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.risk_explanation}
-              </p>
-            </div>
-          )}
-
-          {portfolioData.allocation_guidance && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">📊</span>
-                Allocation Guidance
-              </h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {portfolioData.allocation_guidance}
-              </p>
-            </div>
-          )}
-
-          {/* Portfolio metrics */}
-          <div className="bg-white rounded-lg p-4">
-            <h4 className="font-semibold mb-2 flex items-center">
-              <span className="mr-2">📈</span>
-              Portfolio Metrics
-            </h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Risk Score:</span>
-                <span className="ml-2">{portfolioData.risk_score}/100</span>
-              </div>
-              <div>
-                <span className="font-medium">Risk Level:</span>
-                <span className="ml-2">{portfolioData.risk_label}</span>
-              </div>
-              <div>
-                <span className="font-medium">Target:</span>
-                <span className="ml-2">
-                  £{portfolioData.target_value?.toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="font-medium">Timeframe:</span>
-                <span className="ml-2">{portfolioData.timeframe} years</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stock allocation if available */}
-          {portfolioData.results?.stocks_picked && (
-            <div className="bg-white rounded-lg p-4">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <span className="mr-2">📋</span>
-                Selected Stocks ({portfolioData.results.stocks_picked.length})
-              </h4>
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                {portfolioData.results.stocks_picked
-                  .slice(0, 5)
-                  .map((stock, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center"
-                    >
-                      <span className="font-medium">{stock.symbol}</span>
-                      <span>
-                        {stock.allocation
-                          ? `${(stock.allocation * 100).toFixed(1)}%`
-                          : "N/A"}
-                      </span>
-                    </div>
-                  ))}
-                {portfolioData.results.stocks_picked.length > 5 && (
-                  <p className="text-gray-500 italic">
-                    ... and {portfolioData.results.stocks_picked.length - 5}{" "}
-                    more
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={() => {
-            console.log("🔍 Full Portfolio Data:", portfolioData);
-            // Try to fetch SHAP data separately if needed
-            if (portfolioData.id && portfolioData.user_id) {
-              fetchShapDataSeparately(portfolioData.user_id, portfolioData.id);
-            }
-          }}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
-        >
-          🔍 Debug Portfolio Data
-        </button>
-      </div>
-    );
+    return <AIAnalysisFallback portfolioData={portfolioData} />;
   }
 
-  // ✅ SHAP data is available - render full dashboard
+  // ✅ Full SHAP dashboard
   return (
     <div className="w-full space-y-6">
-      {/* Success Message */}
       <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
         <div className="text-2xl mb-2">🎉</div>
         <h3 className="text-lg font-bold text-green-800 mb-2">
@@ -438,7 +354,7 @@ const SHAPDashboard = ({ portfolioData }) => {
         </p>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tabs */}
       <div className="bg-gray-50 rounded-xl p-2">
         <div className="flex space-x-2">
           {[
@@ -462,7 +378,6 @@ const SHAPDashboard = ({ portfolioData }) => {
         </div>
       </div>
 
-      {/* Tab Content */}
       <div className="min-h-96">
         {activeTab === "overview" && (
           <OverviewTab shapData={shapData} portfolioData={portfolioData} />
@@ -474,11 +389,203 @@ const SHAPDashboard = ({ portfolioData }) => {
           <InsightsTab shapData={shapData} portfolioData={portfolioData} />
         )}
       </div>
+
+      {process.env.NODE_ENV === "development" && (
+        <details className="mt-2 p-4 bg-gray-100 rounded-lg">
+          <summary className="cursor-pointer font-medium text-gray-700">
+            Debug Info
+          </summary>
+          <pre className="mt-2 text-xs text-gray-600 overflow-auto">
+            {JSON.stringify(
+              {
+                hasShapExplanations: portfolioData?.has_shap_explanations,
+                wealthwiseEnhanced: portfolioData?.wealthwise_enhanced,
+                shapKeys: shapData ? Object.keys(shapData) : [],
+              },
+              null,
+              2
+            )}
+          </pre>
+        </details>
+      )}
     </div>
   );
 };
 
-// Overview Tab Component - Enhanced for your backend data structure
+/**
+ * 🧱 Subcomponents & helpers
+ */
+const BasicPortfolioInfo = ({ portfolioData }) => (
+  <div className="bg-white rounded-lg p-4 mt-4 text-left">
+    <h4 className="font-semibold mb-2">Portfolio Information:</h4>
+    <div className="space-y-2 text-sm">
+      <p>
+        <strong>Portfolio ID:</strong> {portfolioData.id}
+      </p>
+      <p>
+        <strong>Goal:</strong> {portfolioData.goal}
+      </p>
+      <p>
+        <strong>Target Value:</strong> £
+        {portfolioData.target_value?.toLocaleString()}
+      </p>
+      <p>
+        <strong>Risk Score:</strong> {portfolioData.risk_score}/100
+      </p>
+      <p>
+        <strong>Risk Label:</strong> {portfolioData.risk_label}
+      </p>
+      {portfolioData.results?.stocks_picked && (
+        <p>
+          <strong>Stocks Selected:</strong>{" "}
+          {portfolioData.results.stocks_picked.length} stocks
+        </p>
+      )}
+    </div>
+    <div className="mt-4 text-xs text-yellow-600">
+      <p>
+        <strong>Available keys:</strong> {Object.keys(portfolioData).join(", ")}
+      </p>
+    </div>
+  </div>
+);
+
+const ShapIndicatorsPanel = ({ portfolioData }) => (
+  <div className="bg-white rounded-lg p-4 mb-4">
+    <h4 className="font-semibold mb-2 flex items-center">
+      <span className="mr-2">🔍</span>
+      SHAP Analysis Indicators
+    </h4>
+    <div className="text-sm space-y-1">
+      <p>
+        <strong>Has SHAP Explanations:</strong>{" "}
+        {portfolioData?.has_shap_explanations ? "✅ Yes" : "❌ No"}
+      </p>
+      <p>
+        <strong>Analysis Method:</strong>{" "}
+        {portfolioData?.methodology || "Not specified"}
+      </p>
+      <p>
+        <strong>WealthWise Enhanced:</strong>{" "}
+        {portfolioData?.wealthwise_enhanced ? "✅ Yes" : "❌ No"}
+      </p>
+    </div>
+  </div>
+);
+
+const AIAnalysisFallback = ({ portfolioData }) => (
+  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+    <div className="text-4xl mb-2 text-center">🧠</div>
+    <h3 className="text-lg font-bold text-blue-800 mb-2 text-center">
+      AI Analysis Available (No SHAP Data)
+    </h3>
+    <p className="text-blue-600 mb-4 text-center">
+      While detailed SHAP explanations aren't available, we have AI-generated
+      insights for your portfolio.
+    </p>
+
+    <div className="space-y-4">
+      {portfolioData.ai_summary && (
+        <div className="bg-white rounded-lg p-4">
+          <h4 className="font-semibold mb-2 flex items-center">
+            <span className="mr-2">🤖</span>
+            AI Summary
+          </h4>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {portfolioData.ai_summary}
+          </p>
+        </div>
+      )}
+
+      {portfolioData.risk_explanation && (
+        <div className="bg-white rounded-lg p-4">
+          <h4 className="font-semibold mb-2 flex items-center">
+            <span className="mr-2">⚠️</span>
+            Risk Explanation
+          </h4>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {portfolioData.risk_explanation}
+          </p>
+        </div>
+      )}
+
+      {portfolioData.allocation_guidance && (
+        <div className="bg-white rounded-lg p-4">
+          <h4 className="font-semibold mb-2 flex items-center">
+            <span className="mr-2">📊</span>
+            Allocation Guidance
+          </h4>
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {portfolioData.allocation_guidance}
+          </p>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg p-4">
+        <h4 className="font-semibold mb-2 flex items-center">
+          <span className="mr-2">📈</span>
+          Portfolio Metrics
+        </h4>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-medium">Risk Score:</span>
+            <span className="ml-2">{portfolioData.risk_score}/100</span>
+          </div>
+          <div>
+            <span className="font-medium">Risk Level:</span>
+            <span className="ml-2">{portfolioData.risk_label}</span>
+          </div>
+          <div>
+            <span className="font-medium">Target:</span>
+            <span className="ml-2">
+              £{portfolioData.target_value?.toLocaleString()}
+            </span>
+          </div>
+          <div>
+            <span className="font-medium">Timeframe:</span>
+            <span className="ml-2">{portfolioData.timeframe} years</span>
+          </div>
+        </div>
+      </div>
+
+      {portfolioData.results?.stocks_picked && (
+        <div className="bg-white rounded-lg p-4">
+          <h4 className="font-semibold mb-2 flex items-center">
+            <span className="mr-2">📋</span>
+            Selected Stocks ({portfolioData.results.stocks_picked.length})
+          </h4>
+          <div className="grid grid-cols-1 gap-2 text-sm">
+            {portfolioData.results.stocks_picked
+              .slice(0, 5)
+              .map((stock, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="font-medium">{stock.symbol}</span>
+                  <span>
+                    {stock.allocation
+                      ? `${(stock.allocation * 100).toFixed(1)}%`
+                      : "N/A"}
+                  </span>
+                </div>
+              ))}
+            {portfolioData.results.stocks_picked.length > 5 && (
+              <p className="text-gray-500 italic">
+                ... and {portfolioData.results.stocks_picked.length - 5} more
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+
+    <button
+      onClick={() => console.log("🔍 Full Portfolio Data:", portfolioData)}
+      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+    >
+      🔍 Debug Portfolio Data
+    </button>
+  </div>
+);
+
 const OverviewTab = ({ shapData, portfolioData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
@@ -529,21 +636,18 @@ const OverviewTab = ({ shapData, portfolioData }) => {
 
   return (
     <div className="space-y-6">
-      {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((metric, index) => (
           <MetricCard key={index} {...metric} />
         ))}
       </div>
 
-      {/* AI Decision Summary */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🧠</span>
           AI Decision Summary
         </h3>
 
-        {/* Main explanation */}
         <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500 mb-4">
           <div className="font-semibold text-blue-800 mb-2">
             Strategy Overview
@@ -551,7 +655,6 @@ const OverviewTab = ({ shapData, portfolioData }) => {
           <p className="text-gray-700 leading-relaxed">{explanation}</p>
         </div>
 
-        {/* Additional explanations from your data */}
         {portfolioData?.risk_explanation && (
           <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 mb-4">
             <div className="font-semibold text-yellow-800 mb-2">
@@ -574,11 +677,10 @@ const OverviewTab = ({ shapData, portfolioData }) => {
           </div>
         )}
 
-        {/* Human readable explanations if available */}
         {shapData?.human_readable_explanation && (
           <div className="grid gap-4">
             {Object.entries(shapData.human_readable_explanation).map(
-              ([key, explanation], index) => (
+              ([key, text], index) => (
                 <div
                   key={index}
                   className="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-400"
@@ -586,14 +688,13 @@ const OverviewTab = ({ shapData, portfolioData }) => {
                   <div className="font-semibold text-gray-800 mb-2">
                     {formatFactorName(key)}
                   </div>
-                  <p className="text-gray-600 leading-relaxed">{explanation}</p>
+                  <p className="text-gray-600 leading-relaxed">{text}</p>
                 </div>
               )
             )}
           </div>
         )}
 
-        {/* Methodology */}
         <div className="mt-4 p-3 bg-gray-100 rounded-lg">
           <p className="text-sm text-gray-600">
             <strong>Methodology:</strong> {methodology}
@@ -604,11 +705,9 @@ const OverviewTab = ({ shapData, portfolioData }) => {
   );
 };
 
-// Factors Tab Component - Same as before
 const FactorsTab = ({ chartData, shapData }) => {
   return (
     <div className="space-y-6">
-      {/* Feature Importance Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">📊</span>
@@ -634,7 +733,7 @@ const FactorsTab = ({ chartData, shapData }) => {
                 <YAxis tick={{ fill: "#374151" }} />
                 <Tooltip
                   formatter={(value, name) => [
-                    value.toFixed(3),
+                    Number(value).toFixed(3),
                     "Impact Score",
                   ]}
                   labelFormatter={(label) => `Factor: ${label}`}
@@ -665,7 +764,6 @@ const FactorsTab = ({ chartData, shapData }) => {
         )}
       </div>
 
-      {/* Factor Explanations */}
       {chartData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -705,11 +803,9 @@ const FactorsTab = ({ chartData, shapData }) => {
   );
 };
 
-// Insights Tab Component - Enhanced
 const InsightsTab = ({ shapData, portfolioData }) => {
   return (
     <div className="space-y-6">
-      {/* SHAP Data Display */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🔍</span>
@@ -722,7 +818,6 @@ const InsightsTab = ({ shapData, portfolioData }) => {
         </div>
       </div>
 
-      {/* Key Insights */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">💡</span>
@@ -775,7 +870,6 @@ const InsightsTab = ({ shapData, portfolioData }) => {
   );
 };
 
-// Helper Components - Same as before
 const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
   <div className={`${bgColor} rounded-xl p-6 border border-gray-200`}>
     <div className="flex items-center justify-between mb-3">
@@ -815,7 +909,7 @@ const InsightCard = ({ title, insight, icon, color }) => (
   </div>
 );
 
-// Helper Functions - Same as before
+/** Helpers */
 const formatFactorName = (factor) => {
   const formatMap = {
     growth_potential: "Growth Potential",
@@ -853,44 +947,6 @@ const getFactorDescription = (factor) => {
     market_timing: "Current market conditions and optimal entry timing",
   };
   return descriptions[factor] || "Factor impact on portfolio recommendations";
-};
-
-// Helper function to try fetching SHAP data separately
-const fetchShapDataSeparately = async (userId, simulationId) => {
-  try {
-    console.log(`🔍 Attempting to fetch SHAP data separately...`);
-
-    // Try different possible API endpoints
-    const baseUrl =
-      import.meta.env.VITE_API_URL || "https://wealthwise-dwfq.onrender.com";
-    const possibleEndpoints = [
-      `${baseUrl}/portfolio/${userId}/${simulationId}/shap`,
-      `${baseUrl}/shap/${userId}/${simulationId}`,
-      `${baseUrl}/portfolio/${userId}/${simulationId}?include_shap=true`,
-      `${baseUrl}/explanations/${userId}/${simulationId}`,
-    ];
-
-    for (const endpoint of possibleEndpoints) {
-      try {
-        console.log(`🔍 Trying endpoint: ${endpoint}`);
-        const response = await fetch(endpoint);
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`✅ Found SHAP data at ${endpoint}:`, data);
-          return data;
-        } else {
-          console.log(`❌ ${endpoint}: ${response.status}`);
-        }
-      } catch (error) {
-        console.log(`❌ ${endpoint}: ${error.message}`);
-      }
-    }
-
-    console.log(`❌ No SHAP data found at any endpoint`);
-  } catch (error) {
-    console.error("❌ Error fetching SHAP data:", error);
-  }
 };
 
 export default SHAPDashboard;
