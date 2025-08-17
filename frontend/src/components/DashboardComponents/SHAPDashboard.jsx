@@ -16,7 +16,11 @@ const SHAPDashboard = ({ portfolioData }) => {
   const [chartData, setChartData] = useState([]);
 
   // Extract SHAP data from portfolio results
-  const shapData = portfolioData?.results?.shap_explanation || {};
+  const shapData =
+    portfolioData?.results?.shap_explanation || // singular
+    portfolioData?.results?.shap_explanations || // plural (if used)
+    portfolioData?.shap_explanation || // fallback if flattened
+    null;
   const hasShapData = Object.keys(shapData || {}).length > 0;
 
   useEffect(() => {
