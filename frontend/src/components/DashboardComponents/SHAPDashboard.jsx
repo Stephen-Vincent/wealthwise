@@ -7,41 +7,46 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+  // Removed PieChart, Pie, Cell (unused)
 } from "recharts";
 
 // User-Friendly SHAP Dashboard
 const SHAPDashboard = ({ portfolioData }) => {
   const [activeTab, setActiveTab] = useState("summary");
   const [chartData, setChartData] = useState([]);
-  const [showTooltip, setShowTooltip] = useState(null);
 
   // Extract SHAP data from portfolio results
-  const shapData = portfolioData?.results?.shap_explanation;
-  const hasShapData = Boolean(shapData);
+  const shapData = portfolioData?.results?.shap_explanation || {};
+  const hasShapData = Object.keys(shapData || {}).length > 0;
 
   useEffect(() => {
-    if (hasShapData) {
-      // Prepare chart data from feature_contributions
-      const featureContributions = shapData.feature_contributions || {};
-      const data = Object.entries(featureContributions).map(
-        ([factor, importance]) => ({
+    if (!hasShapData) {
+      setChartData([]);
+      return;
+    }
+
+    // Prefer feature_importance; fallback to feature_contributions
+    const rawImportance =
+      shapData.feature_importance || shapData.feature_contributions || {};
+
+    const entries = Object.entries(rawImportance)
+      .map(([factor, importance]) => {
+        const num = Number(importance);
+        const importanceNum = Number.isFinite(num) ? num : 0;
+        return {
           factor: formatFactorName(factor),
-          importance: parseFloat(importance),
+          importance: importanceNum,
           color: getFactorColor(factor),
           description: getFactorDescription(factor),
-          simpleExplanation: getSimpleExplanation(
-            factor,
-            parseFloat(importance)
-          ),
-        })
-      );
-      setChartData(
-        data.sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
-      );
-    }
+          simpleExplanation: getSimpleExplanation(factor, importanceNum),
+        };
+      })
+      // remove zeros if all are zero keep them
+      .filter((d) => Number.isFinite(d.importance));
+
+    // Sort by absolute impact
+    entries.sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance));
+    setChartData(entries);
   }, [hasShapData, shapData]);
 
   if (!hasShapData) {
@@ -133,8 +138,7 @@ const SHAPDashboard = ({ portfolioData }) => {
 
 // Summary Tab Component
 const SummaryTab = ({ shapData, portfolioData }) => {
-  const portfolioQuality = shapData.portfolio_quality_score || 0;
-  const transparencyMetrics = shapData.transparency_metrics || {};
+  const portfolioQuality = Number(shapData.portfolio_quality_score) || 0;
   const goalAnalysis = portfolioData?.results?.goal_analysis || {};
   const marketRegime = portfolioData?.results?.market_regime || {};
 
@@ -162,6 +166,13 @@ const SummaryTab = ({ shapData, portfolioData }) => {
 
   const qualityMsg = getQualityMessage(portfolioQuality);
 
+  const marketTrendScore = Number(marketRegime?.trend_score) || 3;
+  const vix = Number(marketRegime?.current_vix);
+  const vixDisplay = Number.isFinite(vix) ? vix.toFixed(0) : "20";
+  const mktType = (marketRegime?.regime || "balanced")
+    .replace(/_/g, " ")
+    .toUpperCase();
+
   const metrics = [
     {
       title: "How Good Is This Plan?",
@@ -177,7 +188,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
     {
       title: "Can You Reach Your Goal?",
       subtitle: "Likelihood of success",
-      value: (goalAnalysis.feasibility_rating || 0) * 20,
+      value: (Number(goalAnalysis.feasibility_rating) || 0) * 20,
       maxValue: 100,
       unit: "%",
       color: "text-purple-600",
@@ -188,7 +199,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
     {
       title: "Market Conditions",
       subtitle: "How favorable are current conditions",
-      value: (marketRegime.confidence || 0) * 100,
+      value: (Number(marketRegime.confidence) || 0) * 100,
       maxValue: 100,
       unit: "%",
       color: "text-orange-600",
@@ -224,7 +235,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
                   {formatFactorName(key)}
                 </div>
                 <p className="text-gray-700 leading-relaxed text-base">
-                  {explanation}
+                  {String(explanation)}
                 </p>
               </div>
             )
@@ -253,8 +264,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center bg-white rounded-lg p-4">
             <div className="text-2xl font-bold text-blue-600 mb-1">
-              {marketRegime.regime?.replace("_", " ").toUpperCase() ||
-                "BALANCED"}
+              {mktType}
             </div>
             <div className="text-sm text-gray-600">Market Type</div>
             <div className="text-xs text-gray-500 mt-1">
@@ -263,14 +273,14 @@ const SummaryTab = ({ shapData, portfolioData }) => {
           </div>
           <div className="text-center bg-white rounded-lg p-4">
             <div className="text-2xl font-bold text-green-600 mb-1">
-              {marketRegime.trend_score || 3}/5
+              {marketTrendScore}/5
             </div>
             <div className="text-sm text-gray-600">Trend Strength</div>
             <div className="text-xs text-gray-500 mt-1">Market momentum</div>
           </div>
           <div className="text-center bg-white rounded-lg p-4">
             <div className="text-2xl font-bold text-orange-600 mb-1">
-              {marketRegime.current_vix?.toFixed(0) || "20"}
+              {vixDisplay}
             </div>
             <div className="text-sm text-gray-600">Fear Level</div>
             <div className="text-xs text-gray-500 mt-1">
@@ -284,7 +294,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
 };
 
 // Factors Tab Component
-const FactorsTab = ({ chartData, shapData }) => {
+const FactorsTab = ({ chartData }) => {
   return (
     <div className="space-y-8">
       {/* Intro */}
@@ -324,9 +334,9 @@ const FactorsTab = ({ chartData, shapData }) => {
               />
               <YAxis tick={{ fill: "#374151" }} />
               <Tooltip
-                formatter={(value, name) => [
+                formatter={(value) => [
                   `${value > 0 ? "Helped" : "Limited"} (${Math.abs(
-                    value
+                    Number(value) || 0
                   ).toFixed(3)})`,
                   "Impact",
                 ]}
@@ -337,14 +347,7 @@ const FactorsTab = ({ chartData, shapData }) => {
                   borderRadius: "8px",
                 }}
               />
-              <Bar dataKey="importance" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.importance >= 0 ? "#10B981" : "#F59E0B"}
-                  />
-                ))}
-              </Bar>
+              <Bar dataKey="importance" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -367,42 +370,44 @@ const FactorsTab = ({ chartData, shapData }) => {
           What Each Factor Means for You
         </h4>
         <div className="space-y-4">
-          {chartData.map((factor, index) => (
-            <div
-              key={index}
-              className={`rounded-lg p-5 border-l-4 ${
-                factor.importance >= 0
-                  ? "bg-green-50 border-green-500"
-                  : "bg-orange-50 border-orange-500"
-              }`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <span className="font-semibold text-gray-800 text-lg">
-                  {factor.factor}
-                </span>
-                <div className="text-right">
-                  <span
-                    className={`font-bold text-sm ${
-                      factor.importance >= 0
-                        ? "text-green-600"
-                        : "text-orange-600"
-                    }`}
-                  >
-                    {factor.importance >= 0 ? "✓ Helpful" : "⚠ Challenge"}
+          {chartData.map((factor, index) => {
+            const positive = factor.importance >= 0;
+            return (
+              <div
+                key={index}
+                className={`rounded-lg p-5 border-l-4 ${
+                  positive
+                    ? "bg-green-50 border-green-500"
+                    : "bg-orange-50 border-orange-500"
+                }`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <span className="font-semibold text-gray-800 text-lg">
+                    {factor.factor}
                   </span>
-                  <div className="text-xs text-gray-500">
-                    Impact: {Math.abs(factor.importance).toFixed(3)}
+                  <div className="text-right">
+                    <span
+                      className={`font-bold text-sm ${
+                        positive ? "text-green-600" : "text-orange-600"
+                      }`}
+                    >
+                      {positive ? "✓ Helpful" : "⚠ Challenge"}
+                    </span>
+                    <div className="text-xs text-gray-500">
+                      Impact:{" "}
+                      {Math.abs(Number(factor.importance) || 0).toFixed(3)}
+                    </div>
                   </div>
                 </div>
+                <p className="text-gray-700 mb-2 leading-relaxed">
+                  {factor.description}
+                </p>
+                <p className="text-sm text-gray-600 italic">
+                  {factor.simpleExplanation}
+                </p>
               </div>
-              <p className="text-gray-700 mb-2 leading-relaxed">
-                {factor.description}
-              </p>
-              <p className="text-sm text-gray-600 italic">
-                {factor.simpleExplanation}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -410,13 +415,13 @@ const FactorsTab = ({ chartData, shapData }) => {
 };
 
 // Insights Tab Component
-const InsightsTab = ({ shapData, portfolioData }) => {
+const InsightsTab = ({ portfolioData }) => {
   const goalAnalysis = portfolioData?.results?.goal_analysis || {};
   const feasibilityAssessment =
     portfolioData?.results?.feasibility_assessment || {};
 
-  const requiredReturn = goalAnalysis.required_return_percent || 0;
-  const feasibilityScore = feasibilityAssessment.feasibility_score || 0;
+  const requiredReturn = Number(goalAnalysis.required_return_percent) || 0;
+  const feasibilityScore = Number(feasibilityAssessment.feasibility_score) || 0;
 
   const getReturnMessage = (returnRate) => {
     if (returnRate > 15)
@@ -507,7 +512,7 @@ const InsightsTab = ({ shapData, portfolioData }) => {
               Your Success Probability
             </h4>
             <div className={`text-4xl font-bold mb-3 ${feasibilityMsg.color}`}>
-              {feasibilityScore}%
+              {Math.round(feasibilityScore)}%
             </div>
             <p className="text-sm text-gray-600 mb-2">
               Based on your situation and market history
@@ -552,37 +557,6 @@ const InsightsTab = ({ shapData, portfolioData }) => {
           />
         </div>
       </div>
-
-      {/* Action Items */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-gray-200 p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-3">✅</span>
-          What You Should Know
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3">
-            <span className="text-green-600 font-bold">•</span>
-            <p className="text-gray-700">
-              <strong>Stay consistent:</strong> Regular contributions are more
-              important than perfect timing
-            </p>
-          </div>
-          <div className="flex items-start space-x-3">
-            <span className="text-blue-600 font-bold">•</span>
-            <p className="text-gray-700">
-              <strong>Be patient:</strong> Good investments need time to grow -
-              avoid making changes too often
-            </p>
-          </div>
-          <div className="flex items-start space-x-3">
-            <span className="text-purple-600 font-bold">•</span>
-            <p className="text-gray-700">
-              <strong>Review regularly:</strong> Check your progress every few
-              months, but don't panic over daily changes
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -621,7 +595,12 @@ const SimpleMetricCard = ({
                 ? "bg-orange-500"
                 : "bg-purple-500"
             }`}
-            style={{ width: `${Math.min((value / maxValue) * 100, 100)}%` }}
+            style={{
+              width: `${Math.min(
+                ((Number(value) || 0) / maxValue) * 100,
+                100
+              )}%`,
+            }}
           />
         </div>
       )}
@@ -693,7 +672,7 @@ const getFactorDescription = (factor) => {
 };
 
 const getSimpleExplanation = (factor, importance) => {
-  const isPositive = importance >= 0;
+  const isPositive = (Number(importance) || 0) >= 0;
   const explanations = {
     risk_score: isPositive
       ? "Your comfort with risk allowed us to include more growth investments"
