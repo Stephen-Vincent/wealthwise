@@ -288,7 +288,11 @@ async def compare_shap_explanations(
             
             if simulation:
                 results = simulation.results or {}
-                shap_explanation = results.get("shap_explanation", {})
+                shap_explanation = (
+                    _find_shap_in(results)
+                    or _find_shap_in(getattr(simulation, "shap_explanation", None))
+                    or _find_shap_in({k: v for k, v in simulation.__dict__.items() if not k.startswith("_")})
+                ) or {}
                 
                 comparison_data = {
                     "simulation_id": sim_id,
