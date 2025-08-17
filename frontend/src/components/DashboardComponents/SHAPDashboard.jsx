@@ -12,30 +12,62 @@ import {
   Cell,
 } from "recharts";
 
-// SHAP Dashboard adjusted for your actual data structure
+// Enhanced SHAP Dashboard that fetches from dedicated endpoint
 const SHAPDashboard = ({ portfolioData }) => {
   const [activeTab, setActiveTab] = useState("overview");
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [shapData, setShapData] = useState(null);
+  const [shapError, setShapError] = useState(null);
 
-  // ✅ ADJUSTED: Check the actual data structure you have
+  // ✅ FIXED: Check your actual data structure
   const hasResults = Boolean(portfolioData?.results);
   const hasAISummary = Boolean(portfolioData?.ai_summary);
   const hasRiskExplanation = Boolean(portfolioData?.risk_explanation);
   const hasAllocationGuidance = Boolean(portfolioData?.allocation_guidance);
 
-  // Check for SHAP data in multiple possible locations
-  const shapData =
-    portfolioData?.shap_explanations ||
-    portfolioData?.results?.shap_explanation ||
-    portfolioData?.results?.shap_explanations;
+  // ✅ Use the actual wealthwise_enhanced flag from your data
+  const isWealthWiseEnhanced = Boolean(portfolioData?.wealthwise_enhanced);
+  const hasShapIndicators = Boolean(
+    portfolioData?.has_shap_explanations || portfolioData?.methodology
+  );
   const hasShapData = Boolean(shapData);
 
-  // ✅ IMPROVED: Better determination of AI enhancement
-  const isWealthWiseEnhanced =
-    hasAISummary || hasRiskExplanation || hasAllocationGuidance || hasShapData;
+  // ✅ Fetch SHAP data from dedicated endpoint
+  useEffect(() => {
+    const fetchShapData = async () => {
+      if (!portfolioData?.id || !hasShapIndicators) return;
 
-  // 🔍 Enhanced debug logging
+      setLoading(true);
+      try {
+        const baseUrl =
+          import.meta.env.VITE_API_URL ||
+          "https://wealthwise-dwfq.onrender.com";
+        const response = await fetch(
+          `${baseUrl}/api/shap/simulation/${portfolioData.id}/explanation`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ SHAP data fetched successfully:", data);
+          setShapData(data.shap_data); // Extract shap_data from response
+          setShapError(null);
+        } else {
+          console.log(`❌ SHAP endpoint returned ${response.status}`);
+          setShapError(`SHAP data not available (${response.status})`);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching SHAP data:", error);
+        setShapError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchShapData();
+  }, [portfolioData?.id, hasShapIndicators]);
+
+  // 🔍 Enhanced debug logging for your actual data structure
   console.log("🔍 SHAPDashboard Debug:", {
     hasResults,
     hasAISummary,
@@ -43,16 +75,52 @@ const SHAPDashboard = ({ portfolioData }) => {
     hasAllocationGuidance,
     isWealthWiseEnhanced,
     hasShapData,
-    availableKeys: portfolioData ? Object.keys(portfolioData) : [],
-    resultsKeys: portfolioData?.results
-      ? Object.keys(portfolioData.results)
-      : [],
-    shapData: shapData ? "Found" : "Not found",
+    hasShapIndicators,
+    methodology: portfolioData?.methodology,
+    hasShapExplanationsFlag: portfolioData?.has_shap_explanations,
+    portfolioId: portfolioData?.id,
+    loading,
+    shapError,
+    shapDataKeys: shapData ? Object.keys(shapData) : null,
   });
 
+  // ✅ Handle loading state
+  if (loading) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+        <div className="text-4xl mb-2">⏳</div>
+        <h3 className="text-lg font-bold text-blue-800 mb-2">
+          Loading SHAP Analysis...
+        </h3>
+        <p className="text-blue-600">
+          Fetching AI explanation data from the backend...
+        </p>
+      </div>
+    );
+  }
+
+  // ✅ Handle SHAP fetch error
+  if (shapError && hasShapIndicators) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <div className="text-4xl mb-2">❌</div>
+        <h3 className="text-lg font-bold text-red-800 mb-2">
+          Failed to Load SHAP Data
+        </h3>
+        <p className="text-red-600 mb-4">Error: {shapError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          🔄 Retry
+        </button>
+      </div>
+    );
+  }
+
+  // ✅ Process SHAP data when loaded
   useEffect(() => {
     if (hasShapData) {
-      // Process SHAP data if available
       const featureImportance = shapData.feature_importance || {};
       const data = Object.entries(featureImportance).map(
         ([factor, importance]) => ({
@@ -68,7 +136,7 @@ const SHAPDashboard = ({ portfolioData }) => {
     }
   }, [hasShapData, shapData]);
 
-  // ✅ ADJUSTED: Better handling of different scenarios
+  // ✅ FIXED: Better handling of different scenarios
   if (!hasResults) {
     return (
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
@@ -129,6 +197,98 @@ const SHAPDashboard = ({ portfolioData }) => {
             <strong>Available keys:</strong>{" "}
             {Object.keys(portfolioData).join(", ")}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasShapData && hasShapIndicators) {
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+        <div className="text-4xl mb-2 text-center">🧠</div>
+        <h3 className="text-lg font-bold text-orange-800 mb-2 text-center">
+          SHAP Analysis Generated (Data Missing from API)
+        </h3>
+        <p className="text-orange-600 mb-4 text-center">
+          The backend generated SHAP explanations, but they weren't included in
+          the API response.
+        </p>
+
+        {/* Show SHAP indicators */}
+        <div className="bg-white rounded-lg p-4 mb-4">
+          <h4 className="font-semibold mb-2 flex items-center">
+            <span className="mr-2">🔍</span>
+            SHAP Analysis Indicators
+          </h4>
+          <div className="text-sm space-y-1">
+            <p>
+              <strong>Has SHAP Explanations:</strong>{" "}
+              {portfolioData?.has_shap_explanations ? "✅ Yes" : "❌ No"}
+            </p>
+            <p>
+              <strong>Analysis Method:</strong>{" "}
+              {portfolioData?.methodology || "Not specified"}
+            </p>
+            <p>
+              <strong>WealthWise Enhanced:</strong>{" "}
+              {portfolioData?.wealthwise_enhanced ? "✅ Yes" : "❌ No"}
+            </p>
+          </div>
+        </div>
+
+        {/* Backend investigation button */}
+        <button
+          onClick={() => {
+            console.log("🔍 Investigating SHAP data location...");
+            console.log("Portfolio Data:", portfolioData);
+
+            // Try to fetch SHAP data from different endpoints
+            if (portfolioData.id && portfolioData.user_id) {
+              fetchShapDataSeparately(portfolioData.user_id, portfolioData.id);
+            }
+          }}
+          className="mb-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 w-full"
+        >
+          🔍 Try to Fetch Missing SHAP Data
+        </button>
+
+        {/* Show available AI information while SHAP is missing */}
+        <div className="space-y-4">
+          {portfolioData.ai_summary && (
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="font-semibold mb-2 flex items-center">
+                <span className="mr-2">🤖</span>
+                AI Summary
+              </h4>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {portfolioData.ai_summary}
+              </p>
+            </div>
+          )}
+
+          {portfolioData.risk_explanation && (
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="font-semibold mb-2 flex items-center">
+                <span className="mr-2">⚠️</span>
+                Risk Explanation
+              </h4>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {portfolioData.risk_explanation}
+              </p>
+            </div>
+          )}
+
+          {portfolioData.allocation_guidance && (
+            <div className="bg-white rounded-lg p-4">
+              <h4 className="font-semibold mb-2 flex items-center">
+                <span className="mr-2">📊</span>
+                Allocation Guidance
+              </h4>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {portfolioData.allocation_guidance}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -272,7 +432,8 @@ const SHAPDashboard = ({ portfolioData }) => {
           SHAP AI Explanation Available!
         </h3>
         <p className="text-green-600">
-          Confidence: {shapData.confidence || "N/A"}% | Method:{" "}
+          Confidence:{" "}
+          {shapData.confidence_score || shapData.confidence || "N/A"}% | Method:{" "}
           {shapData.methodology || "SHAP Analysis"}
         </p>
       </div>
@@ -317,12 +478,13 @@ const SHAPDashboard = ({ portfolioData }) => {
   );
 };
 
-// Overview Tab Component - Enhanced for your data
+// Overview Tab Component - Enhanced for your backend data structure
 const OverviewTab = ({ shapData, portfolioData }) => {
-  const confidence = shapData?.confidence || 75; // Default confidence
+  const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
   const explanation =
     shapData?.explanation ||
+    shapData?.human_readable_explanation?.summary ||
     portfolioData?.ai_summary ||
     "AI-powered portfolio optimization";
 
@@ -337,12 +499,21 @@ const OverviewTab = ({ shapData, portfolioData }) => {
       icon: "🎯",
     },
     {
-      title: "Risk Score",
-      value: portfolioData?.risk_score || 50,
+      title: "Portfolio Quality",
+      value: shapData?.portfolio_quality_score || 85,
       maxValue: 100,
       unit: "/100",
       color: "text-blue-600",
       bgColor: "bg-blue-50",
+      icon: "🧠",
+    },
+    {
+      title: "Risk Score",
+      value: portfolioData?.risk_score || 50,
+      maxValue: 100,
+      unit: "/100",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
       icon: "📊",
     },
     {
@@ -353,15 +524,6 @@ const OverviewTab = ({ shapData, portfolioData }) => {
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       icon: "🎯",
-    },
-    {
-      title: "Portfolio Quality",
-      value: 85, // Derived score
-      maxValue: 100,
-      unit: "%",
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      icon: "📈",
     },
   ];
 
