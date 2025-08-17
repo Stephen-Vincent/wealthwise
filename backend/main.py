@@ -6,12 +6,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from datetime import datetime
 
 # Updated imports for new database structure
 from core.config import settings
 from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization  # ✅ ADD SHAP
-from database.db import engine, Base  # Updated import path
-from database.models import User, Simulation, PasswordResetToken  # ADD PASSWORD RESET TOKEN
+from database.db import engine, Base  
+from database.models import User, Simulation, PasswordResetToken  
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -199,7 +200,7 @@ async def health_check():
     """Health check endpoint for Railway and monitoring"""
     try:
         # Test database connection
-        from backend.database.db import SessionLocal
+        from database.db import SessionLocal
         db = SessionLocal()
         db.execute(text("SELECT 1"))
         db.close()
@@ -213,9 +214,9 @@ async def health_check():
     ai_status = "configured" if groq_api_key else "missing_api_key"
     
     return {
-        "status": "healthy",
+       "status": "healthy",
         "message": "WealthWise API is running",
-        "timestamp": os.times(),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
         "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
         "ai_service": ai_status,
@@ -235,9 +236,10 @@ def include_routers():
         (password_reset.router, "/auth", ["password-reset"]),
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
-        (instruments.router, "/api/instruments", ["instruments"]),
-        (ai_analysis.router, "/api/ai", ["ai-analysis"]),
-        (shap_visualization.router, "/api/shap", ["shap"])  # ✅ ADD SHAP ROUTER
+        # These three ALREADY have /api/... in their own files → don't re-prefix here
+        (instruments.router, "", ["instruments"]),
+        (ai_analysis.router, "", ["ai-analysis"]),
+        (shap_visualization.router, "", ["shap"]),
     ]
     
     for router, prefix, tags in routers_config:
