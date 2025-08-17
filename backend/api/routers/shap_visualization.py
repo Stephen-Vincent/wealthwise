@@ -13,6 +13,41 @@ import json
 import base64
 import io
 
+# --- SHAP extraction helpers -------------------------------------------------
+from typing import Iterable
+
+def _find_shap_in(obj: Any) -> Optional[Dict[str, Any]]:
+    """Deep-search for SHAP-like explanation dictionaries.
+    Looks for common keys (shap_explanation, shap_data, explanation).
+    Returns the first dict-like match found, otherwise None.
+    """
+    if obj is None:
+        return None
+    # Direct dict hit
+    if isinstance(obj, dict):
+        # Preferred keys
+        for key in ("shap_explanation", "shap_data", "explanation"):
+            val = obj.get(key)
+            if isinstance(val, dict):
+                return val
+        # Deep scan
+        for v in obj.values():
+            found = _find_shap_in(v)
+            if found is not None:
+                return found
+        return None
+    # List/tuple deep scan
+    if isinstance(obj, (list, tuple)):
+        for v in obj:
+            found = _find_shap_in(v)
+            if found is not None:
+                return found
+        return None
+    # Fallback: try __dict__ of ORM objects
+    if hasattr(obj, "__dict__"):
+        return _find_shap_in({k: v for k, v in obj.__dict__.items() if not k.startswith("_")})
+    return None
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/shap", tags=["SHAP Visualization"])
 
@@ -38,18 +73,20 @@ async def get_shap_explanation_data(
         if not simulation:
             raise HTTPException(status_code=404, detail="Simulation not found")
         
-        # Extract SHAP explanation from results
         results = simulation.results or {}
         print(f"Results field from simulation: {results}")
-        shap_explanation = results.get("shap_explanation")
-        print(f"Extracted SHAP explanation: {shap_explanation}")
-        
+
+        # Try multiple locations + deep search for SHAP data
+        shap_explanation = (
+            _find_shap_in(results)
+            or _find_shap_in(getattr(simulation, "shap_explanation", None))
+            or _find_shap_in({k: v for k, v in simulation.__dict__.items() if not k.startswith("_")})
+        )
+        print(f"Resolved SHAP explanation: {shap_explanation}")
+
         if not shap_explanation:
-            raise HTTPException(
-                status_code=404, 
-                detail="SHAP explanation not available for this simulation"
-            )
-        
+            raise HTTPException(status_code=404, detail="SHAP explanation not available for this simulation")
+
         # Return structured SHAP data for frontend visualization
         print("Returning SHAP explanation response")
         return {
@@ -60,20 +97,23 @@ async def get_shap_explanation_data(
                 "feature_importance": shap_explanation.get("feature_importance", {}),
                 "human_readable_explanation": shap_explanation.get("human_readable_explanation", {}),
                 "methodology": shap_explanation.get("methodology", "SHAP-based explainable AI"),
-                "shap_values": shap_explanation.get("shap_values", [])
+                "shap_values": shap_explanation.get("shap_values", []),
             },
             "portfolio_info": {
                 "stocks": [stock.get("symbol") for stock in results.get("stocks_picked", [])],
-                "risk_score": results.get("risk_score"),
+                # Risk score sits on the simulation, not inside results
+                "risk_score": getattr(simulation, "risk_score", None),
                 "expected_return": results.get("portfolio_metrics", {}).get("expected_return"),
-                "volatility": results.get("portfolio_metrics", {}).get("volatility")
+                "volatility": results.get("portfolio_metrics", {}).get("volatility"),
             },
             "goal_analysis": results.get("goal_analysis", {}),
             "market_regime": results.get("market_regime", {}),
             "metadata": {
-                "wealthwise_enhanced": results.get("wealthwise_enhanced", False),
-                "created_at": simulation.created_at.isoformat() if simulation.created_at else None
-            }
+                # wealthwise_enhanced is a top-level field on your payload
+                "wealthwise_enhanced": getattr(simulation, "wealthwise_enhanced", False),
+                "has_shap_explanations": getattr(simulation, "has_shap_explanations", False),
+                "created_at": simulation.created_at.isoformat() if simulation.created_at else None,
+            },
         }
         
     except HTTPException:
@@ -107,15 +147,14 @@ async def get_shap_visualization_image(
         if not simulation:
             raise HTTPException(status_code=404, detail="Simulation not found")
         
-        # Check if SHAP explanation exists
         results = simulation.results or {}
-        shap_explanation = results.get("shap_explanation")
-        
+        shap_explanation = (
+            _find_shap_in(results)
+            or _find_shap_in(getattr(simulation, "shap_explanation", None))
+            or _find_shap_in({k: v for k, v in simulation.__dict__.items() if not k.startswith("_")})
+        )
         if not shap_explanation:
-            raise HTTPException(
-                status_code=404, 
-                detail="SHAP explanation not available for this simulation"
-            )
+            raise HTTPException(status_code=404, detail="SHAP explanation not available for this simulation")
         
         # Generate SHAP visualization
         try:
@@ -182,13 +221,13 @@ async def get_shap_chart_data(
             raise HTTPException(status_code=404, detail="Simulation not found")
         
         results = simulation.results or {}
-        shap_explanation = results.get("shap_explanation", {})
-        
+        shap_explanation = (
+            _find_shap_in(results)
+            or _find_shap_in(getattr(simulation, "shap_explanation", None))
+            or _find_shap_in({k: v for k, v in simulation.__dict__.items() if not k.startswith("_")})
+        )
         if not shap_explanation:
-            raise HTTPException(
-                status_code=404, 
-                detail="SHAP explanation not available"
-            )
+            raise HTTPException(status_code=404, detail="SHAP explanation not available")
         
         # Format data for Chart.js
         feature_importance = shap_explanation.get("feature_importance", {})
@@ -206,9 +245,11 @@ async def get_shap_chart_data(
             },
             "explanations": shap_explanation.get("human_readable_explanation", {}),
             "metadata": {
-                "methodology": "SHAP Explainable AI",
+                "methodology": shap_explanation.get("methodology", "SHAP Explainable AI"),
                 "confidence": shap_explanation.get("confidence_score", 0),
-                "created_at": simulation.created_at.isoformat() if simulation.created_at else None
+                "wealthwise_enhanced": getattr(simulation, "wealthwise_enhanced", False),
+                "has_shap_explanations": getattr(simulation, "has_shap_explanations", False),
+                "created_at": simulation.created_at.isoformat() if simulation.created_at else None,
             }
         }
         
