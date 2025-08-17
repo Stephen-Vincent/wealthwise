@@ -175,7 +175,7 @@ export function useShapDashboard(portfolioData) {
             import.meta.env.VITE_API_URL ||
             "https://wealthwise-dwfq.onrender.com";
           const resp = await fetch(
-            `${baseUrl}/api/shap/simulation/${portfolioData.id}/explanation`
+            `${baseUrl}/shap/simulation/${portfolioData.id}/explanation`
           );
           if (resp.ok) {
             const json = await resp.json();
