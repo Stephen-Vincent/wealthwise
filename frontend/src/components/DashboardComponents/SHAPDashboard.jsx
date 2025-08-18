@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+// frontend/src/components/DashboardComponents/SHAPDashboard.jsx
+
+import React, { useState, useEffect, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -7,32 +9,113 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  // Removed PieChart, Pie, Cell (unused)
 } from "recharts";
 
-// User-Friendly SHAP Dashboard
-const SHAPDashboard = ({ portfolioData }) => {
+/**
+ * Props (JS-only):
+ * - simulationId        -> if provided, fetches /api/simulations/{id}
+ * - portfolioData       -> if provided, uses this directly (no fetch)
+ * - apiBase             -> defaults to "/api"
+ * - withCredentials     -> defaults to true
+ */
+const SHAPDashboard = ({
+  simulationId,
+  portfolioData: portfolioDataProp,
+  apiBase = "/api",
+  withCredentials = true,
+}) => {
+  const [portfolioData, setPortfolioData] = useState(portfolioDataProp || null);
+  const [loading, setLoading] = useState(!!simulationId && !portfolioDataProp);
+  const [error, setError] = useState(null);
+
+  // Fetch when we have an id and no data prop
+  useEffect(() => {
+    let alive = true;
+    if (!simulationId || portfolioDataProp) return;
+
+    async function run() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // IMPORTANT: detail route has NO trailing slash
+        const url = `${apiBase}/simulations/${simulationId}`;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: withCredentials ? "include" : "same-origin",
+        });
+        if (!res.ok) {
+          const msg = await res.text().catch(() => "");
+          throw new Error(
+            `Failed to load simulation ${simulationId}: ${res.status} ${msg}`
+          );
+        }
+        const json = await res.json();
+        if (alive) setPortfolioData(json);
+      } catch (e) {
+        if (alive)
+          setError(e && e.message ? e.message : "Failed to fetch simulation");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    run();
+    return () => {
+      alive = false;
+    };
+  }, [simulationId, apiBase, withCredentials, portfolioDataProp]);
+
+  // Prefer prop if provided
+  useEffect(() => {
+    if (portfolioDataProp) setPortfolioData(portfolioDataProp);
+  }, [portfolioDataProp]);
+
+  if (loading) {
+    return (
+      <div className="bg-white border rounded-xl p-8 text-center">
+        <div className="text-lg text-gray-700">Loading your portfolio…</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+        <div className="text-6xl mb-4">🚧</div>
+        <h3 className="text-xl font-bold text-red-800 mb-3">
+          Couldn’t load portfolio
+        </h3>
+        <p className="text-red-700">{String(error)}</p>
+      </div>
+    );
+  }
+
+  // ======== existing logic, just pointed at portfolioData state ========
+  const shapData = useMemo(() => {
+    return (
+      portfolioData?.results?.shap_explanation || // singular
+      portfolioData?.results?.shap_explanations || // plural (if used)
+      portfolioData?.shap_explanation || // fallback if flattened
+      null
+    );
+  }, [portfolioData]);
+
+  const hasShapData = useMemo(() => {
+    return Object.keys(shapData || {}).length > 0;
+  }, [shapData]);
+
   const [activeTab, setActiveTab] = useState("summary");
   const [chartData, setChartData] = useState([]);
-
-  // Extract SHAP data from portfolio results
-  const shapData =
-    portfolioData?.results?.shap_explanation || // singular
-    portfolioData?.results?.shap_explanations || // plural (if used)
-    portfolioData?.shap_explanation || // fallback if flattened
-    null;
-  const hasShapData = Object.keys(shapData || {}).length > 0;
 
   useEffect(() => {
     if (!hasShapData) {
       setChartData([]);
       return;
     }
-
-    // Prefer feature_importance; fallback to feature_contributions
     const rawImportance =
       shapData.feature_importance || shapData.feature_contributions || {};
-
     const entries = Object.entries(rawImportance)
       .map(([factor, importance]) => {
         const num = Number(importance);
@@ -45,10 +128,8 @@ const SHAPDashboard = ({ portfolioData }) => {
           simpleExplanation: getSimpleExplanation(factor, importanceNum),
         };
       })
-      // remove zeros if all are zero keep them
       .filter((d) => Number.isFinite(d.importance));
 
-    // Sort by absolute impact
     entries.sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance));
     setChartData(entries);
   }, [hasShapData, shapData]);
@@ -84,7 +165,7 @@ const SHAPDashboard = ({ portfolioData }) => {
         </p>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Tabs */}
       <div className="bg-gray-50 rounded-xl p-3">
         <div className="flex space-x-2">
           {[
@@ -124,7 +205,7 @@ const SHAPDashboard = ({ portfolioData }) => {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Content */}
       <div className="min-h-96">
         {activeTab === "summary" && (
           <SummaryTab shapData={shapData} portfolioData={portfolioData} />
@@ -133,14 +214,15 @@ const SHAPDashboard = ({ portfolioData }) => {
           <FactorsTab chartData={chartData} shapData={shapData} />
         )}
         {activeTab === "insights" && (
-          <InsightsTab shapData={shapData} portfolioData={portfolioData} />
+          <InsightsTab portfolioData={portfolioData} />
         )}
       </div>
     </div>
   );
 };
 
-// Summary Tab Component
+// ——— rest of your original helpers/components unchanged ———
+
 const SummaryTab = ({ shapData, portfolioData }) => {
   const portfolioQuality = Number(shapData.portfolio_quality_score) || 0;
   const goalAnalysis = portfolioData?.results?.goal_analysis || {};
@@ -169,7 +251,6 @@ const SummaryTab = ({ shapData, portfolioData }) => {
   };
 
   const qualityMsg = getQualityMessage(portfolioQuality);
-
   const marketTrendScore = Number(marketRegime?.trend_score) || 3;
   const vix = Number(marketRegime?.current_vix);
   const vixDisplay = Number.isFinite(vix) ? vix.toFixed(0) : "20";
@@ -215,24 +296,21 @@ const SummaryTab = ({ shapData, portfolioData }) => {
 
   return (
     <div className="space-y-8">
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {metrics.map((metric, index) => (
-          <SimpleMetricCard key={index} {...metric} />
+        {metrics.map((m, i) => (
+          <SimpleMetricCard key={i} {...m} />
         ))}
       </div>
 
-      {/* AI's Simple Explanation */}
       <div className="bg-white rounded-xl border-2 border-blue-200 p-8">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-          <span className="text-2xl mr-3">🤖</span>
-          What Our AI Is Thinking
+          <span className="text-2xl mr-3">🤖</span> What Our AI Is Thinking
         </h3>
         <div className="space-y-4">
           {Object.entries(shapData.human_readable_explanation || {}).map(
-            ([key, explanation], index) => (
+            ([key, explanation], idx) => (
               <div
-                key={index}
+                key={idx}
                 className="bg-blue-50 rounded-lg p-6 border-l-4 border-blue-500"
               >
                 <div className="font-semibold text-blue-800 mb-3 text-lg">
@@ -244,26 +322,22 @@ const SummaryTab = ({ shapData, portfolioData }) => {
               </div>
             )
           )}
-
           {Object.keys(shapData.human_readable_explanation || {}).length ===
             0 && (
             <div className="bg-blue-50 rounded-lg p-6 text-center">
               <div className="text-4xl mb-3">🤖</div>
               <p className="text-blue-700 text-lg">
                 Our AI analyzed your situation and created a personalized
-                investment strategy based on your goals, timeline, and risk
-                comfort level.
+                strategy…
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Current Market Summary */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-3">🌍</span>
-          Current Market Environment
+          <span className="mr-3">🌍</span> Current Market Environment
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center bg-white rounded-lg p-4">
@@ -297,128 +371,119 @@ const SummaryTab = ({ shapData, portfolioData }) => {
   );
 };
 
-// Factors Tab Component
-const FactorsTab = ({ chartData }) => {
-  return (
-    <div className="space-y-8">
-      {/* Intro */}
-      <div className="text-center">
-        <h3 className="text-xl font-bold text-gray-800 mb-3">
-          What Influenced Your Investment Plan
-        </h3>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Our AI looked at many things about your situation. Here are the
-          factors that had the biggest impact on your personalized portfolio.
-        </p>
-      </div>
+const FactorsTab = ({ chartData }) => (
+  <div className="space-y-8">
+    <div className="text-center">
+      <h3 className="text-xl font-bold text-gray-800 mb-3">
+        What Influenced Your Investment Plan
+      </h3>
+      <p className="text-gray-600 max-w-2xl mx-auto">
+        Our AI looked at many things about your situation. Here are the factors
+        that had the biggest impact.
+      </p>
+    </div>
 
-      {/* Visual Chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-          <span className="mr-3">📊</span>
-          Impact of Different Factors
-          <span className="ml-auto text-sm font-normal text-gray-500">
-            Bigger bars = more important
-          </span>
-        </h4>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis
-                dataKey="factor"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                fontSize={12}
-                tick={{ fill: "#374151" }}
-              />
-              <YAxis tick={{ fill: "#374151" }} />
-              <Tooltip
-                formatter={(value) => [
-                  `${value > 0 ? "Helped" : "Limited"} (${Math.abs(
-                    Number(value) || 0
-                  ).toFixed(3)})`,
-                  "Impact",
-                ]}
-                labelFormatter={(label) => `${label}`}
-                contentStyle={{
-                  backgroundColor: "#f9fafb",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                }}
-              />
-              <Bar dataKey="importance" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex justify-center mt-4 space-x-6 text-sm">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
-            <span>Helped your portfolio</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
-            <span>Created challenges</span>
-          </div>
-        </div>
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
+        <span className="mr-3">📊</span> Impact of Different Factors
+        <span className="ml-auto text-sm font-normal text-gray-500">
+          Bigger bars = more important
+        </span>
+      </h4>
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+            <XAxis
+              dataKey="factor"
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              fontSize={12}
+              tick={{ fill: "#374151" }}
+            />
+            <YAxis tick={{ fill: "#374151" }} />
+            <Tooltip
+              formatter={(value) => [
+                `${value > 0 ? "Helped" : "Limited"} (${Math.abs(
+                  Number(value) || 0
+                ).toFixed(3)})`,
+                "Impact",
+              ]}
+              labelFormatter={(label) => `${label}`}
+              contentStyle={{
+                backgroundColor: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+              }}
+            />
+            <Bar dataKey="importance" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-
-      {/* Detailed Explanations */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
-          <span className="mr-3">💭</span>
-          What Each Factor Means for You
-        </h4>
-        <div className="space-y-4">
-          {chartData.map((factor, index) => {
-            const positive = factor.importance >= 0;
-            return (
-              <div
-                key={index}
-                className={`rounded-lg p-5 border-l-4 ${
-                  positive
-                    ? "bg-green-50 border-green-500"
-                    : "bg-orange-50 border-orange-500"
-                }`}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="font-semibold text-gray-800 text-lg">
-                    {factor.factor}
-                  </span>
-                  <div className="text-right">
-                    <span
-                      className={`font-bold text-sm ${
-                        positive ? "text-green-600" : "text-orange-600"
-                      }`}
-                    >
-                      {positive ? "✓ Helpful" : "⚠ Challenge"}
-                    </span>
-                    <div className="text-xs text-gray-500">
-                      Impact:{" "}
-                      {Math.abs(Number(factor.importance) || 0).toFixed(3)}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-gray-700 mb-2 leading-relaxed">
-                  {factor.description}
-                </p>
-                <p className="text-sm text-gray-600 italic">
-                  {factor.simpleExplanation}
-                </p>
-              </div>
-            );
-          })}
+      <div className="flex justify-center mt-4 space-x-6 text-sm">
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+          <span>Helped your portfolio</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
+          <span>Created challenges</span>
         </div>
       </div>
     </div>
-  );
-};
 
-// Insights Tab Component
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <h4 className="text-lg font-bold text-gray-800 mb-6 flex items-center">
+        <span className="mr-3">💭</span> What Each Factor Means for You
+      </h4>
+      <div className="space-y-4">
+        {chartData.map((factor, index) => {
+          const positive = factor.importance >= 0;
+          return (
+            <div
+              key={index}
+              className={`rounded-lg p-5 border-l-4 ${
+                positive
+                  ? "bg-green-50 border-green-500"
+                  : "bg-orange-50 border-orange-500"
+              }`}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <span className="font-semibold text-gray-800 text-lg">
+                  {factor.factor}
+                </span>
+                <div className="text-right">
+                  <span
+                    className={`font-bold text-sm ${
+                      positive ? "text-green-600" : "text-orange-600"
+                    }`}
+                  >
+                    {positive ? "✓ Helpful" : "⚠ Challenge"}
+                  </span>
+                  <div className="text-xs text-gray-500">
+                    Impact:{" "}
+                    {Math.abs(Number(factor.importance) || 0).toFixed(3)}
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-2 leading-relaxed">
+                {factor.description}
+              </p>
+              <p className="text-sm text-gray-600 italic">
+                {factor.simpleExplanation}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+);
+
 const InsightsTab = ({ portfolioData }) => {
   const goalAnalysis = portfolioData?.results?.goal_analysis || {};
   const feasibilityAssessment =
@@ -484,7 +549,6 @@ const InsightsTab = ({ portfolioData }) => {
 
   return (
     <div className="space-y-8">
-      {/* Goal Analysis */}
       <div className="bg-white rounded-xl border border-gray-200 p-8">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
           <span className="mr-3">🎯</span>
@@ -528,7 +592,6 @@ const InsightsTab = ({ portfolioData }) => {
         </div>
       </div>
 
-      {/* Personalized Insights */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
           <span className="mr-3">💡</span>
@@ -565,7 +628,6 @@ const InsightsTab = ({ portfolioData }) => {
   );
 };
 
-// Helper Components
 const SimpleMetricCard = ({
   title,
   subtitle,
@@ -622,7 +684,7 @@ const InsightCard = ({ title, insight, icon, color }) => (
   </div>
 );
 
-// Helper Functions
+// Helpers
 const formatFactorName = (factor) => {
   const formatMap = {
     risk_score: "Your Risk Comfort Level",
