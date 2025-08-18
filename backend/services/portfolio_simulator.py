@@ -1159,8 +1159,25 @@ def save_simulation_to_db(db, sim_input: Dict[str, Any], user_data: Dict[str, An
 
 def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
     """
-    Format enhanced simulation response with SHAP explanations.
+    Format enhanced simulation response with SHAP explanations properly exposed.
+    
+    *** FIXED VERSION *** - Ensures SHAP data reaches frontend
     """
+    
+    # Get the results data
+    results = simulation.results or {}
+    
+    # Extract SHAP data with debugging
+    shap_explanation = results.get("shap_explanation")
+    has_shap_explanations = bool(shap_explanation)
+    
+    # Debug logging
+    logger.info(f"🔍 Formatting response for simulation {simulation.id}")
+    logger.info(f"📊 Results keys: {list(results.keys())}")
+    logger.info(f"🔍 SHAP explanation exists: {has_shap_explanations}")
+    if shap_explanation:
+        logger.info(f"📊 SHAP keys: {list(shap_explanation.keys())}")
+        logger.info(f"💯 Portfolio quality score: {shap_explanation.get('portfolio_quality_score', 'N/A')}")
     
     response = {
         "id": simulation.id,
@@ -1176,15 +1193,29 @@ def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[s
         "risk_score": simulation.risk_score,
         "risk_label": simulation.risk_label,
         "ai_summary": simulation.ai_summary,
-        "results": simulation.results,
+        "results": results,  # Include full results
         "created_at": simulation.created_at.isoformat() if simulation.created_at else datetime.utcnow().isoformat(),
-        # Enhanced flags
-        "wealthwise_enhanced": simulation.results.get("wealthwise_enhanced", False),
-        "has_shap_explanations": bool(simulation.results.get("shap_explanation")),
-        "methodology": simulation.results.get("methodology", "Standard simulation")
+        
+        # *** CRITICAL FIX *** - Expose SHAP data at top level for frontend
+        "shap_explanation": shap_explanation,  # ⭐ ADD THIS LINE
+        "has_shap_explanations": has_shap_explanations,
+        "wealthwise_enhanced": results.get("wealthwise_enhanced", False),
+        "methodology": results.get("methodology", "Standard simulation"),
+        
+        # Additional SHAP metadata for debugging
+        "shap_debug": {
+            "shap_in_results": bool(results.get("shap_explanation")),
+            "shap_keys": list(shap_explanation.keys()) if shap_explanation else [],
+            "portfolio_quality_score": shap_explanation.get("portfolio_quality_score") if shap_explanation else None,
+            "human_readable_available": bool(shap_explanation.get("human_readable_explanation")) if shap_explanation else False
+        }
     }
     
+    # Final verification
+    logger.info(f"✅ Response SHAP status: has_shap={response['has_shap_explanations']}, data_exists={bool(response['shap_explanation'])}")
+    
     return response
+
 
 # =============================================================================
 # FALLBACK FUNCTIONS (unchanged from original)

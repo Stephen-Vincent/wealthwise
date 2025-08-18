@@ -20,7 +20,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter( tags=["ai-analysis"])
+router = APIRouter(tags=["ai-analysis"])
 
 # Initialize AI service
 ai_service = AIAnalysisService()
