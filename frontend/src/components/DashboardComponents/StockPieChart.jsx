@@ -2,9 +2,8 @@ import React, { useEffect, useState, useContext } from "react";
 import { Chart } from "react-google-charts";
 import PortfolioContext from "../../context/PortfolioContext";
 import StockInfoAPI from "../../utils/stockInfoAPI";
-import { CATEGORY_INFO } from "../../utils/stockMapping";
 
-// Enhanced category configurations
+// Enhanced category configurations - moved from stockMapping.js
 const ENHANCED_CATEGORY_CONFIG = {
   Technology: {
     label: "Technology",
@@ -12,6 +11,27 @@ const ENHANCED_CATEGORY_CONFIG = {
     bgColor: "#DBEAFE",
     description: "Technology and innovation-focused investments",
     icon: "💻",
+  },
+  "Innovation/Growth": {
+    label: "Innovation/Growth",
+    color: "#8B5CF6",
+    bgColor: "#EDE9FE",
+    description: "Disruptive innovation and high-growth companies",
+    icon: "🚀",
+  },
+  "Autonomous Technology": {
+    label: "Autonomous Technology",
+    color: "#F59E0B",
+    bgColor: "#FEF3C7",
+    description: "Autonomous technology and robotics companies",
+    icon: "🤖",
+  },
+  "Financial Technology": {
+    label: "Financial Technology",
+    color: "#10B981",
+    bgColor: "#D1FAE5",
+    description: "Financial technology and fintech companies",
+    icon: "💳",
   },
   "Large Cap Growth": {
     label: "Large Cap Growth",
@@ -34,6 +54,13 @@ const ENHANCED_CATEGORY_CONFIG = {
     description: "Higher-growth developing country investments",
     icon: "🌍",
   },
+  Biotechnology: {
+    label: "Biotechnology",
+    color: "#10B981",
+    bgColor: "#D1FAE5",
+    description: "Biotechnology and pharmaceutical companies",
+    icon: "🧬",
+  },
   Healthcare: {
     label: "Healthcare",
     color: "#10B981",
@@ -41,12 +68,40 @@ const ENHANCED_CATEGORY_CONFIG = {
     description: "Healthcare and biotechnology companies",
     icon: "🏥",
   },
+  Cryptocurrency: {
+    label: "Cryptocurrency",
+    color: "#F59E0B",
+    bgColor: "#FEF3C7",
+    description: "Cryptocurrency and digital asset investments",
+    icon: "₿",
+  },
+  "Bitcoin/Cryptocurrency": {
+    label: "Bitcoin/Crypto",
+    color: "#F59E0B",
+    bgColor: "#FEF3C7",
+    description: "Bitcoin and cryptocurrency exposure",
+    icon: "₿",
+  },
   "Financial Services": {
     label: "Financial Services",
     color: "#64748B",
     bgColor: "#F1F5F9",
     description: "Banks, insurance, and financial companies",
     icon: "🏦",
+  },
+  "Large Cap": {
+    label: "Large Cap",
+    color: "#6366F1",
+    bgColor: "#E0E7FF",
+    description: "Large established company investments",
+    icon: "🏢",
+  },
+  "Total Market": {
+    label: "Total Market",
+    color: "#6366F1",
+    bgColor: "#E0E7FF",
+    description: "Total market exposure ETFs",
+    icon: "📊",
   },
   "Broad Market": {
     label: "Market ETFs",
@@ -107,7 +162,6 @@ export default function StockPieChart() {
   const [categoryTotals, setCategoryTotals] = useState({});
   const [loading, setLoading] = useState(true);
   const [apiStatus, setApiStatus] = useState("idle"); // 'idle', 'loading', 'success', 'error'
-  const [useAPI, setUseAPI] = useState(true);
 
   const stockInfoAPI = new StockInfoAPI();
 
@@ -119,124 +173,82 @@ export default function StockPieChart() {
     }
 
     enhanceStocksWithAPI();
-  }, [stocksPicked, useAPI]);
+  }, [stocksPicked]);
 
   const enhanceStocksWithAPI = async () => {
     setLoading(true);
     setApiStatus("loading");
 
     try {
-      let enhanced = [...stocksPicked];
+      console.log("🔄 Fetching stock information from API...");
+      const symbols = stocksPicked.map((stock) => stock.symbol);
+      const apiData = await stockInfoAPI.getBatchStockInfo(symbols);
 
-      if (useAPI) {
-        console.log("🔄 Fetching stock information from API...");
-        const symbols = stocksPicked.map((stock) => stock.symbol);
-        const apiData = await stockInfoAPI.getBatchStockInfo(symbols);
-
-        // Enhance stocks with API data
-        enhanced = stocksPicked.map((stock) => {
-          const apiInfo = apiData[stock.symbol];
-          return {
-            ...stock,
-            name: apiInfo?.name || stock.name || stock.symbol,
-            category: apiInfo?.category || "Other",
-            description: apiInfo?.description || "Investment instrument",
-            riskLevel: apiInfo?.riskLevel || "Unknown",
-            sector: apiInfo?.sector || "Unknown",
-            price: apiInfo?.price || null,
-            marketCap: apiInfo?.marketCap || null,
-            dividendYield: apiInfo?.dividendYield || 0,
-            beta: apiInfo?.beta || null,
-            isETF: apiInfo?.isETF || false,
-            dataSource: apiInfo?.dataSource || "api",
-          };
-        });
-
-        setApiStatus("success");
-        console.log("✅ API enhancement completed");
-      } else {
-        // Use local mapping as fallback
-        enhanced = enhanceWithLocalMapping(stocksPicked);
-        setApiStatus("local");
-      }
+      // Enhance stocks with API data
+      const enhanced = stocksPicked.map((stock) => {
+        const apiInfo = apiData[stock.symbol];
+        return {
+          ...stock,
+          name: apiInfo?.name || stock.name || stock.symbol,
+          category: apiInfo?.category || "Other",
+          description: apiInfo?.description || "Investment instrument",
+          riskLevel: apiInfo?.riskLevel || "Unknown",
+          sector: apiInfo?.sector || "Unknown",
+          price: apiInfo?.price || null,
+          marketCap: apiInfo?.marketCap || null,
+          dividendYield: apiInfo?.dividendYield || 0,
+          beta: apiInfo?.beta || null,
+          isETF: apiInfo?.isETF || false,
+          dataSource: apiInfo?.dataSource || "Enhanced Database",
+          confidence: apiInfo?.confidence || "Medium",
+        };
+      });
 
       setEnhancedStocks(enhanced);
       calculateCategoryTotals(enhanced);
+      setApiStatus("success");
+      console.log("✅ API enhancement completed");
     } catch (error) {
       console.error("❌ API enhancement failed:", error);
       setApiStatus("error");
 
-      // Fallback to local mapping
-      const fallbackStocks = enhanceWithLocalMapping(stocksPicked);
-      setEnhancedStocks(fallbackStocks);
-      calculateCategoryTotals(fallbackStocks);
+      // Still try to use the enhanced API's fallback data
+      try {
+        const symbols = stocksPicked.map((stock) => stock.symbol);
+        const fallbackData = await stockInfoAPI.getBatchStockInfo(symbols);
+
+        const fallbackStocks = stocksPicked.map((stock) => {
+          const fallbackInfo = fallbackData[stock.symbol];
+          return {
+            ...stock,
+            name: fallbackInfo?.name || stock.name || stock.symbol,
+            category: fallbackInfo?.category || "Other",
+            description: fallbackInfo?.description || "Investment instrument",
+            riskLevel: fallbackInfo?.riskLevel || "Unknown",
+            sector: fallbackInfo?.sector || "Unknown",
+            dataSource: fallbackInfo?.dataSource || "Fallback",
+            confidence: "Low",
+          };
+        });
+
+        setEnhancedStocks(fallbackStocks);
+        calculateCategoryTotals(fallbackStocks);
+      } catch (fallbackError) {
+        console.error("❌ Fallback also failed:", fallbackError);
+        // Use basic stock data
+        setEnhancedStocks(
+          stocksPicked.map((stock) => ({
+            ...stock,
+            category: "Other",
+            dataSource: "Basic",
+            confidence: "None",
+          }))
+        );
+        calculateCategoryTotals(stocksPicked);
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const enhanceWithLocalMapping = (stocks) => {
-    // Local fallback mapping for your specific stocks
-    const localMapping = {
-      EEM: {
-        category: "Emerging Markets",
-        riskLevel: "High",
-        name: "iShares MSCI Emerging Markets ETF",
-      },
-      IEMG: {
-        category: "Emerging Markets",
-        riskLevel: "High",
-        name: "iShares Core MSCI Emerging Markets ETF",
-      },
-      VWO: {
-        category: "Emerging Markets",
-        riskLevel: "High",
-        name: "Vanguard Emerging Markets ETF",
-      },
-      QQQ: {
-        category: "Technology",
-        riskLevel: "Medium-High",
-        name: "Invesco QQQ Trust",
-      },
-      IWO: {
-        category: "Small Cap Growth",
-        riskLevel: "High",
-        name: "iShares Russell 2000 Growth ETF",
-      },
-      VUG: {
-        category: "Large Cap Growth",
-        riskLevel: "Medium-High",
-        name: "Vanguard Growth ETF",
-      },
-      ARKQ: {
-        category: "Technology",
-        riskLevel: "Very High",
-        name: "ARK Autonomous Technology & Robotics ETF",
-      },
-      VTWO: {
-        category: "Small Cap Growth",
-        riskLevel: "High",
-        name: "Vanguard Russell 2000 ETF",
-      },
-      VBK: {
-        category: "Small Cap Growth",
-        riskLevel: "High",
-        name: "Vanguard Small-Cap Growth ETF",
-      },
-      ARKK: {
-        category: "Technology",
-        riskLevel: "Very High",
-        name: "ARK Innovation ETF",
-      },
-    };
-
-    return stocks.map((stock) => ({
-      ...stock,
-      ...localMapping[stock.symbol],
-      category: localMapping[stock.symbol]?.category || "Other",
-      riskLevel: localMapping[stock.symbol]?.riskLevel || "Unknown",
-      dataSource: "local",
-    }));
   };
 
   const calculateCategoryTotals = (stocks) => {
@@ -351,7 +363,7 @@ export default function StockPieChart() {
           Portfolio Allocation
         </h3>
 
-        {/* API Status & Toggle */}
+        {/* API Status Indicator */}
         <div className="flex items-center space-x-4">
           <div
             className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -359,26 +371,15 @@ export default function StockPieChart() {
                 ? "bg-green-100 text-green-800"
                 : apiStatus === "error"
                 ? "bg-red-100 text-red-800"
-                : apiStatus === "local"
-                ? "bg-yellow-100 text-yellow-800"
                 : "bg-gray-100 text-gray-800"
             }`}
           >
             {apiStatus === "success"
               ? "✅ API Enhanced"
               : apiStatus === "error"
-              ? "❌ API Failed"
-              : apiStatus === "local"
-              ? "📋 Local Data"
+              ? "📋 Fallback Data"
               : "⏳ Loading"}
           </div>
-
-          <button
-            onClick={() => setUseAPI(!useAPI)}
-            className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200"
-          >
-            {useAPI ? "Disable API" : "Enable API"}
-          </button>
         </div>
       </div>
 
@@ -474,8 +475,13 @@ export default function StockPieChart() {
                           </div>
                           <div className="text-xs text-gray-500 flex items-center space-x-2">
                             <span>{stock.category || "Other"}</span>
-                            {stock.dataSource === "api" && (
+                            {stock.dataSource === "Enhanced Database" && (
                               <span className="bg-green-100 text-green-700 px-1 rounded text-xs">
+                                DB
+                              </span>
+                            )}
+                            {stock.dataSource?.includes("API") && (
+                              <span className="bg-blue-100 text-blue-700 px-1 rounded text-xs">
                                 API
                               </span>
                             )}
@@ -530,11 +536,21 @@ export default function StockPieChart() {
                   <p className="text-sm text-gray-600">
                     {selectedInstrument.category || "Other"}
                   </p>
-                  {selectedInstrument.dataSource === "api" && (
-                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
-                      ✅ Live Data
-                    </span>
-                  )}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      selectedInstrument.dataSource === "Enhanced Database"
+                        ? "bg-green-100 text-green-700"
+                        : selectedInstrument.dataSource?.includes("API")
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {selectedInstrument.dataSource === "Enhanced Database"
+                      ? "✅ Database"
+                      : selectedInstrument.dataSource?.includes("API")
+                      ? "🌐 Live API"
+                      : "📋 Fallback"}
+                  </span>
                 </div>
               </div>
               <button
@@ -618,7 +634,7 @@ export default function StockPieChart() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Dividend Yield:</span>
                     <span className="font-medium text-blue-600">
-                      {(selectedInstrument.dividendYield * 100).toFixed(2)}%
+                      {selectedInstrument.dividendYield.toFixed(2)}%
                     </span>
                   </div>
                 )}
