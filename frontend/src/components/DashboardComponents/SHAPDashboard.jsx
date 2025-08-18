@@ -550,7 +550,9 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
     insights.push({
       icon: "⭐",
       title: "Portfolio Quality Score",
-      description: `Your portfolio scored ${portfolioQuality}/100 for quality, suggesting ${
+      description: `Your portfolio scored ${portfolioQuality.toFixed(
+        2
+      )}/100 for quality, suggesting ${
         portfolioQuality >= 85
           ? "excellent diversification and risk management"
           : portfolioQuality >= 70
@@ -663,40 +665,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Strategy Summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">📋</span>
-          Strategy Summary
-        </h3>
-
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
-          <div className="flex items-center mb-4">
-            <span className="text-3xl mr-3">🤖</span>
-            <div>
-              <h4 className="font-bold text-gray-800 text-lg">
-                AI Recommendation
-              </h4>
-              <p className="text-gray-600">
-                Based on your personal profile and current market analysis
-              </p>
-            </div>
-          </div>
-
-          <div className="prose prose-sm text-gray-700">
-            <p>
-              {shapData?.explanation ||
-                portfolioData?.ai_summary ||
-                `This portfolio was designed specifically for your risk tolerance, investment timeline, and financial goals. 
-                The AI considered ${
-                  chartData?.length || "multiple"
-                } key factors to create an optimized allocation strategy 
-                that balances growth potential with risk management.`}
-            </p>
-          </div>
         </div>
       </div>
 
