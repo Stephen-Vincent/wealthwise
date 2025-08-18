@@ -320,7 +320,11 @@ const SHAPDashboard = ({
           <FactorsTab chartData={chartData} shapData={shapData} />
         )}
         {activeTab === "insights" && (
-          <InsightsTab shapData={shapData} portfolioData={portfolioData} />
+          <InsightsTab
+            shapData={shapData}
+            portfolioData={portfolioData}
+            chartData={chartData}
+          />
         )}
       </div>
     </div>
@@ -521,56 +525,212 @@ const FactorsTab = ({ chartData, shapData }) => {
   );
 };
 
-// Insights Tab Component
-const InsightsTab = ({ shapData, portfolioData }) => {
+// Improved Insights Tab Component
+const InsightsTab = ({ shapData, portfolioData, chartData }) => {
+  // Generate user-friendly insights
+  const generateInsights = () => {
+    const insights = [];
+
+    // Portfolio Strategy Insight
+    const confidence = shapData?.confidence_score || shapData?.confidence || 75;
+    const portfolioQuality = shapData?.portfolio_quality_score || 85;
+
+    insights.push({
+      icon: "🎯",
+      title: "AI Confidence Level",
+      description: `Our AI is ${confidence}% confident in this portfolio recommendation, indicating ${
+        confidence >= 80
+          ? "high reliability"
+          : confidence >= 60
+          ? "good reliability"
+          : "moderate reliability"
+      } in the strategy.`,
+    });
+
+    insights.push({
+      icon: "⭐",
+      title: "Portfolio Quality Score",
+      description: `Your portfolio scored ${portfolioQuality}/100 for quality, suggesting ${
+        portfolioQuality >= 85
+          ? "excellent diversification and risk management"
+          : portfolioQuality >= 70
+          ? "good balance between risk and returns"
+          : "room for improvement in optimization"
+      }.`,
+    });
+
+    // Top factors insights
+    if (chartData && chartData.length > 0) {
+      const topFactor = chartData[0];
+      const isPositive = topFactor.importance >= 0;
+
+      insights.push({
+        icon: "📈",
+        title: "Primary Decision Factor",
+        description: `${topFactor.factor} had the ${
+          isPositive ? "most positive" : "most challenging"
+        } impact on your portfolio design. ${topFactor.simpleExplanation}`,
+      });
+
+      // Risk vs Timeline insight
+      const riskFactor = chartData.find((f) =>
+        f.factor.toLowerCase().includes("risk")
+      );
+      const timeFactor = chartData.find(
+        (f) =>
+          f.factor.toLowerCase().includes("timeline") ||
+          f.factor.toLowerCase().includes("timeframe")
+      );
+
+      if (riskFactor && timeFactor) {
+        insights.push({
+          icon: "⚖️",
+          title: "Risk & Time Balance",
+          description: `Your risk comfort level and investment timeline work ${
+            (riskFactor.importance > 0 && timeFactor.importance > 0) ||
+            (riskFactor.importance < 0 && timeFactor.importance < 0)
+              ? "well together"
+              : "against each other"
+          } in this portfolio strategy.`,
+        });
+      }
+    }
+
+    // Market conditions insight
+    const marketVolatility = chartData?.find((f) =>
+      f.factor.toLowerCase().includes("volatility")
+    );
+    const marketTrend = chartData?.find((f) =>
+      f.factor.toLowerCase().includes("trend")
+    );
+
+    if (marketVolatility || marketTrend) {
+      const marketImpact =
+        marketVolatility?.importance || marketTrend?.importance || 0;
+      insights.push({
+        icon: "🌊",
+        title: "Market Conditions Impact",
+        description: `Current market conditions are ${
+          marketImpact > 0 ? "favorable" : "challenging"
+        } for your investment strategy, ${
+          marketImpact > 0 ? "supporting" : "requiring adjustments to"
+        } your portfolio allocation.`,
+      });
+    }
+
+    // Goal achievement insight
+    const goalAnalysis =
+      shapData?.goal_analysis || portfolioData?.results?.goal_analysis;
+    if (goalAnalysis) {
+      insights.push({
+        icon: "🏆",
+        title: "Goal Achievement Outlook",
+        description:
+          typeof goalAnalysis === "string"
+            ? goalAnalysis
+            : "Based on your inputs and market conditions, your financial goals appear achievable with this strategy.",
+      });
+    }
+
+    return insights;
+  };
+
+  const insights = generateInsights();
+
   return (
     <div className="space-y-6">
-      {/* SHAP Data Display */}
+      {/* Key AI Insights */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">🔍</span>
-          Raw Data Analysis
-        </h3>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <pre className="text-sm overflow-auto max-h-96 text-gray-700">
-            {JSON.stringify(shapData, null, 2)}
-          </pre>
-        </div>
-      </div>
-
-      {/* Key Insights */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
           <span className="mr-2">💡</span>
           Key AI Insights
         </h3>
-        <div className="space-y-4">
-          <InsightCard
-            title="Portfolio Strategy"
-            insight={
-              shapData?.explanation ||
-              portfolioData?.ai_summary ||
-              "AI-optimized portfolio strategy"
-            }
-            icon="📈"
-            color="bg-blue-50 text-blue-800"
-          />
-          <InsightCard
-            title="Confidence Level"
-            insight={`AI is ${
-              shapData?.confidence || 75
-            }% confident in this recommendation`}
-            icon="🎯"
-            color="bg-green-50 text-green-800"
-          />
-          <InsightCard
-            title="Portfolio Quality"
-            insight={`Portfolio quality score: ${
-              shapData?.portfolio_quality_score || 85
-            }/100`}
-            icon="⭐"
-            color="bg-purple-50 text-purple-800"
-          />
+
+        <div className="space-y-6">
+          {insights.map((insight, index) => (
+            <div
+              key={index}
+              className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-100"
+            >
+              <div className="text-2xl flex-shrink-0">{insight.icon}</div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-900 mb-2 text-lg">
+                  {insight.title}
+                </h4>
+                <p className="text-blue-800 leading-relaxed">
+                  {insight.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Strategy Summary */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+          <span className="mr-2">📋</span>
+          Strategy Summary
+        </h3>
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
+          <div className="flex items-center mb-4">
+            <span className="text-3xl mr-3">🤖</span>
+            <div>
+              <h4 className="font-bold text-gray-800 text-lg">
+                AI Recommendation
+              </h4>
+              <p className="text-gray-600">
+                Based on your personal profile and current market analysis
+              </p>
+            </div>
+          </div>
+
+          <div className="prose prose-sm text-gray-700">
+            <p>
+              {shapData?.explanation ||
+                portfolioData?.ai_summary ||
+                `This portfolio was designed specifically for your risk tolerance, investment timeline, and financial goals. 
+                The AI considered ${
+                  chartData?.length || "multiple"
+                } key factors to create an optimized allocation strategy 
+                that balances growth potential with risk management.`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Next Steps */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+          <span className="mr-2">🚀</span>
+          What This Means for You
+        </h3>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <div className="flex items-center mb-2">
+              <span className="text-xl mr-2">✅</span>
+              <h4 className="font-semibold text-green-800">Strengths</h4>
+            </div>
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Portfolio matches your risk comfort level</li>
+              <li>• Strategy aligned with your timeline</li>
+              <li>• AI-optimized for current market conditions</li>
+            </ul>
+          </div>
+
+          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <div className="flex items-center mb-2">
+              <span className="text-xl mr-2">📈</span>
+              <h4 className="font-semibold text-amber-800">Opportunities</h4>
+            </div>
+            <ul className="text-sm text-amber-700 space-y-1">
+              <li>• Regular monitoring recommended</li>
+              <li>• Consider increasing contributions if possible</li>
+              <li>• Rebalance as market conditions change</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -604,16 +764,6 @@ const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
         />
       </div>
     )}
-  </div>
-);
-
-const InsightCard = ({ title, insight, icon, color }) => (
-  <div className={`${color} rounded-lg p-4 border border-gray-200`}>
-    <div className="flex items-center mb-2">
-      <span className="text-xl mr-3">{icon}</span>
-      <span className="font-semibold">{title}</span>
-    </div>
-    <p className="text-sm leading-relaxed">{insight}</p>
   </div>
 );
 
