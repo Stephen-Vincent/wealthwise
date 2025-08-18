@@ -288,7 +288,7 @@ export default function Dashboard() {
     );
 
   // ✅ FIXED: Check for SHAP data in the correct location
-  const hasShapExplanation = Boolean(portfolioData?.shap_explanations);
+  const hasShapExplanation = Boolean(portfolioData?.shap_explanation);
 
   // -----------------------------
   // Test SHAP
@@ -527,7 +527,7 @@ export default function Dashboard() {
                   </p>
                   <p>
                     <strong>SHAP explanations exists:</strong>{" "}
-                    {portfolioData?.shap_explanations ? "✅ Yes" : "❌ No"}
+                    {portfolioData?.shap_explanation ? "✅ Yes" : "❌ No"}
                   </p>
                   <p>
                     <strong>WealthWise enhanced:</strong>{" "}
@@ -560,7 +560,7 @@ export default function Dashboard() {
                       : "None"}
                   </p>
 
-                  {portfolioData?.shap_explanations && (
+                  {portfolioData?.shap_explanation && (
                     <div className="mt-4 p-4 bg-white rounded border">
                       <p>
                         <strong>SHAP Data Found:</strong>
