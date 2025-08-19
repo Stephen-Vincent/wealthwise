@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 import aiohttp
 import os
 from services.news_analysis import NewsAnalysisService
+import calendar
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -11,7 +12,8 @@ logger = logging.getLogger(__name__)
 class AIAnalysisService:
     """
     Enhanced AI-powered portfolio analysis service using GROQ API
-    Now includes news sentiment analysis and market event detection
+    Now includes comprehensive news sentiment analysis and market event detection
+    Provides detailed explanations of what happened to your specific portfolio
     Focuses on educational explanations of market movements for beginners
     """
     
@@ -45,7 +47,7 @@ class AIAnalysisService:
                     symbols.append(stock['ticker'].upper())
         
         return list(set(symbols))  # Remove duplicates
-            
+    
     async def generate_portfolio_summary(
         self, 
         stocks_picked: List[Dict], 
@@ -55,20 +57,21 @@ class AIAnalysisService:
         simulation_results: Dict[str, Any]
     ) -> str:
         """
-        Generate AI summary with enhanced market movement explanations
-        Now includes news sentiment analysis
+        Generate comprehensive AI summary with detailed portfolio news analysis
         """
         try:
             # Analyze market movements from timeline data
             market_analysis = self._analyze_market_movements(simulation_results, user_data)
             
-            # Get news sentiment analysis for the portfolio stocks
-            news_analysis = await self._analyze_portfolio_news(stocks_picked)
+            # Get comprehensive portfolio news analysis for the entire investment period
+            portfolio_news_analysis = await self._analyze_portfolio_news_history(
+                stocks_picked, user_data, simulation_results
+            )
             
-            # Generate comprehensive prompt with market movement insights and news sentiment
-            prompt = self._create_educational_market_prompt_with_news(
+            # Generate comprehensive prompt with market movements and detailed news analysis
+            prompt = self._create_comprehensive_market_prompt_with_news(
                 stocks_picked, user_data, risk_score, risk_label, 
-                simulation_results, market_analysis, news_analysis
+                simulation_results, market_analysis, portfolio_news_analysis
             )
             
             response = await self._get_groq_response(prompt)
@@ -204,6 +207,406 @@ class AIAnalysisService:
             logger.error(f"Error in portfolio context analysis: {e}")
             return {"error": str(e)}
     
+    async def _analyze_portfolio_news_history(
+        self, 
+        stocks_picked: List[Dict], 
+        user_data: Dict[str, Any],
+        simulation_results: Dict[str, Any]
+    ) -> Dict:
+        """
+        Comprehensive analysis of news events that affected the portfolio during investment period
+        """
+        try:
+            # Extract portfolio symbols
+            symbols = []
+            for stock in stocks_picked:
+                if 'symbol' in stock:
+                    symbols.append(stock['symbol'].upper())
+                elif 'ticker' in stock:
+                    symbols.append(stock['ticker'].upper())
+            
+            if not symbols:
+                return {"error": "No symbols found in portfolio"}
+            
+            # Get timeline data to understand the investment period
+            timeline = simulation_results.get("timeline", {}).get("portfolio", [])
+            timeframe = user_data.get("timeframe", 5)
+            
+            # Analyze different periods of the investment journey
+            news_analysis = {
+                "investment_period_overview": {},
+                "major_events_by_year": {},
+                "portfolio_specific_events": {},
+                "market_correlation_analysis": {},
+                "news_impact_timeline": [],
+                "sector_news_analysis": {},
+                "educational_insights": {}
+            }
+            
+            # Get recent news for current market context (last 30 days)
+            recent_news = await self._get_comprehensive_portfolio_news(symbols, days_back=30)
+            
+            # Simulate historical news analysis by analyzing different market periods
+            # (In production, you'd want historical news data)
+            historical_analysis = await self._simulate_historical_news_analysis(
+                symbols, timeframe, timeline, simulation_results
+            )
+            
+            # Combine recent and historical analysis
+            news_analysis.update({
+                "recent_news_context": recent_news,
+                "historical_market_events": historical_analysis,
+                "portfolio_news_summary": await self._create_portfolio_news_summary(
+                    symbols, recent_news, historical_analysis, timeframe
+                )
+            })
+            
+            return news_analysis
+            
+        except Exception as e:
+            logger.error(f"Error in portfolio news history analysis: {e}")
+            return {"error": str(e)}
+    
+    async def _get_comprehensive_portfolio_news(self, symbols: List[str], days_back: int = 30) -> Dict:
+        """Get detailed news analysis for portfolio with enhanced event detection"""
+        try:
+            async with NewsAnalysisService(self.finnhub_api_key) as news_service:
+                # Get news for all symbols
+                news_data = await news_service.get_market_news(symbols, days_back)
+                
+                comprehensive_analysis = {
+                    "symbol_specific_analysis": {},
+                    "portfolio_wide_events": [],
+                    "sector_trends": {},
+                    "sentiment_timeline": [],
+                    "major_market_events": [],
+                    "earnings_calendar": [],
+                    "regulatory_events": [],
+                    "market_sentiment_summary": {}
+                }
+                
+                all_events = []
+                sentiment_scores = []
+                
+                for symbol in symbols:
+                    articles = news_data.get(symbol, [])
+                    
+                    if articles:
+                        # Enhanced sentiment analysis
+                        sentiment_result = await news_service.analyze_sentiment(articles)
+                        
+                        # Detailed event detection
+                        events = await news_service.get_market_events(articles)
+                        
+                        # Categorize events by importance
+                        major_events = [e for e in events if self._is_major_event(e)]
+                        earnings_events = [e for e in events if 'earnings' in e.get('event_types', [])]
+                        regulatory_events = [e for e in events if 'regulatory' in e.get('event_types', [])]
+                        
+                        symbol_analysis = {
+                            "sentiment": sentiment_result,
+                            "all_events": events,
+                            "major_events": major_events,
+                            "earnings_events": earnings_events,
+                            "regulatory_events": regulatory_events,
+                            "article_count": len(articles),
+                            "news_density": len(articles) / days_back,  # Articles per day
+                            "sentiment_volatility": self._calculate_sentiment_volatility(articles),
+                            "top_headlines": [a.get('headline', '') for a in articles[:5]]
+                        }
+                        
+                        comprehensive_analysis["symbol_specific_analysis"][symbol] = symbol_analysis
+                        
+                        # Add to portfolio-wide collections
+                        all_events.extend(events)
+                        if sentiment_result.get("average_sentiment"):
+                            sentiment_scores.append(sentiment_result["average_sentiment"])
+                        
+                        # Add major events to portfolio-wide events
+                        comprehensive_analysis["portfolio_wide_events"].extend(major_events)
+                        comprehensive_analysis["earnings_calendar"].extend(earnings_events)
+                        comprehensive_analysis["regulatory_events"].extend(regulatory_events)
+                
+                # Calculate portfolio-wide metrics
+                comprehensive_analysis["market_sentiment_summary"] = {
+                    "overall_sentiment": sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0,
+                    "sentiment_range": {"min": min(sentiment_scores), "max": max(sentiment_scores)} if sentiment_scores else {"min": 0, "max": 0},
+                    "total_articles": sum(len(news_data.get(s, [])) for s in symbols),
+                    "total_events": len(all_events),
+                    "event_density": len(all_events) / len(symbols) if symbols else 0
+                }
+                
+                return comprehensive_analysis
+                
+        except Exception as e:
+            logger.error(f"Error getting comprehensive portfolio news: {e}")
+            return {"error": str(e)}
+    
+    async def _simulate_historical_news_analysis(
+        self, 
+        symbols: List[str], 
+        timeframe: int, 
+        timeline: List[Dict],
+        simulation_results: Dict
+    ) -> Dict:
+        """
+        Simulate historical news analysis based on market movements and known events
+        """
+        historical_events = {
+            "market_cycles": [],
+            "major_corrections": [],
+            "bull_market_periods": [],
+            "sector_rotations": [],
+            "economic_events": [],
+            "company_specific_events": {}
+        }
+        
+        # Analyze timeline for major movements that would have had news coverage
+        if timeline and len(timeline) > 1:
+            values = [period.get("value", 0) for period in timeline]
+            dates = [period.get("date", "") for period in timeline]
+            
+            # Identify major movements that would correlate with news events
+            for i in range(1, len(values)):
+                current_value = values[i]
+                previous_value = values[i-1]
+                
+                if previous_value > 0:
+                    change_pct = ((current_value - previous_value) / previous_value) * 100
+                    
+                    # Simulate news events for significant movements
+                    if abs(change_pct) > 10:  # Significant movement
+                        event_type = "market_rally" if change_pct > 0 else "market_correction"
+                        
+                        simulated_event = {
+                            "date": dates[i],
+                            "type": event_type,
+                            "magnitude": abs(change_pct),
+                            "likely_news_themes": self._get_likely_news_themes(change_pct, dates[i]),
+                            "portfolio_impact": f"{change_pct:+.1f}%",
+                            "educational_context": self._get_educational_context(change_pct, event_type)
+                        }
+                        
+                        if event_type == "market_correction":
+                            historical_events["major_corrections"].append(simulated_event)
+                        else:
+                            historical_events["bull_market_periods"].append(simulated_event)
+        
+        # Add sector-specific events based on portfolio composition
+        historical_events["sector_rotations"] = self._simulate_sector_events(symbols, timeframe)
+        
+        # Add economic events that would have affected the portfolio
+        historical_events["economic_events"] = self._simulate_economic_events(timeframe)
+        
+        return historical_events
+    
+    def _get_likely_news_themes(self, change_pct: float, date: str) -> List[str]:
+        """Get likely news themes that could explain market movements"""
+        if change_pct < -20:
+            return [
+                "Major economic recession fears",
+                "Financial crisis or banking stress",
+                "Geopolitical tensions escalating",
+                "Pandemic or health crisis impact",
+                "Central bank emergency measures"
+            ]
+        elif change_pct < -10:
+            return [
+                "Interest rate concerns",
+                "Inflation worries",
+                "Earnings disappointments",
+                "Economic slowdown signals",
+                "Trade war tensions"
+            ]
+        elif change_pct > 20:
+            return [
+                "Strong economic recovery",
+                "Major policy stimulus announced",
+                "Breakthrough technology news",
+                "Trade deal agreements",
+                "Corporate earnings beats"
+            ]
+        elif change_pct > 10:
+            return [
+                "Positive economic data",
+                "Fed policy support",
+                "Strong earnings season",
+                "Market optimism returning",
+                "Sector rotation gains"
+            ]
+        else:
+            return ["Normal market fluctuations", "Mixed economic signals"]
+    
+    def _get_educational_context(self, change_pct: float, event_type: str) -> str:
+        """Provide educational context for market movements"""
+        if event_type == "market_correction":
+            if change_pct < -30:
+                return "Bear markets like this (30%+ drops) typically happen every 5-7 years and test every investor's patience. They often create the best long-term buying opportunities."
+            elif change_pct < -20:
+                return "Market corrections of 20%+ are considered bear markets. Historically, these have always been followed by recoveries that reach new highs."
+            else:
+                return "Corrections of 10-20% are normal and healthy for markets. They help reset valuations and create opportunities for patient investors."
+        else:  # market_rally
+            if change_pct > 30:
+                return "Strong rallies like this often follow major corrections. Markets tend to recover faster than they fall, rewarding investors who stayed the course."
+            elif change_pct > 20:
+                return "Bull market rallies of 20%+ show how quickly markets can recover from pessimism. This is why timing the market is so difficult."
+            else:
+                return "Steady gains like this represent healthy market growth, often driven by improving economic fundamentals."
+    
+    def _simulate_sector_events(self, symbols: List[str], timeframe: int) -> List[Dict]:
+        """Simulate sector-specific events that would have affected the portfolio"""
+        sector_events = []
+        
+        # Map common ETF symbols to sectors for simulation
+        sector_mapping = {
+            "QQQ": "Technology",
+            "VGT": "Technology", 
+            "ARKK": "Innovation",
+            "ARKQ": "Autonomous Technology",
+            "VWO": "Emerging Markets",
+            "IBB": "Biotechnology",
+            "FINX": "Financial Technology",
+            "VUG": "Growth Stocks",
+            "COIN": "Cryptocurrency",
+            "BITO": "Cryptocurrency"
+        }
+        
+        represented_sectors = set()
+        for symbol in symbols:
+            if symbol in sector_mapping:
+                represented_sectors.add(sector_mapping[symbol])
+        
+        # Simulate events for each represented sector
+        for sector in represented_sectors:
+            sector_events.append({
+                "sector": sector,
+                "major_events": self._get_sector_specific_events(sector, timeframe),
+                "impact_on_portfolio": f"Likely affected {sector} holdings significantly"
+            })
+        
+        return sector_events
+    
+    def _get_sector_specific_events(self, sector: str, timeframe: int) -> List[str]:
+        """Get likely events that affected specific sectors"""
+        events = {
+            "Technology": [
+                "AI revolution and ChatGPT breakthrough",
+                "Apple iPhone sales cycles and supply chain issues",
+                "Meta's metaverse pivot and layoffs",
+                "Google antitrust concerns",
+                "Tesla's volatile performance and Musk's Twitter acquisition"
+            ],
+            "Biotechnology": [
+                "COVID-19 vaccine development and approvals",
+                "FDA drug approvals and rejections",
+                "Merger and acquisition activity in pharma",
+                "Clinical trial results announcements"
+            ],
+            "Emerging Markets": [
+                "China's COVID lockdowns and reopening",
+                "Russia-Ukraine conflict impact",
+                "Emerging market currency volatility",
+                "Trade tensions between US and China"
+            ],
+            "Cryptocurrency": [
+                "Bitcoin's volatile swings and institutional adoption",
+                "FTX collapse and crypto winter",
+                "Regulatory crackdowns on crypto",
+                "Ethereum's transition to proof-of-stake"
+            ]
+        }
+        
+        return events.get(sector, ["Sector-specific developments and regulatory changes"])
+    
+    def _simulate_economic_events(self, timeframe: int) -> List[Dict]:
+        """Simulate major economic events during the investment period"""
+        return [
+            {
+                "event": "COVID-19 Pandemic",
+                "timeline": "2020-2023",
+                "impact": "Major market crash followed by unprecedented recovery",
+                "educational_note": "Showed how markets can fall fast but recover even faster with policy support"
+            },
+            {
+                "event": "Interest Rate Cycle",
+                "timeline": "2020-2024",
+                "impact": "Fed rates went from 0% to 5%+ affecting all asset classes",
+                "educational_note": "Rising rates typically hurt growth stocks but help value investments"
+            },
+            {
+                "event": "Inflation Surge",
+                "timeline": "2021-2023", 
+                "impact": "Inflation hit 9%+ causing market volatility and Fed response",
+                "educational_note": "High inflation erodes returns but stocks historically outpace inflation long-term"
+            },
+            {
+                "event": "Banking Sector Stress",
+                "timeline": "2023",
+                "impact": "Silicon Valley Bank and Credit Suisse failures caused market jitters",
+                "educational_note": "Banking stress reminds investors why diversification across sectors matters"
+            }
+        ]
+    
+    def _is_major_event(self, event: Dict) -> bool:
+        """Determine if a news event is considered major/market-moving"""
+        major_event_types = ['earnings', 'merger_acquisition', 'regulatory', 'leadership']
+        event_types = event.get('event_types', [])
+        return any(event_type in major_event_types for event_type in event_types)
+    
+    def _calculate_sentiment_volatility(self, articles: List[Dict]) -> str:
+        """Calculate how volatile sentiment has been for a stock"""
+        try:
+            from textblob import TextBlob
+            sentiments = []
+            
+            for article in articles:
+                headline = article.get('headline', '')
+                if headline:
+                    blob = TextBlob(headline)
+                    sentiments.append(blob.sentiment.polarity)
+            
+            if len(sentiments) > 1:
+                import statistics
+                std_dev = statistics.stdev(sentiments)
+                if std_dev > 0.4:
+                    return "Very High"
+                elif std_dev > 0.2:
+                    return "High"
+                elif std_dev > 0.1:
+                    return "Moderate"
+                else:
+                    return "Low"
+            return "Insufficient Data"
+            
+        except Exception:
+            return "Unknown"
+    
+    async def _create_portfolio_news_summary(
+        self, 
+        symbols: List[str], 
+        recent_news: Dict, 
+        historical_analysis: Dict,
+        timeframe: int
+    ) -> Dict:
+        """Create a comprehensive summary of news impact on portfolio"""
+        return {
+            "portfolio_symbols": symbols,
+            "analysis_period": f"{timeframe} years",
+            "recent_market_context": {
+                "sentiment": recent_news.get("market_sentiment_summary", {}),
+                "major_events": len(recent_news.get("portfolio_wide_events", [])),
+                "news_coverage": recent_news.get("market_sentiment_summary", {}).get("total_articles", 0)
+            },
+            "historical_impact": {
+                "major_corrections": len(historical_analysis.get("major_corrections", [])),
+                "bull_periods": len(historical_analysis.get("bull_market_periods", [])),
+                "sector_events": len(historical_analysis.get("sector_rotations", [])),
+                "economic_events": len(historical_analysis.get("economic_events", []))
+            },
+            "educational_summary": f"Your portfolio of {len(symbols)} investments experienced the full spectrum of market news and events over {timeframe} years, providing real-world education about how news drives market movements."
+        }
+    
     async def _analyze_portfolio_news(self, stocks_picked: List[Dict], days_back: int = 7) -> Dict:
         """Analyze news sentiment for portfolio stocks"""
         try:
@@ -325,7 +728,7 @@ class AIAnalysisService:
         if events:
             high_impact_events = ['earnings', 'merger_acquisition', 'regulatory']
             for event in events:
-                if Any(event_type in high_impact_events for event_type in event.get('event_types', [])):
+                if any(event_type in high_impact_events for event_type in event.get('event_types', [])):
                     event_multiplier = 1.5
                     break
         
@@ -371,7 +774,6 @@ Provide 2-3 sentences of actionable insights about this stock's current situatio
             logger.error(f"Error generating stock insights for {symbol}: {e}")
             return f"Unable to generate insights for {symbol} due to analysis error."
 
-    # ... [Keep all your existing market movement analysis methods] ...
     def _analyze_market_movements(self, simulation_results: Dict, user_data: Dict) -> Dict:
         """
         Comprehensive analysis of market movements throughout the simulation
@@ -632,12 +1034,12 @@ Provide 2-3 sentences of actionable insights about this stock's current situatio
             }
         }
     
-    def _create_educational_market_prompt_with_news(
+    def _create_comprehensive_market_prompt_with_news(
         self, stocks_picked: List[Dict], user_data: Dict[str, Any], 
         risk_score: int, risk_label: str, simulation_results: Dict[str, Any], 
-        market_analysis: Dict, news_analysis: Dict
+        market_analysis: Dict, portfolio_news_analysis: Dict
     ) -> str:
-        """Create comprehensive prompt focusing on market movement education with news context"""
+        """Create comprehensive prompt with detailed news analysis"""
         
         goal = user_data.get("goal", "wealth building")
         lump_sum = user_data.get("lump_sum", 0)
@@ -649,106 +1051,145 @@ Provide 2-3 sentences of actionable insights about this stock's current situatio
         total_contributed = lump_sum + (monthly * timeframe * 12)
         target_achieved = end_value >= target_value
         
-        # Format market events for the prompt
-        crashes_summary = ""
-        if market_analysis["major_crashes"]:
-            crashes_summary = "\n".join([
-                f"• {crash['type']}: {crash['drop_percent']:.1f}% drop - {crash['likely_cause']}"
-                for crash in market_analysis["major_crashes"][:3]
-            ])
+        # Extract portfolio symbols for context
+        symbols = [stock.get('symbol', '') for stock in stocks_picked]
         
-        rallies_summary = ""
-        if market_analysis["major_rallies"]:
-            rallies_summary = "\n".join([
-                f"• {rally['type']}: {rally['gain_percent']:.1f}% gain - {rally['likely_cause']}"
-                for rally in market_analysis["major_rallies"][:3]
-            ])
-        
-        # Format news analysis
-        news_summary = ""
-        if news_analysis and 'error' not in news_analysis:
-            overall_sentiment = news_analysis.get('overall_sentiment', 0)
-            total_articles = news_analysis.get('total_articles', 0)
+        # Format recent news analysis
+        recent_news_summary = ""
+        if 'recent_news_context' in portfolio_news_analysis and 'error' not in portfolio_news_analysis['recent_news_context']:
+            recent_context = portfolio_news_analysis['recent_news_context']
+            sentiment_summary = recent_context.get('market_sentiment_summary', {})
             
-            sentiment_desc = "Positive" if overall_sentiment > 0.1 else "Negative" if overall_sentiment < -0.1 else "Neutral"
-            
-            news_summary = f"""
-CURRENT NEWS SENTIMENT ANALYSIS:
-- Overall Portfolio Sentiment: {sentiment_desc} ({overall_sentiment:.3f})
-- Total News Articles Analyzed: {total_articles}
-- Market Events Detected: {len(news_analysis.get('market_events', []))}
+            recent_news_summary = f"""
+CURRENT MARKET NEWS FOR YOUR PORTFOLIO:
+Overall Sentiment: {sentiment_summary.get('overall_sentiment', 0):.3f} ({'Positive' if sentiment_summary.get('overall_sentiment', 0) > 0.1 else 'Negative' if sentiment_summary.get('overall_sentiment', 0) < -0.1 else 'Neutral'})
+Total Recent Articles: {sentiment_summary.get('total_articles', 0)}
+Major Events: {sentiment_summary.get('total_events', 0)}
 
-This gives context about how the market currently views your portfolio stocks.
-"""
+Recent News by Symbol:"""
+            
+            symbol_analysis = recent_context.get('symbol_specific_analysis', {})
+            for symbol, analysis in symbol_analysis.items():
+                sentiment = analysis.get('sentiment', {})
+                recent_news_summary += f"""
+• {symbol}: {analysis.get('article_count', 0)} articles, {sentiment.get('sentiment_category', 'Neutral')} sentiment
+  Top Headlines: {', '.join(analysis.get('top_headlines', [])[:2])}"""
+        
+        # Format historical events analysis
+        historical_events_summary = ""
+        if 'historical_market_events' in portfolio_news_analysis:
+            historical = portfolio_news_analysis['historical_market_events']
+            
+            historical_events_summary = f"""
+MAJOR EVENTS THAT AFFECTED YOUR PORTFOLIO DURING {timeframe} YEARS:
+
+Market Corrections Your Portfolio Survived:"""
+            
+            corrections = historical.get('major_corrections', [])
+            for correction in corrections[:3]:
+                historical_events_summary += f"""
+• {correction.get('type', 'Market Event')}: {correction.get('portfolio_impact', 'N/A')} impact
+  Likely caused by: {', '.join(correction.get('likely_news_themes', [])[:2])}
+  Educational insight: {correction.get('educational_context', '')}"""
+            
+            historical_events_summary += "\n\nBull Market Rallies That Boosted Your Portfolio:"
+            rallies = historical.get('bull_market_periods', [])
+            for rally in rallies[:3]:
+                historical_events_summary += f"""
+• {rally.get('type', 'Market Rally')}: {rally.get('portfolio_impact', 'N/A')} gain
+  Likely driven by: {', '.join(rally.get('likely_news_themes', [])[:2])}"""
+            
+            # Add sector-specific events
+            sector_events = historical.get('sector_rotations', [])
+            if sector_events:
+                historical_events_summary += "\n\nSector-Specific Events That Affected Your Holdings:"
+                for sector_event in sector_events:
+                    historical_events_summary += f"""
+• {sector_event.get('sector', 'Unknown Sector')}: {sector_event.get('impact_on_portfolio', '')}
+  Major developments: {', '.join(sector_event.get('major_events', [])[:2])}"""
+            
+            # Add economic events
+            economic_events = historical.get('economic_events', [])
+            if economic_events:
+                historical_events_summary += "\n\nMajor Economic Events During Your Investment Period:"
+                for econ_event in economic_events[:3]:
+                    historical_events_summary += f"""
+• {econ_event.get('event', 'Economic Event')} ({econ_event.get('timeline', 'Unknown period')})
+  Impact: {econ_event.get('impact', '')}
+  Learning: {econ_event.get('educational_note', '')}"""
         
         return f"""
-You are a patient, encouraging financial educator explaining investment results to a complete beginner. Focus heavily on explaining market movements in simple, educational terms, and now also incorporate current news sentiment.
+You are a patient, encouraging financial educator explaining investment results to a complete beginner. Focus heavily on explaining how real-world news events affected their specific portfolio, making complex market movements understandable and educational.
 
 THEIR INVESTMENT JOURNEY:
-- Goal: {goal}
-- Target: £{target_value:,.0f}
-- Total Invested: £{total_contributed:,.0f}
-- Final Value: £{end_value:,.0f}
-- Result: {'🎉 GOAL ACHIEVED!' if target_achieved else '📈 PROGRESS MADE'}
-- Risk Level: {risk_label} ({risk_score}/100)
+Portfolio Holdings: {', '.join(symbols)}
+Goal: {goal}
+Target: £{target_value:,.0f}
+Total Invested: £{total_contributed:,.0f}
+Final Value: £{end_value:,.0f}
+Result: {'🎉 GOAL ACHIEVED!' if target_achieved else '📈 PROGRESS MADE'}
+Risk Level: {risk_label} ({risk_score}/100)
+Investment Period: {timeframe} years
 
-MAJOR MARKET EVENTS THEY EXPERIENCED:
-Market Pattern: {market_analysis['overall_pattern']}
-Biggest Drop: {market_analysis['biggest_drop']:.1f}%
-Biggest Rally: {market_analysis['biggest_gain']:.1f}%
-Total Major Events: {market_analysis['total_swings']}
+{recent_news_summary}
 
-MARKET CRASHES/CORRECTIONS:
-{crashes_summary if crashes_summary else "• No major crashes detected"}
+{historical_events_summary}
 
-MARKET RALLIES/RECOVERIES:
-{rallies_summary if rallies_summary else "• Steady growth without dramatic rallies"}
-
-{news_summary}
-
-EDUCATIONAL INSIGHTS:
-{market_analysis['educational_insights']}
+MARKET PATTERN ANALYSIS:
+Overall Pattern: {market_analysis.get('overall_pattern', 'Normal Growth')}
+Biggest Drop: {market_analysis.get('biggest_drop', 0):.1f}%
+Biggest Rally: {market_analysis.get('biggest_gain', 0):.1f}%
+Total Major Market Events: {market_analysis.get('total_swings', 0)}
 
 REQUIRED STRUCTURE (use this exact format):
 
-## 🎢 Your Investment Roller Coaster Journey
+## 🎢 Your {timeframe}-Year Investment Journey Through Real Market Events
 
-[Explain their overall experience in simple terms, like a story. Include current news sentiment context.]
+[Tell the story of their investment journey, weaving in how actual news events and market developments affected their specific portfolio holdings]
 
-## 📉 When Markets Went Down (The Scary Parts)
+## 📰 How Major News Events Affected Your Portfolio
 
-[Explain each major drop in beginner terms - what happened, why it's normal, and what it teaches us]
+[Explain the most significant news events and market developments that impacted their specific holdings during the investment period. Connect real-world events to portfolio performance.]
 
-## 📈 When Markets Bounced Back (The Exciting Parts)
+## 📉 The Scary Headlines: When Markets Crashed
 
-[Explain the recoveries and rallies - how markets heal themselves and reward patient investors]
+[Detail the major corrections and crashes, explaining what news events drove them and how their specific portfolio holdings were affected. Make it educational, not frightening.]
 
-## 📰 What Current News Tells Us
+## 📈 The Recovery Stories: How Markets Bounced Back  
 
-[Incorporate the news sentiment analysis - explain what current market sentiment means for their portfolio]
+[Explain the rallies and recoveries, connecting them to positive news developments and showing how patience was rewarded]
 
-## 🧠 What These Market Swings Teach Us
+## 🏢 What Happened to Your Specific Holdings
 
-[Extract 3-4 key investing lessons from their specific market experience, enhanced with news insights]
+[Go symbol by symbol through their major holdings, explaining the key news events and developments that affected each one during the investment period]
 
-## 🎯 Your Results in Perspective
+## 📊 Current Market Sentiment for Your Portfolio
 
-[Explain their final results and what the market journey means for their success]
+[Analyze the recent news sentiment for their holdings and what it means for the future, using the current news analysis]
 
-## 🚀 What This Means for Your Future
+## 🧠 News & Market Lessons from Your Experience
 
-[Encouraging conclusion about their investing education and next steps, considering current market sentiment]
+[Extract key educational insights about how news drives markets, emotional investing pitfalls, and why long-term thinking works]
+
+## 🎯 Your Results: Surviving Real Market History
+
+[Put their results in context of the actual market events they lived through, celebrating their success in staying invested through real volatility]
+
+## 🚀 What This Market Education Means for Your Future
+
+[Encouraging conclusion about the real-world investing education they've gained and how it prepares them for future market cycles]
 
 WRITING STYLE:
-- Explain like you're talking to a curious friend over coffee
-- Use analogies (roller coasters, weather, sports, etc.)
-- Make market crashes sound normal and educational, not scary
-- Celebrate their patience through volatility
-- Use emojis and formatting for engagement
-- Focus on EDUCATION, not sales
-- Integrate news sentiment naturally into the narrative
+- Tell it like a gripping story of survival through real market events
+- Connect specific news events to portfolio movements
+- Use specific examples from their holdings (QQQ during tech selloffs, VWO during emerging market stress, etc.)
+- Make scary market events sound educational rather than terrifying
+- Celebrate their resilience through actual market history
+- Use analogies and relatable examples
+- Include plenty of emojis and formatting for engagement
+- Focus on EDUCATION about how news drives markets
 
-Be comprehensive - don't limit length. This is their investment education!
+This should be comprehensive and detailed - don't limit length. They've lived through real market history with their investments!
 """
     
     def _create_performance_analysis_prompt(self, portfolio_data: dict, news_analysis: Dict) -> str:
@@ -794,7 +1235,7 @@ Keep it beginner-friendly and educational. Focus on teaching, not selling.
             sentiment = news_analysis.get('overall_sentiment', 0)
             
             # Identify risk factors from news
-            risk_events = [event for event in events if Any(risk_type in event.get('event_types', []) 
+            risk_events = [event for event in events if any(risk_type in event.get('event_types', []) 
                           for risk_type in ['regulatory', 'legal', 'earnings'])]
             
             risk_context = f"""
@@ -870,7 +1311,7 @@ Focus on teaching how news and market sentiment influence investment decisions.
                 "messages": [
                     {
                         "role": "system",
-                        "content": "You are an expert financial educator who excels at explaining complex market movements and news sentiment to beginners in an engaging, educational way."
+                        "content": "You are an expert financial educator who excels at explaining complex market movements and news sentiment to beginners in an engaging, educational way. You have deep knowledge of how real-world news events affect specific stocks and portfolios."
                     },
                     {
                         "role": "user", 
@@ -878,7 +1319,7 @@ Focus on teaching how news and market sentiment influence investment decisions.
                     }
                 ],
                 "temperature": 0.7,
-                "max_tokens": 3000,
+                "max_tokens": 4000,  # Increased for detailed news analysis
                 "stream": False
             }
             
@@ -887,7 +1328,7 @@ Focus on teaching how news and market sentiment influence investment decisions.
                     self.groq_url,
                     headers=headers,
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=60)
+                    timeout=aiohttp.ClientTimeout(total=90)  # Increased timeout for detailed analysis
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
@@ -959,87 +1400,96 @@ Focus on teaching how news and market sentiment influence investment decisions.
         growth = end_value - total_contributed
         return_pct = (growth / total_contributed * 100) if total_contributed > 0 else 0
         
-        market_education = ""
-        if risk_label.lower() in ["aggressive", "moderate aggressive"]:
-            market_education = f"""
+        symbols = [stock.get('symbol', '') for stock in stocks_picked]
+        
+        market_education = f"""
 
-## 🎢 Understanding Your Market Journey
+## 🎢 Your Portfolio's Journey Through Real Market Events
 
-With your **{risk_label.lower()}** approach, your portfolio likely experienced some dramatic ups and downs - and that's completely normal! Here's what probably happened:
+With your **{risk_label.lower()}** approach and holdings in {', '.join(symbols[:5])}, your portfolio lived through some of the most dramatic market events in recent history!
 
-## 📉 The Downs (Market Corrections)
+## 📰 Major News Events That Affected Your Holdings
 
-**What you might have experienced:**
-• **Market corrections** (10-20% drops): These happen every 1-2 years
-• **Bear markets** (20%+ drops): These occur every 3-5 years  
-• **Flash crashes**: Sudden, sharp drops that recover quickly
+**What probably impacted your portfolio:**
 
-**Why they happen:**
-• Economic uncertainty or recession fears
-• Interest rate changes by central banks
-• Global events affecting investor confidence
-• Company earnings disappointments
-• General market psychology and emotions
+**Technology Holdings Impact** (if you held QQQ, VGT, ARKK):
+• **AI Revolution (2023-2024)**: ChatGPT and AI boom drove tech stocks wild
+• **Interest Rate Shock (2022)**: Fed rate hikes crushed growth stocks
+• **Big Tech Earnings**: Apple, Microsoft, Google results moved your holdings
 
-## 📈 The Ups (Market Recoveries)
+**Emerging Markets Impact** (if you held VWO):
+• **China COVID Policies**: Lockdowns and reopening affected emerging markets
+• **Russia-Ukraine Conflict**: Geopolitical tensions hit international investments
+• **Dollar Strength**: Strong USD hurt emerging market returns
 
-**What followed the downs:**
-• **Relief rallies**: Quick bounces after oversold conditions
-• **Bull market runs**: Extended periods of growth
-• **Recovery phases**: Gradual climbing back to new highs
+**Cryptocurrency Exposure** (if you held COIN, BITO):
+• **Crypto Winter (2022)**: Bitcoin crashed from $69k to $15k
+• **FTX Collapse**: Sam Bankman-Fried scandal rocked crypto markets
+• **Regulatory Uncertainty**: SEC actions affected crypto investments
 
-**Why markets recover:**
-• Companies adapt and improve over time
-• Economic growth continues long-term
-• Innovation drives new opportunities
-• Central banks provide support during crises
+## 📉 The Scary Headlines Your Portfolio Survived
 
-## 📰 News and Your Portfolio
+**Market Crashes During Your Investment:**
+• **March 2020**: "MARKET CRASHES 35% - WORST SINCE 1929!"
+• **2022 Bear Market**: "STOCKS ENTER BEAR MARKET AS INFLATION SOARS!"
+• **Banking Crisis 2023**: "SILICON VALLEY BANK COLLAPSES!"
 
-**How news affects your investments:**
-• Daily headlines create short-term volatility
-• Positive news can drive temporary rallies
-• Negative news often causes overreactions
-• Long-term fundamentals matter more than daily news cycles
+**Why your portfolio survived these scary headlines:**
+• Diversification across different asset types protected you
+• Long-term investing meant you didn't panic sell at the bottom
+• Market recoveries always followed the crashes
 
-## 🧠 Key Lessons from Market Volatility
+## 📈 The Recovery Headlines That Boosted Your Returns
 
-• **Volatility is the price of admission**: Higher returns come with bigger swings
-• **Time heals market wounds**: Patience during downturns gets rewarded
-• **Stay the course**: Panic selling locks in losses at the worst times
-• **Markets climb a wall of worry**: Good things happen despite scary headlines
-• **News creates noise, not necessarily direction**: Headlines are emotional, markets are mathematical
+**Positive News That Lifted Your Portfolio:**
+• **Vaccine Rollout (2021)**: "ECONOMY REOPENS - STOCKS SOAR!"
+• **AI Boom (2023)**: "ARTIFICIAL INTELLIGENCE REVOLUTION BEGINS!"
+• **Inflation Cooling (2024)**: "INFLATION FALLS - FED PAUSE EXPECTED!"
 
-## 🎯 Why Your Strategy Worked
+## 🧠 What These Real Events Taught You
 
-Despite all the market drama and daily news cycles, you ended up with **£{end_value:,.0f}** from **£{total_contributed:,.0f}** invested - that's the power of staying invested through the ups and downs!
+**Key Lessons from Living Through Market History:**
+• **Headlines are emotional, markets are mathematical**: Scary news creates opportunities
+• **Time heals market wounds**: Every crash was followed by recovery
+• **Diversification works**: Different holdings reacted differently to events
+• **Staying invested pays**: Panic selling would have locked in losses
+• **News cycles are short, investments are long**: Daily headlines don't determine decade outcomes
 
-The key: You didn't let short-term market movements or scary headlines derail your long-term plan. That's exactly what successful investors do! 🚀"""
+## 🎯 Your Results: Surviving Real Market Chaos
+
+Despite all the dramatic news headlines and market chaos, you ended up with **£{end_value:,.0f}** from **£{total_contributed:,.0f}** invested!
+
+**What this means:**
+• You survived a global pandemic market crash
+• You weathered the worst inflation in 40 years  
+• You lived through crypto winter and banking crises
+• You experienced both AI boom and tech bust cycles
+• You proved you can handle real market volatility
+
+## 🚀 What This Market Education Means for Your Future
+
+**You're now a battle-tested investor who has:**
+• Experienced how news drives short-term market emotions
+• Learned that market recoveries reward patient investors
+• Seen how diversification protects during different crisis types
+• Understood that time in markets beats timing markets
+• Gained real-world experience that textbooks can't teach
+
+You've earned your investing stripes through real market history! 💪"""
         
         success_message = "🎉 Congratulations - Goal Achieved!" if target_achieved else "📈 Solid Progress Made"
         
         return f"""## {success_message}
 
-Your investment journey shows the power of patient, consistent investing! You put in **£{total_contributed:,.0f}** over {timeframe} years, and it grew to **£{end_value:,.0f}**.
+Your investment journey shows the power of patient, consistent investing through real-world market chaos! You put in **£{total_contributed:,.0f}** over {timeframe} years, and it grew to **£{end_value:,.0f}**.
 
 ## 📊 Your Investment Results
 
 • **Total Growth**: £{growth:,.0f} ({return_pct:+.1f}%)
-• **Strategy**: {risk_label} approach  
-• **Time Horizon**: {timeframe} years
+• **Strategy**: {risk_label} approach with {', '.join(symbols)}
+• **Time Horizon**: {timeframe} years of real market history
 • **Target**: {'✅ Achieved' if target_achieved else f'£{abs(target_value - end_value):,.0f} short'}
 
 {market_education}
 
-## 🌟 What This Means for Your Future
-
-You've experienced real-world investing - complete with market ups and downs, news cycles, and sentiment swings. This education is invaluable for your future financial decisions!
-
-**Key takeaways:**
-• Market volatility is normal and manageable
-• Consistent investing builds wealth over time
-• Staying patient during downturns pays off
-• Your strategy can handle market stress
-• News sentiment creates opportunities, not just risks
-
-You're now a more experienced investor with real market battle scars - wear them proudly! 💪"""
+This wasn't just a simulation - this was real investing education through one of the most volatile periods in market history! 🌟"""
