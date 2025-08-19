@@ -380,6 +380,8 @@ def calculate_enhanced_portfolio_weights(
 # ENHANCED AI SUMMARY GENERATION
 # =============================================================================
 
+# 🔄 REPLACE your existing generate_enhanced_ai_summary function with this:
+
 async def generate_enhanced_ai_summary(
     stocks_picked: List[Dict], user_data: Dict[str, Any], 
     risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
@@ -387,50 +389,59 @@ async def generate_enhanced_ai_summary(
     feasibility_assessment: Optional[Dict] = None, market_regime: Optional[Dict] = None
 ) -> str:
     """
-    Generate enhanced AI summary with SHAP explanations and goal analysis.
+    🚀 INTEGRATED AI Summary: Combines SHAP explanations + News Analysis + Market Events
     
-    This creates a comprehensive educational summary that includes:
+    This is the MASTER function that creates comprehensive educational content including:
     1. Portfolio performance results
-    2. SHAP explanations for why stocks were chosen
-    3. Goal feasibility analysis
-    4. Market regime context
-    5. Educational insights
+    2. SHAP explanations for why stocks were chosen  
+    3. ⭐ NEWS ANALYSIS and market event correlation ⭐
+    4. Goal feasibility analysis
+    5. Market regime context
+    6. Educational insights with real-world examples
     """
     
     try:
-        logger.info("🧠 Generating enhanced AI summary with SHAP explanations")
+        logger.info("🧠 Generating INTEGRATED AI summary with SHAP + News Analysis")
         
-        # Import AI Analysis Service
+        # Import the enhanced AI Analysis Service
         from services.ai_analysis import AIAnalysisService
         ai_service = AIAnalysisService()
         
-        # Create enhanced context for AI summary
-        enhanced_context = {
-            "user_data": user_data,
-            "risk_score": risk_score,
-            "risk_label": risk_label,
-            "simulation_results": simulation_results,
-            "stocks_picked": stocks_picked,
-            "shap_explanation": shap_explanation,
-            "goal_analysis": goal_analysis,
-            "feasibility_assessment": feasibility_assessment,
-            "market_regime": market_regime
-        }
+        # ⭐ STEP 1: Get the full news analysis first (THIS IS THE MISSING PIECE!)
+        logger.info("📰 Getting comprehensive news and market analysis...")
         
-        # Generate enhanced summary with SHAP context
-        ai_summary = await generate_shap_enhanced_summary(ai_service, enhanced_context)
+        # Call our enhanced news analysis function
+        portfolio_news_analysis = await ai_service._analyze_portfolio_news_history(
+            stocks_picked, user_data, simulation_results
+        )
         
-        logger.info("✅ Enhanced AI summary with SHAP explanations generated")
-        return ai_summary
+        # ⭐ STEP 2: Create the INTEGRATED prompt with BOTH SHAP and News
+        integrated_prompt = create_integrated_shap_news_prompt(
+            stocks_picked=stocks_picked,
+            user_data=user_data,
+            risk_score=risk_score,
+            risk_label=risk_label,
+            simulation_results=simulation_results,
+            shap_explanation=shap_explanation,
+            goal_analysis=goal_analysis,
+            feasibility_assessment=feasibility_assessment,
+            market_regime=market_regime,
+            portfolio_news_analysis=portfolio_news_analysis  # ⭐ NEWS DATA!
+        )
+        
+        # ⭐ STEP 3: Generate the comprehensive summary
+        logger.info("🤖 Generating integrated SHAP + News summary...")
+        integrated_summary = await ai_service._get_groq_response(integrated_prompt)
+        
+        logger.info("✅ Integrated AI summary with SHAP + News generated successfully!")
+        return ai_service._format_ai_response(integrated_summary)
         
     except Exception as e:
-        logger.warning(f"⚠️ Enhanced AI summary failed: {e}. Using standard summary.")
+        logger.warning(f"⚠️ Integrated AI summary failed: {e}. Trying fallback methods...")
         
-        # Fall back to standard AI summary
+        # Fallback 1: Try just the enhanced news analysis
         try:
-            from services.ai_analysis import AIAnalysisService
-            ai_service = AIAnalysisService()
-            
+            logger.info("🔄 Fallback 1: Using enhanced news analysis only...")
             return await ai_service.generate_portfolio_summary(
                 stocks_picked=stocks_picked,
                 user_data=user_data,
@@ -439,60 +450,169 @@ async def generate_enhanced_ai_summary(
                 simulation_results=simulation_results
             )
         except Exception as e2:
-            logger.warning(f"⚠️ Standard AI summary also failed: {e2}. Using simple summary.")
+            logger.warning(f"⚠️ Enhanced news analysis also failed: {e2}. Using simple SHAP summary...")
+            
+            # Fallback 2: Simple SHAP summary (your original logic)
             return generate_simple_enhanced_summary(
                 stocks_picked, user_data, risk_score, risk_label, 
                 simulation_results, shap_explanation, goal_analysis, feasibility_assessment
             )
 
-async def generate_shap_enhanced_summary(ai_service, context: Dict[str, Any]) -> str:
+# 🆕 ADD this new function (it doesn't exist in your current code):
+
+def create_integrated_shap_news_prompt(
+    stocks_picked: List[Dict], user_data: Dict[str, Any], 
+    risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
+    shap_explanation: Optional[Dict], goal_analysis: Optional[Dict],
+    feasibility_assessment: Optional[Dict], market_regime: Optional[Dict],
+    portfolio_news_analysis: Dict[str, Any]
+) -> str:
     """
-    Generate AI summary with SHAP explanations integrated.
-    
-    This creates a prompt that includes SHAP explanations and uses
-    the AI service to generate educational content.
+    🎯 Create the ULTIMATE prompt that combines EVERYTHING:
+    - SHAP AI explanations
+    - News and market events  
+    - Goal analysis  
+    - Market regime
+    - Educational context
     """
     
-    # Extract context
-    user_data = context["user_data"]
-    simulation_results = context["simulation_results"]
-    shap_explanation = context.get("shap_explanation")
-    goal_analysis = context.get("goal_analysis")
-    feasibility_assessment = context.get("feasibility_assessment")
-    market_regime = context.get("market_regime")
+    # Extract basic info
+    goal = user_data.get("goal", "wealth building")
+    lump_sum = user_data.get("lump_sum", 0)
+    monthly = user_data.get("monthly", 0)
+    timeframe = user_data.get("timeframe", 10)
+    target_value = user_data.get("target_value", 50000)
     
-    # Create enhanced prompt with SHAP context
+    end_value = simulation_results.get("end_value", 0)
+    total_contributed = lump_sum + (monthly * timeframe * 12)
+    target_achieved = end_value >= target_value
+    
+    # Extract portfolio symbols
+    symbols = [stock.get('symbol', '') for stock in stocks_picked]
+    
+    # Format SHAP explanations
     shap_context = ""
     if shap_explanation and "human_readable_explanation" in shap_explanation:
         shap_context = f"""
-SHAP AI EXPLANATIONS:
-The AI chose this portfolio because:
-"""
-        for factor, explanation in shap_explanation["human_readable_explanation"].items():
+🔍 AI DECISION EXPLANATIONS (SHAP Analysis):
+The AI specifically chose this portfolio because:"""
+        
+        explanations = shap_explanation["human_readable_explanation"]
+        for factor, explanation in explanations.items():
             if explanation and len(explanation) > 10:
-                shap_context += f"• {explanation}\n"
-    
+                shap_context += f"""
+• {explanation}"""
+        
+        # Add portfolio quality score if available
+        quality_score = shap_explanation.get('portfolio_quality_score')
+        if quality_score:
+            shap_context += f"""
+
+📊 AI Portfolio Quality Score: {quality_score:.1f}/10
+This score reflects how well the AI believes this portfolio matches your goals and risk tolerance."""
+
+    # Format goal analysis
     goal_context = ""
     if goal_analysis and feasibility_assessment:
+        required_return = goal_analysis.get('required_return_percent', 0)
+        feasibility = feasibility_assessment.get('feasibility_score', 0)
+        
         goal_context = f"""
-GOAL ANALYSIS:
-• Required annual return: {goal_analysis.get('required_return_percent', 0):.1f}%
-• Goal feasibility: {feasibility_assessment.get('feasibility_score', 0):.0f}%
-• Recommendation: {feasibility_assessment.get('recommendations', {}).get('primary', 'Continue with plan')}
-"""
+🎯 GOAL-ORIENTED ANALYSIS:
+• Your Target: £{target_value:,.0f} in {timeframe} years
+• Required Annual Return: {required_return:.1f}%
+• AI Feasibility Assessment: {feasibility:.0f}% achievable
+• Recommendation: {feasibility_assessment.get('recommendations', {}).get('primary', 'Continue with your plan')}"""
 
+    # Format market regime  
     market_context = ""
     if market_regime:
+        regime = market_regime.get('regime', 'neutral')
+        trend_score = market_regime.get('trend_score', 2.5)
+        vix = market_regime.get('current_vix', 20)
+        
         market_context = f"""
-CURRENT MARKET CONDITIONS:
-• Market regime: {market_regime.get('regime', 'neutral')}
-• Market trend: {market_regime.get('trend_score', 2.5):.1f}/5
-• Volatility (VIX): {market_regime.get('current_vix', 20):.1f}
-"""
+📈 CURRENT MARKET CONDITIONS:
+• Market Regime: {regime.title()} market environment
+• Trend Strength: {trend_score:.1f}/5.0 (bullish trend)
+• Volatility (VIX): {vix:.1f} ({"Low" if vix < 20 else "Moderate" if vix < 30 else "High"} fear level)"""
 
-    # Enhanced prompt for AI service
-    enhanced_prompt = f"""
-Generate an educational portfolio summary that explains both the results AND the AI reasoning:
+    # ⭐ Format news analysis - THIS IS THE KEY MISSING PIECE!
+    news_context = ""
+    if 'recent_news_context' in portfolio_news_analysis and 'error' not in portfolio_news_analysis['recent_news_context']:
+        recent_context = portfolio_news_analysis['recent_news_context']
+        sentiment_summary = recent_context.get('market_sentiment_summary', {})
+        
+        overall_sentiment = sentiment_summary.get('overall_sentiment', 0)
+        sentiment_desc = "Positive" if overall_sentiment > 0.1 else "Negative" if overall_sentiment < -0.1 else "Neutral"
+        
+        news_context = f"""
+📰 CURRENT NEWS IMPACT ON YOUR PORTFOLIO:
+• Overall Sentiment: {sentiment_desc} ({overall_sentiment:.3f})
+• Total Recent Articles: {sentiment_summary.get('total_articles', 0)}
+• Major Events: {sentiment_summary.get('total_events', 0)} detected
+
+Recent News Headlines for Your Holdings:"""
+        
+        symbol_analysis = recent_context.get('symbol_specific_analysis', {})
+        for symbol, analysis in symbol_analysis.items():
+            sentiment = analysis.get('sentiment', {})
+            headlines = analysis.get('top_headlines', [])
+            
+            news_context += f"""
+• {symbol}: {analysis.get('article_count', 0)} articles, {sentiment.get('sentiment_category', 'Neutral')} sentiment
+  Latest: {headlines[0][:100] + '...' if headlines else 'No recent headlines'}"""
+
+    # Format historical events
+    historical_context = ""
+    if 'historical_market_events' in portfolio_news_analysis:
+        historical = portfolio_news_analysis['historical_market_events']
+        
+        corrections = historical.get('major_corrections', [])
+        rallies = historical.get('bull_market_periods', [])
+        economic_events = historical.get('economic_events', [])
+        
+        if corrections or rallies or economic_events:
+            historical_context = f"""
+📊 MAJOR MARKET EVENTS YOUR PORTFOLIO LIVED THROUGH:
+
+Market Corrections Your Portfolio Survived:"""
+            
+            for correction in corrections[:2]:
+                historical_context += f"""
+• {correction.get('type', 'Market Event')}: {correction.get('portfolio_impact', 'N/A')} impact
+  Caused by: {', '.join(correction.get('likely_news_themes', [])[:2])}"""
+            
+            historical_context += f"""
+
+Bull Market Rallies That Boosted Your Returns:"""
+            for rally in rallies[:2]:
+                historical_context += f"""
+• {rally.get('type', 'Market Rally')}: {rally.get('portfolio_impact', 'N/A')} gain
+  Driven by: {', '.join(rally.get('likely_news_themes', [])[:2])}"""
+            
+            if economic_events:
+                historical_context += f"""
+
+Major Economic Events During Your Investment Period:"""
+                for event in economic_events[:2]:
+                    historical_context += f"""
+• {event.get('event', 'Economic Event')} ({event.get('timeline', 'Timeline')})
+  Impact: {event.get('impact', 'Market impact')}"""
+
+    # Create the ultimate comprehensive prompt
+    return f"""
+You are an expert financial educator creating a comprehensive portfolio analysis that combines AI explainability with real-world market education. You must explain BOTH the AI's reasoning AND how actual market events affected the portfolio.
+
+PORTFOLIO PERFORMANCE SUMMARY:
+Holdings: {', '.join(symbols)}
+Goal: {goal}
+Target: £{target_value:,.0f}
+Total Invested: £{total_contributed:,.0f}
+Final Value: £{end_value:,.0f}
+Result: {'🎉 GOAL ACHIEVED!' if target_achieved else '📈 PROGRESS MADE'}
+Risk Level: {risk_label} ({risk_score}/100)
+Investment Period: {timeframe} years
 
 {shap_context}
 
@@ -500,18 +620,63 @@ Generate an educational portfolio summary that explains both the results AND the
 
 {market_context}
 
-Please explain:
-1. Why the AI selected these specific stocks for their goals
-2. How the portfolio is designed to achieve their target
-3. What the SHAP analysis reveals about the decision factors
-4. Educational insights about goal-oriented investing
-5. How current market conditions affect the strategy
+{news_context}
 
-Make it educational and beginner-friendly while highlighting the AI's transparent decision-making.
+{historical_context}
+
+REQUIRED STRUCTURE (use this exact format):
+
+## 🎯 Portfolio Summary: Achieving Your Goals with Confidence
+
+[Opening paragraph explaining their results and why this analysis is unique - combining AI transparency with real market education]
+
+## 🤖 Why the AI Selected These Specific Stocks
+
+[Explain the SHAP analysis findings - why each stock was chosen based on their goals, risk tolerance, and market conditions. Make the AI reasoning transparent and educational.]
+
+## 📰 How Real Market News Affected Your Portfolio  
+
+[Connect current news sentiment to their holdings. Explain what recent headlines mean for their investments and how news drives market movements.]
+
+## 📊 Your Journey Through Market History
+
+[Detail the major market events and corrections their portfolio lived through, using the historical analysis. Make it educational about market cycles.]
+
+## 🎢 The Market Roller Coaster: Ups and Downs Explained
+
+[Explain the market volatility they experienced with specific examples from the news analysis and historical events. Educational tone about volatility being normal.]
+
+## 🧠 SHAP Analysis: Transparent AI Decision Making
+
+[Detailed explanation of the SHAP factors and portfolio quality score. Explain how the AI balances different factors for their specific situation.]
+
+## 📈 Current Market Sentiment for Your Holdings
+
+[Analysis of current news sentiment and what it means for future prospects, using the recent news analysis.]
+
+## 🎓 Educational Insights: What This Experience Teaches Us
+
+[Key lessons about investing, market cycles, news impact, and AI-driven portfolio construction. Connect SHAP insights with market education.]
+
+## 🚀 Looking Forward: Your Investment Education
+
+[Encouraging conclusion about their results, the AI's reasoning, and how this experience prepares them for future investing decisions.]
+
+WRITING STYLE:
+- Combine technical AI insights with beginner-friendly explanations
+- Use specific examples from their portfolio's news coverage
+- Explain both the "what" (results) and "why" (AI reasoning + market events)
+- Make SHAP explanations accessible and educational
+- Connect news events to portfolio movements with real examples
+- Use emojis and formatting for engagement
+- Focus on EDUCATION about both AI decision-making and market behavior
+
+This should be comprehensive and detailed - explain both the AI's transparent reasoning AND the real-world market context!
 """
 
-    # Use AI service with enhanced context
-    return await ai_service._get_groq_response(enhanced_prompt)
+# =============================================================================
+# ENHANCED SIMPLE SUMMARY GENERATION
+# =============================================================================
 
 def generate_simple_enhanced_summary(
     stocks_picked: List[Dict], user_data: Dict[str, Any], 
