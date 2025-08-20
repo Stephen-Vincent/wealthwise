@@ -19,8 +19,9 @@ const SHAPDashboard = ({
   const [portfolioData, setPortfolioData] = useState(portfolioDataProp || null);
   const [loading, setLoading] = useState(!!simulationId && !portfolioDataProp);
   const [error, setError] = useState(null);
+  const [chartImages, setChartImages] = useState({});
+  const [chartLoading, setChartLoading] = useState(false);
 
-  // 🔍 Debug logging
   console.log("🔍 SHAPDashboard Debug:", {
     simulationId,
     hasPortfolioDataProp: !!portfolioDataProp,
@@ -129,6 +130,75 @@ const SHAPDashboard = ({
     return hasData;
   }, [shapData]);
 
+  // Fetch visualization charts when SHAP data is available
+  useEffect(() => {
+    if (simulationId && hasShapData && !chartLoading) {
+      setChartLoading(true);
+
+      // Fetch all charts at once
+      fetch(`${apiBase}/shap/simulation/${simulationId}/all-charts`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: withCredentials ? "include" : "same-origin",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("📊 Charts fetched:", data);
+          if (data.charts) {
+            setChartImages(data.charts);
+          }
+          if (data.errors) {
+            console.warn("Chart generation errors:", data.errors);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch charts:", err);
+          // Try individual chart endpoints as fallback
+          fetchIndividualCharts();
+        })
+        .finally(() => {
+          setChartLoading(false);
+        });
+    }
+  }, [simulationId, hasShapData, apiBase, withCredentials]);
+
+  const fetchIndividualCharts = async () => {
+    const chartEndpoints = [
+      { key: "shap_waterfall", endpoint: "shap-chart" },
+      { key: "portfolio_composition", endpoint: "portfolio-chart" },
+      { key: "risk_return", endpoint: "risk-return-chart" },
+      { key: "market_regime", endpoint: "market-regime-chart" },
+    ];
+
+    const newChartImages = {};
+
+    for (const { key, endpoint } of chartEndpoints) {
+      try {
+        const res = await fetch(
+          `${apiBase}/shap/simulation/${simulationId}/${endpoint}`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            credentials: withCredentials ? "include" : "same-origin",
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.chart_url) {
+            newChartImages[key] = data.chart_url;
+          }
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch ${key} chart:`, err);
+      }
+    }
+
+    if (Object.keys(newChartImages).length > 0) {
+      setChartImages(newChartImages);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState("summary");
   const [chartData, setChartData] = useState([]);
 
@@ -189,7 +259,6 @@ const SHAPDashboard = ({
     );
   }
 
-  // 🔍 Enhanced debug display when no SHAP data
   if (!hasShapData) {
     return (
       <div className="space-y-4">
@@ -272,7 +341,7 @@ const SHAPDashboard = ({
     );
   }
 
-  // 🎉 SHAP data is available - render the dashboard
+  // SHAP data is available - render the dashboard
   return (
     <div className="w-full space-y-6">
       {/* Success message */}
@@ -285,6 +354,11 @@ const SHAPDashboard = ({
           Our AI has generated detailed explanations for your portfolio
           recommendations.
         </p>
+        {Object.keys(chartImages).length > 0 && (
+          <p className="text-green-600 text-sm mt-1">
+            Professional visualizations are ready to view.
+          </p>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -293,6 +367,7 @@ const SHAPDashboard = ({
           {[
             { id: "summary", label: "Overview", icon: "📊" },
             { id: "factors", label: "Key Factors", icon: "🔍" },
+            { id: "visualizations", label: "Charts", icon: "📈" },
             { id: "insights", label: "AI Insights", icon: "💡" },
           ].map((tab) => (
             <button
@@ -319,6 +394,15 @@ const SHAPDashboard = ({
         {activeTab === "factors" && (
           <FactorsTab chartData={chartData} shapData={shapData} />
         )}
+        {activeTab === "visualizations" && (
+          <VisualizationsTab
+            chartImages={chartImages}
+            chartLoading={chartLoading}
+            simulationId={simulationId}
+            apiBase={apiBase}
+            withCredentials={withCredentials}
+          />
+        )}
         {activeTab === "insights" && (
           <InsightsTab
             shapData={shapData}
@@ -331,7 +415,200 @@ const SHAPDashboard = ({
   );
 };
 
-// Summary Tab Component
+// New Visualizations Tab Component
+const VisualizationsTab = ({
+  chartImages,
+  chartLoading,
+  simulationId,
+  apiBase,
+  withCredentials,
+}) => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshCharts = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch(
+        `${apiBase}/shap/simulation/${simulationId}/all-charts`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: withCredentials ? "include" : "same-origin",
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        // Force reload images by adding timestamp
+        const timestamp = Date.now();
+        const refreshedImages = {};
+        Object.entries(data.charts || {}).forEach(([key, url]) => {
+          refreshedImages[key] = `${url}?t=${timestamp}`;
+        });
+        window.location.reload(); // Simple way to refresh charts
+      }
+    } catch (err) {
+      console.error("Failed to refresh charts:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  if (chartLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="animate-spin text-4xl mb-4">⚙️</div>
+        <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          Generating Professional Charts
+        </h3>
+        <p className="text-gray-600">
+          Our AI is creating detailed visualizations of your portfolio
+          recommendations...
+        </p>
+      </div>
+    );
+  }
+
+  const chartConfigs = [
+    {
+      key: "shap_waterfall",
+      title: "SHAP Decision Waterfall",
+      description:
+        "Shows exactly how each factor influenced the AI's portfolio recommendations",
+      icon: "📊",
+    },
+    {
+      key: "portfolio_composition",
+      title: "Portfolio Allocation",
+      description: "Visual breakdown of your recommended stock allocations",
+      icon: "🥧",
+    },
+    {
+      key: "risk_return",
+      title: "Risk vs Return Profile",
+      description: "Where your portfolio sits in the risk-return spectrum",
+      icon: "📈",
+    },
+    {
+      key: "market_regime",
+      title: "Market Conditions Analysis",
+      description:
+        "Current market environment and how it affects your strategy",
+      icon: "🌊",
+    },
+  ];
+
+  const availableCharts = chartConfigs.filter(
+    (config) => chartImages[config.key]
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header with refresh button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800">
+            Professional AI Visualizations
+          </h3>
+          <p className="text-gray-600">
+            High-quality charts explaining your portfolio recommendations
+          </p>
+        </div>
+        <button
+          onClick={refreshCharts}
+          disabled={refreshing}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {refreshing ? "Refreshing..." : "Refresh Charts"}
+        </button>
+      </div>
+
+      {availableCharts.length === 0 ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+            Charts Not Available
+          </h3>
+          <p className="text-yellow-700">
+            Professional visualizations couldn't be generated at this time.
+          </p>
+          <button
+            onClick={refreshCharts}
+            className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+          >
+            Try Generating Charts
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {availableCharts.map((config) => (
+            <div
+              key={config.key}
+              className="bg-white rounded-xl border border-gray-200 p-6"
+            >
+              <div className="flex items-center mb-4">
+                <span className="text-2xl mr-3">{config.icon}</span>
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-800">
+                    {config.title}
+                  </h4>
+                  <p className="text-gray-600 text-sm">{config.description}</p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <img
+                  src={chartImages[config.key]}
+                  alt={config.title}
+                  className="w-full h-auto rounded border"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                    e.target.nextSibling.style.display = "block";
+                  }}
+                />
+                <div className="hidden text-center py-8 text-gray-500">
+                  <p>Chart could not be displayed</p>
+                  <p className="text-sm">URL: {chartImages[config.key]}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Chart Statistics */}
+      {availableCharts.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h4 className="font-semibold text-blue-800 mb-2">
+            Visualization Summary
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-blue-600">
+                {availableCharts.length}
+              </div>
+              <div className="text-sm text-blue-700">Charts Generated</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">✅</div>
+              <div className="text-sm text-blue-700">Professional Quality</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">🤖</div>
+              <div className="text-sm text-blue-700">AI Generated</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">📊</div>
+              <div className="text-sm text-blue-700">SHAP Explainable</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Summary Tab Component (unchanged)
 const SummaryTab = ({ shapData, portfolioData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
@@ -422,7 +699,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
   );
 };
 
-// Factors Tab Component
+// Factors Tab Component (unchanged)
 const FactorsTab = ({ chartData, shapData }) => {
   return (
     <div className="space-y-6">
@@ -525,7 +802,7 @@ const FactorsTab = ({ chartData, shapData }) => {
   );
 };
 
-// Improved Insights Tab Component
+// Insights Tab Component (unchanged)
 const InsightsTab = ({ shapData, portfolioData, chartData }) => {
   // Generate user-friendly insights
   const generateInsights = () => {
@@ -735,7 +1012,7 @@ const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
   </div>
 );
 
-// ===== Helper Functions =====
+// Helper Functions
 const formatFactorName = (factor) => {
   const formatMap = {
     risk_score: "Your Risk Comfort Level",
