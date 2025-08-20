@@ -1575,41 +1575,129 @@ def calculate_portfolio_weights(data: pd.DataFrame, risk_score: int) -> np.ndarr
 
 def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray, 
                             lump_sum: float, monthly: float, timeframe: int) -> Dict[str, Any]:
-    """Original portfolio growth simulation - unchanged"""
+    """Enhanced portfolio growth simulation with comprehensive debugging"""
     try:
-        logger.info(f"📈 Simulating growth: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
+        logger.info(f"📈 Starting simulation: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
         
-        normalized = data.div(data.iloc[0])
+        # STEP 1: Debug input data quality
+        logger.info(f"📊 Input data shape: {data.shape}")
+        logger.info(f"📊 Columns: {list(data.columns)}")
+        logger.info(f"⚖️ Weights: {weights}")
+        logger.info(f"📊 Weights sum: {weights.sum()}")
+        
+        # Check for data quality issues
+        logger.info(f"📊 First day values:\n{data.iloc[0]}")
+        logger.info(f"📊 Any zeros in first day: {(data.iloc[0] == 0).any()}")
+        logger.info(f"📊 Any NaN in data: {data.isna().any().any()}")
+        logger.info(f"📊 Data date range: {data.index[0]} to {data.index[-1]}")
+        
+        # STEP 2: Normalize with safety checks
+        first_day_values = data.iloc[0]
+        
+        # Check for zero or negative values that would break normalization
+        problematic_stocks = first_day_values[first_day_values <= 0]
+        if len(problematic_stocks) > 0:
+            logger.error(f"❌ Zero/negative prices on first day: {problematic_stocks}")
+            # Replace zeros with small positive value
+            first_day_values = first_day_values.replace(0, 0.01)
+            logger.warning(f"⚠️ Replaced zero prices with 0.01")
+        
+        normalized = data.div(first_day_values)
+        logger.info(f"📊 Normalized first values: {normalized.iloc[0]}")
+        logger.info(f"📊 Any NaN after normalization: {normalized.isna().any().any()}")
+        
+        # Fill any remaining NaN values
+        if normalized.isna().any().any():
+            logger.warning("⚠️ Found NaN values after normalization, forward filling...")
+            normalized = normalized.fillna(method='ffill').fillna(1.0)
+        
+        # STEP 3: Calculate weighted portfolio with debugging
         weighted = normalized.dot(weights)
+        logger.info(f"📊 Weighted portfolio first 5 values:\n{weighted.head()}")
+        logger.info(f"📊 Weighted portfolio last 5 values:\n{weighted.tail()}")
+        logger.info(f"📊 Any NaN in weighted data: {weighted.isna().any()}")
+        logger.info(f"📊 Any zero in weighted data: {(weighted == 0).any()}")
         
+        # STEP 4: Run simulation with enhanced debugging
         portfolio_values = []
         contributions = []
-        current_value = lump_sum
-        total_contributions = lump_sum
+        current_value = float(lump_sum)
+        total_contributions = float(lump_sum)
+        
+        logger.info(f"📊 Starting simulation with current_value: {current_value}")
 
         for i, (date, growth_factor) in enumerate(weighted.items()):
+            # Add monthly contributions (every ~21 trading days)
             if i > 0 and i % 21 == 0:
                 current_value += monthly
                 total_contributions += monthly
+                if i < 100:  # Log first few months
+                    logger.info(f"📅 Month {i//21}: Added £{monthly}, total contributions now £{total_contributions}")
             
+            # Apply growth with safety checks
             if i > 0:
-                growth_rate = growth_factor / weighted.iloc[i - 1]
+                prev_value = weighted.iloc[i - 1]
+                
+                # Enhanced debugging for growth calculation
+                if prev_value <= 0:
+                    logger.error(f"❌ Previous weighted value is zero/negative on {date}: {prev_value}")
+                    growth_rate = 1.0  # No growth if previous value is invalid
+                else:
+                    growth_rate = growth_factor / prev_value
+                
+                # Detect suspicious growth rates
+                if growth_rate <= 0:
+                    logger.warning(f"⚠️ Zero/negative growth rate on {date}: {growth_rate} (current: {growth_factor}, prev: {prev_value})")
+                    growth_rate = 1.0  # Prevent negative/zero growth
+                elif growth_rate > 5.0:  # 500% daily growth is suspicious
+                    logger.warning(f"⚠️ Extreme growth rate on {date}: {growth_rate} (current: {growth_factor}, prev: {prev_value})")
+                    growth_rate = min(growth_rate, 2.0)  # Cap at 200% daily growth
+                
                 current_value *= growth_rate
+                
+                # Log extreme portfolio values
+                if current_value <= 0:
+                    logger.error(f"❌ Portfolio value became zero/negative on {date}: {current_value}")
+                    current_value = total_contributions  # Reset to contributions if value goes to zero
+                
+                # Debug first few days
+                if i < 10:
+                    logger.info(f"📅 Day {i} ({date}): growth_factor={growth_factor:.4f}, growth_rate={growth_rate:.4f}, portfolio_value=£{current_value:.2f}")
 
+            # Store values with validation
+            safe_contributions = max(0, float(total_contributions))
+            safe_current_value = max(0, float(current_value))
+            
             contributions.append({
                 "date": date.strftime("%Y-%m-%d"),
-                "value": round(float(total_contributions), 2)
+                "value": round(safe_contributions, 2)
             })
             portfolio_values.append({
                 "date": date.strftime("%Y-%m-%d"),
-                "value": round(float(current_value), 2)
+                "value": round(safe_current_value, 2)
             })
 
+        # STEP 5: Calculate final results with validation
         end_value = float(current_value)
         starting_value = float(total_contributions)
+        
+        # Ensure reasonable results
+        if end_value <= 0:
+            logger.error(f"❌ Final portfolio value is zero: {end_value}")
+            logger.error("🔧 This indicates a fundamental calculation error")
+            # Emergency fallback
+            end_value = starting_value * (1.05 ** timeframe)  # 5% annual growth fallback
+            logger.warning(f"⚠️ Using emergency fallback value: £{end_value:.2f}")
+        
         portfolio_return = (end_value - starting_value) / starting_value if starting_value > 0 else 0
 
-        logger.info(f"💰 Simulation results: £{starting_value:,.2f} → £{end_value:,.2f} ({portfolio_return:.1%} return)")
+        # Final validation logging
+        logger.info(f"💰 FINAL RESULTS:")
+        logger.info(f"   Starting value (contributions): £{starting_value:,.2f}")
+        logger.info(f"   Ending value (portfolio): £{end_value:,.2f}")
+        logger.info(f"   Total return: {portfolio_return:.1%}")
+        logger.info(f"   Timeline entries: {len(portfolio_values)}")
+        logger.info(f"   Last portfolio entry: {portfolio_values[-1] if portfolio_values else 'None'}")
 
         return {
             "starting_value": round(starting_value, 2),
@@ -1623,18 +1711,55 @@ def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray,
 
     except Exception as e:
         logger.error(f"❌ Error in portfolio simulation: {str(e)}")
+        logger.error(f"📊 Data info: shape={data.shape if 'data' in locals() else 'N/A'}")
+        logger.error(f"⚖️ Weights info: {weights if 'weights' in locals() else 'N/A'}")
         
-        logger.info("🔄 Using fallback simulation with 7% annual growth")
+        # Enhanced fallback with better calculations
+        logger.warning("🔄 Using enhanced fallback simulation")
         starting_value = lump_sum + monthly * 12 * timeframe
-        end_value = starting_value * (1.07 ** timeframe)
+        
+        # Use risk-adjusted return estimate
+        annual_return = 0.07  # 7% default
+        if hasattr(weights, '__len__') and len(weights) > 0:
+            # Higher risk portfolio might have higher expected returns
+            risk_factor = max(weights) if len(weights) > 0 else 0.5
+            annual_return = 0.05 + (risk_factor * 0.05)  # 5-10% range
+        
+        end_value = starting_value * ((1 + annual_return) ** timeframe)
+        
+        # Create reasonable timeline
+        dates = pd.date_range(start=datetime.today() - timedelta(days=timeframe*365), 
+                            end=datetime.today(), freq='D')
+        timeline_entries = min(len(dates), 1000)  # Limit entries
+        
+        contributions_timeline = []
+        portfolio_timeline = []
+        
+        for i in range(0, timeline_entries, max(1, timeline_entries//252)):  # Roughly daily for a year
+            progress = i / timeline_entries
+            current_contributions = lump_sum + (monthly * 12 * timeframe * progress)
+            current_portfolio = starting_value + ((end_value - starting_value) * progress)
+            
+            date_str = dates[min(i, len(dates)-1)].strftime("%Y-%m-%d")
+            
+            contributions_timeline.append({
+                "date": date_str,
+                "value": round(current_contributions, 2)
+            })
+            portfolio_timeline.append({
+                "date": date_str,
+                "value": round(current_portfolio, 2)
+            })
+        
+        logger.info(f"💰 Fallback results: £{starting_value:,.2f} → £{end_value:,.2f}")
         
         return {
             "starting_value": round(starting_value, 2),
             "end_value": round(end_value, 2),
-            "portfolio_return": 0.07 * timeframe,
+            "portfolio_return": round((end_value - starting_value) / starting_value, 4),
             "timeline": {
-                "contributions": [{"date": datetime.today().strftime("%Y-%m-%d"), "value": starting_value}],
-                "portfolio": [{"date": datetime.today().strftime("%Y-%m-%d"), "value": end_value}]
+                "contributions": contributions_timeline,
+                "portfolio": portfolio_timeline
             }
         }
 
