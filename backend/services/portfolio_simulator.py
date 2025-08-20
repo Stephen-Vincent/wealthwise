@@ -1,5 +1,5 @@
 """
-Portfolio Simulator Service - Enhanced with WealthWise SHAP Integration
+Portfolio Simulator Service - Enhanced with WealthWise SHAP Integration & Visualization Engine
 
 This module handles the complete portfolio simulation workflow:
 1. Extracts and validates user investment preferences
@@ -7,30 +7,35 @@ This module handles the complete portfolio simulation workflow:
 3. Downloads historical market data for simulation
 4. Calculates portfolio weights and simulates growth over time
 5. Generates AI-powered educational summaries with SHAP explanations
-6. Saves results to database
+6. Creates interactive visualizations using VisualizationEngine
+7. Saves results to database
 
 The service integrates with:
 - WealthWise Enhanced Stock Recommender AI (for goal-oriented stock selection)
 - SHAP Explainable AI (for transparent recommendations)
+- VisualizationEngine (for interactive charts and SHAP plots)
 - AI Analysis Service (for educational summaries)
 - Yahoo Finance API (for historical data)
 - Database models (for persistence)
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from sqlalchemy.orm import Session
 from database import models
 import yfinance as yf
 import numpy as np
 import pandas as pd
 import logging
+import json
+import os
+from pathlib import Path
 
 # Set up logging for debugging and monitoring
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# WEALTHWISE INTEGRATION - Import the new system
+# WEALTHWISE & VISUALIZATION ENGINE INTEGRATION
 # =============================================================================
 
 try:
@@ -40,36 +45,62 @@ try:
     from ai_models.stock_model.analysis import MarketRegimeDetector, FactorAnalyzer
     from ai_models.stock_model.utils import initialize_complete_system
     WEALTHWISE_AVAILABLE = True
-    logger.info("✅ WealthWise SHAP system loaded successfully")
+    logger.info("✅ WealthWise SHAP system with VisualizationEngine loaded successfully")
 except ImportError as e:
     WEALTHWISE_AVAILABLE = False
     logger.warning(f"⚠️ WealthWise not available: {e}")
 
+# Initialize global visualization engine instance
+_viz_engine = None
+
+def get_visualization_engine() -> Optional['VisualizationEngine']:
+    """
+    Get or initialize the global VisualizationEngine instance.
+    
+    Returns:
+        VisualizationEngine instance or None if not available
+    """
+    global _viz_engine
+    
+    if not WEALTHWISE_AVAILABLE:
+        return None
+    
+    if _viz_engine is None:
+        try:
+            _viz_engine = VisualizationEngine()
+            logger.info("📊 VisualizationEngine initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize VisualizationEngine: {e}")
+            return None
+    
+    return _viz_engine
+
 # =============================================================================
-# ENHANCED MAIN PORTFOLIO SIMULATION FUNCTION
+# ENHANCED MAIN PORTFOLIO SIMULATION FUNCTION WITH VISUALIZATIONS
 # =============================================================================
 
 async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
     """
-    Enhanced portfolio simulation with WealthWise SHAP integration.
+    Enhanced portfolio simulation with WealthWise SHAP integration and visualizations.
     
     This function now includes:
     1. Goal-oriented portfolio optimization
     2. SHAP explainable AI explanations
-    3. Market regime detection
-    4. Multi-factor analysis
-    5. Enhanced AI educational summaries
+    3. Interactive visualizations and charts
+    4. Market regime detection
+    5. Multi-factor analysis
+    6. Enhanced AI educational summaries
     
     Args:
         sim_input: Dictionary containing user onboarding data
         db: Database session for saving results
     
     Returns:
-        Enhanced simulation results with SHAP explanations
+        Enhanced simulation results with SHAP explanations and visualization paths
     """
     
     try:
-        logger.info("🚀 Starting enhanced portfolio simulation with WealthWise")
+        logger.info("🚀 Starting enhanced portfolio simulation with WealthWise + Visualizations")
         
         # STEP 1: Extract and validate user investment preferences
         logger.info("📋 Extracting user investment data")
@@ -154,7 +185,18 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             stock_data, weights, lump_sum, monthly, timeframe
         )
 
-        # STEP 8: Generate enhanced AI summary with SHAP explanations
+        # STEP 8: Generate visualizations
+        logger.info("📊 Creating interactive visualizations")
+        visualization_paths = await create_simulation_visualizations(
+            simulation_id=None,  # Will be set after saving to DB
+            stocks_picked=stocks_picked,
+            simulation_results=simulation_results,
+            shap_explanation=shap_explanation,
+            user_data=user_data,
+            stock_data=stock_data
+        )
+
+        # STEP 9: Generate enhanced AI summary with SHAP explanations
         logger.info("🧠 Generating enhanced AI educational summary with SHAP")
         ai_summary = await generate_enhanced_ai_summary(
             stocks_picked, user_data, risk_score, risk_label, 
@@ -162,7 +204,7 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             feasibility_assessment, market_regime
         )
 
-        # STEP 9: Save enhanced simulation results to database
+        # STEP 10: Save enhanced simulation results to database
         logger.info("💾 Saving enhanced simulation to database")
         simulation = save_enhanced_simulation_to_db(
             db=db,
@@ -176,8 +218,21 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             shap_explanation=shap_explanation,
             goal_analysis=goal_analysis,
             feasibility_assessment=feasibility_assessment,
-            market_regime=market_regime
+            market_regime=market_regime,
+            visualization_paths=visualization_paths
         )
+
+        # STEP 11: Update visualizations with actual simulation ID
+        if visualization_paths and simulation.id:
+            logger.info("🔄 Updating visualizations with simulation ID")
+            updated_paths = await update_visualization_paths_with_id(
+                simulation.id, visualization_paths
+            )
+            
+            # Update the database record with correct paths
+            if updated_paths != visualization_paths:
+                simulation.results["visualization_paths"] = updated_paths
+                db.commit()
 
         logger.info(f"✅ Enhanced portfolio simulation completed successfully (ID: {simulation.id})")
         return format_enhanced_simulation_response(simulation)
@@ -191,7 +246,645 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
         return await simulate_portfolio_fallback(sim_input, db)
 
 # =============================================================================
-# ENHANCED AI RECOMMENDATION FUNCTIONS
+# VISUALIZATION FUNCTIONS
+# =============================================================================
+
+async def create_simulation_visualizations(
+    simulation_id: Optional[int],
+    stocks_picked: List[Dict],
+    simulation_results: Dict[str, Any],
+    shap_explanation: Optional[Dict],
+    user_data: Dict[str, Any],
+    stock_data: pd.DataFrame
+) -> Dict[str, str]:
+    """
+    Create comprehensive visualizations for the portfolio simulation.
+    
+    Args:
+        simulation_id: Database ID of simulation (None if not saved yet)
+        stocks_picked: List of selected stocks with allocations
+        simulation_results: Portfolio growth simulation results
+        shap_explanation: SHAP explanation data
+        user_data: User investment preferences
+        stock_data: Historical stock price data
+    
+    Returns:
+        Dictionary mapping visualization types to file paths
+    """
+    
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
+        logger.warning("⚠️ VisualizationEngine not available, skipping visualizations")
+        return {}
+    
+    try:
+        # Create directory for visualizations
+        viz_dir = Path("static/visualizations")
+        viz_dir.mkdir(parents=True, exist_ok=True)
+        
+        simulation_prefix = f"sim_{simulation_id}" if simulation_id else "temp_simulation"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"{simulation_prefix}_{timestamp}"
+        
+        visualization_paths = {}
+        
+        # 1. Portfolio Allocation Pie Chart
+        logger.info("📊 Creating portfolio allocation visualization")
+        try:
+            allocation_data = {
+                stock["symbol"]: stock["allocation"] 
+                for stock in stocks_picked
+            }
+            
+            allocation_path = viz_dir / f"{base_filename}_allocation.png"
+            result = viz_engine.create_portfolio_allocation_chart(
+                allocation_data, str(allocation_path)
+            )
+            
+            if "saved" in result.lower():
+                visualization_paths["portfolio_allocation"] = str(allocation_path)
+                logger.info(f"✅ Portfolio allocation chart saved: {allocation_path}")
+            else:
+                logger.warning(f"⚠️ Portfolio allocation chart failed: {result}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error creating allocation chart: {e}")
+        
+        # 2. Portfolio Growth Timeline
+        logger.info("📈 Creating portfolio growth timeline")
+        try:
+            timeline_data = simulation_results.get("timeline", {})
+            portfolio_values = timeline_data.get("portfolio", [])
+            contributions = timeline_data.get("contributions", [])
+            
+            if portfolio_values and contributions:
+                # Convert to DataFrame for visualization
+                timeline_df = pd.DataFrame({
+                    'date': [item['date'] for item in portfolio_values],
+                    'portfolio_value': [item['value'] for item in portfolio_values],
+                    'contributions': [item['value'] for item in contributions]
+                })
+                timeline_df['date'] = pd.to_datetime(timeline_df['date'])
+                
+                timeline_path = viz_dir / f"{base_filename}_timeline.png"
+                result = viz_engine.create_portfolio_timeline_chart(
+                    timeline_df, str(timeline_path), user_data.get("goal", "Portfolio Growth")
+                )
+                
+                if "saved" in result.lower():
+                    visualization_paths["portfolio_timeline"] = str(timeline_path)
+                    logger.info(f"✅ Portfolio timeline chart saved: {timeline_path}")
+                else:
+                    logger.warning(f"⚠️ Portfolio timeline chart failed: {result}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating timeline chart: {e}")
+        
+        # 3. SHAP Explanation Waterfall Chart
+        if shap_explanation:
+            logger.info("🔍 Creating SHAP explanation visualization")
+            try:
+                shap_path = viz_dir / f"{base_filename}_shap_explanation.png"
+                result = viz_engine.create_shap_waterfall_chart(
+                    shap_explanation, str(shap_path)
+                )
+                
+                if "saved" in result.lower():
+                    visualization_paths["shap_explanation"] = str(shap_path)
+                    logger.info(f"✅ SHAP explanation chart saved: {shap_path}")
+                else:
+                    logger.warning(f"⚠️ SHAP explanation chart failed: {result}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error creating SHAP chart: {e}")
+        
+        # 4. Risk vs Return Scatter Plot
+        logger.info("⚖️ Creating risk vs return analysis")
+        try:
+            if len(stock_data.columns) > 1:
+                # Calculate returns and volatility for each stock
+                returns = stock_data.pct_change().dropna()
+                
+                risk_return_data = []
+                for ticker in stock_data.columns:
+                    if ticker in returns.columns:
+                        annual_return = returns[ticker].mean() * 252
+                        annual_volatility = returns[ticker].std() * np.sqrt(252)
+                        
+                        # Find allocation for this stock
+                        allocation = 0
+                        for stock in stocks_picked:
+                            if stock["symbol"] == ticker:
+                                allocation = stock["allocation"]
+                                break
+                        
+                        risk_return_data.append({
+                            "symbol": ticker,
+                            "return": annual_return,
+                            "risk": annual_volatility,
+                            "allocation": allocation
+                        })
+                
+                if risk_return_data:
+                    risk_return_path = viz_dir / f"{base_filename}_risk_return.png"
+                    result = viz_engine.create_risk_return_scatter(
+                        risk_return_data, str(risk_return_path)
+                    )
+                    
+                    if "saved" in result.lower():
+                        visualization_paths["risk_return_analysis"] = str(risk_return_path)
+                        logger.info(f"✅ Risk vs return chart saved: {risk_return_path}")
+                    else:
+                        logger.warning(f"⚠️ Risk vs return chart failed: {result}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating risk vs return chart: {e}")
+        
+        # 5. Goal Achievement Progress Chart
+        logger.info("🎯 Creating goal achievement visualization")
+        try:
+            target_value = user_data.get("target_value", 50000)
+            end_value = simulation_results.get("end_value", 0)
+            
+            goal_data = {
+                "target_value": target_value,
+                "achieved_value": end_value,
+                "achievement_percentage": min(100, (end_value / target_value) * 100) if target_value > 0 else 0,
+                "goal_name": user_data.get("goal", "Financial Goal"),
+                "timeframe": user_data.get("timeframe", 10)
+            }
+            
+            goal_path = viz_dir / f"{base_filename}_goal_progress.png"
+            result = viz_engine.create_goal_achievement_chart(
+                goal_data, str(goal_path)
+            )
+            
+            if "saved" in result.lower():
+                visualization_paths["goal_achievement"] = str(goal_path)
+                logger.info(f"✅ Goal achievement chart saved: {goal_path}")
+            else:
+                logger.warning(f"⚠️ Goal achievement chart failed: {result}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error creating goal achievement chart: {e}")
+        
+        logger.info(f"📊 Created {len(visualization_paths)} visualizations successfully")
+        return visualization_paths
+        
+    except Exception as e:
+        logger.error(f"❌ Error creating simulation visualizations: {e}")
+        return {}
+
+async def update_visualization_paths_with_id(
+    simulation_id: int, 
+    temp_paths: Dict[str, str]
+) -> Dict[str, str]:
+    """
+    Update temporary visualization file paths with actual simulation ID.
+    
+    Args:
+        simulation_id: Actual database ID of the simulation
+        temp_paths: Dictionary of temporary file paths
+    
+    Returns:
+        Dictionary of updated file paths with simulation ID
+    """
+    
+    updated_paths = {}
+    
+    try:
+        for viz_type, temp_path in temp_paths.items():
+            temp_file = Path(temp_path)
+            
+            if temp_file.exists():
+                # Create new filename with simulation ID
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                new_filename = f"sim_{simulation_id}_{timestamp}_{viz_type}.png"
+                new_path = temp_file.parent / new_filename
+                
+                # Rename the file
+                temp_file.rename(new_path)
+                updated_paths[viz_type] = str(new_path)
+                
+                logger.info(f"📁 Renamed {temp_path} → {new_path}")
+            else:
+                logger.warning(f"⚠️ Temporary file not found: {temp_path}")
+                # Keep original path even if file doesn't exist
+                updated_paths[viz_type] = temp_path
+        
+        return updated_paths
+        
+    except Exception as e:
+        logger.error(f"❌ Error updating visualization paths: {e}")
+        return temp_paths  # Return original paths on error
+
+# =============================================================================
+# ENHANCED VISUALIZATION API ENDPOINTS
+# =============================================================================
+
+async def get_simulation_visualizations(simulation_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Get all available visualizations for a simulation.
+    
+    Args:
+        simulation_id: ID of the simulation
+        db: Database session
+    
+    Returns:
+        Dictionary containing visualization paths and metadata
+    """
+    
+    try:
+        # Get simulation from database
+        simulation = db.query(models.Simulation).filter(
+            models.Simulation.id == simulation_id
+        ).first()
+        
+        if not simulation:
+            return {"error": "Simulation not found"}
+        
+        # Extract visualization paths from results
+        results = simulation.results or {}
+        visualization_paths = results.get("visualization_paths", {})
+        
+        # Check which files actually exist
+        available_visualizations = {}
+        for viz_type, file_path in visualization_paths.items():
+            if Path(file_path).exists():
+                available_visualizations[viz_type] = {
+                    "path": file_path,
+                    "type": viz_type,
+                    "exists": True,
+                    "size": Path(file_path).stat().st_size,
+                    "created": datetime.fromtimestamp(
+                        Path(file_path).stat().st_ctime
+                    ).isoformat()
+                }
+            else:
+                available_visualizations[viz_type] = {
+                    "path": file_path,
+                    "type": viz_type,
+                    "exists": False,
+                    "error": "File not found"
+                }
+        
+        return {
+            "simulation_id": simulation_id,
+            "visualization_count": len(available_visualizations),
+            "visualizations": available_visualizations,
+            "has_shap_explanation": bool(results.get("shap_explanation")),
+            "wealthwise_enhanced": results.get("wealthwise_enhanced", False)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting simulation visualizations: {e}")
+        return {"error": str(e)}
+
+async def regenerate_shap_visualization(simulation_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Regenerate SHAP visualization for a specific simulation.
+    
+    Args:
+        simulation_id: ID of the simulation
+        db: Database session
+    
+    Returns:
+        Result of visualization regeneration
+    """
+    
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
+        return {"error": "VisualizationEngine not available"}
+    
+    try:
+        # Get simulation from database
+        simulation = db.query(models.Simulation).filter(
+            models.Simulation.id == simulation_id
+        ).first()
+        
+        if not simulation:
+            return {"error": "Simulation not found"}
+        
+        results = simulation.results or {}
+        shap_explanation = results.get("shap_explanation")
+        
+        if not shap_explanation:
+            return {"error": "No SHAP explanation available for this simulation"}
+        
+        # Create new SHAP visualization
+        viz_dir = Path("static/visualizations")
+        viz_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        shap_path = viz_dir / f"sim_{simulation_id}_{timestamp}_shap_explanation_regenerated.png"
+        
+        result = viz_engine.create_shap_waterfall_chart(
+            shap_explanation, str(shap_path)
+        )
+        
+        if "saved" in result.lower():
+            # Update database with new path
+            current_paths = results.get("visualization_paths", {})
+            current_paths["shap_explanation"] = str(shap_path)
+            results["visualization_paths"] = current_paths
+            
+            simulation.results = results
+            db.commit()
+            
+            return {
+                "success": True,
+                "new_path": str(shap_path),
+                "message": "SHAP visualization regenerated successfully",
+                "timestamp": timestamp
+            }
+        else:
+            return {"error": f"Failed to generate SHAP visualization: {result}"}
+            
+    except Exception as e:
+        logger.error(f"❌ Error regenerating SHAP visualization: {e}")
+        return {"error": str(e)}
+
+async def create_custom_visualization(
+    simulation_id: int, 
+    viz_type: str, 
+    options: Dict[str, Any],
+    db: Session
+) -> Dict[str, Any]:
+    """
+    Create a custom visualization for a simulation.
+    
+    Args:
+        simulation_id: ID of the simulation
+        viz_type: Type of visualization to create
+        options: Visualization options and parameters
+        db: Database session
+    
+    Returns:
+        Result of custom visualization creation
+    """
+    
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
+        return {"error": "VisualizationEngine not available"}
+    
+    try:
+        # Get simulation from database
+        simulation = db.query(models.Simulation).filter(
+            models.Simulation.id == simulation_id
+        ).first()
+        
+        if not simulation:
+            return {"error": "Simulation not found"}
+        
+        results = simulation.results or {}
+        
+        # Create visualization directory
+        viz_dir = Path("static/visualizations")
+        viz_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        viz_path = viz_dir / f"sim_{simulation_id}_{timestamp}_custom_{viz_type}.png"
+        
+        # Handle different visualization types
+        if viz_type == "correlation_heatmap":
+            # Create correlation heatmap
+            stocks = [stock["symbol"] for stock in results.get("stocks_picked", [])]
+            result = viz_engine.create_correlation_heatmap(stocks, str(viz_path))
+            
+        elif viz_type == "performance_comparison":
+            # Create performance comparison chart
+            timeline = results.get("timeline", {})
+            portfolio_data = timeline.get("portfolio", [])
+            
+            if portfolio_data:
+                # Convert to DataFrame
+                df = pd.DataFrame(portfolio_data)
+                df['date'] = pd.to_datetime(df['date'])
+                
+                result = viz_engine.create_performance_comparison_chart(
+                    df, str(viz_path), options.get("benchmark", "SPY")
+                )
+            else:
+                return {"error": "No portfolio timeline data available"}
+                
+        elif viz_type == "monte_carlo":
+            # Create Monte Carlo simulation visualization
+            monte_carlo_options = {
+                "num_simulations": options.get("num_simulations", 1000),
+                "confidence_level": options.get("confidence_level", 0.95)
+            }
+            
+            result = viz_engine.create_monte_carlo_simulation(
+                results.get("stocks_picked", []), 
+                str(viz_path),
+                monte_carlo_options
+            )
+            
+        else:
+            return {"error": f"Unknown visualization type: {viz_type}"}
+        
+        if "saved" in result.lower():
+            return {
+                "success": True,
+                "visualization_path": str(viz_path),
+                "visualization_type": viz_type,
+                "options_used": options,
+                "timestamp": timestamp
+            }
+        else:
+            return {"error": f"Failed to create {viz_type} visualization: {result}"}
+            
+    except Exception as e:
+        logger.error(f"❌ Error creating custom visualization: {e}")
+        return {"error": str(e)}
+
+# =============================================================================
+# ENHANCED DATABASE FUNCTIONS WITH VISUALIZATION SUPPORT
+# =============================================================================
+
+def save_enhanced_simulation_to_db(
+    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
+    risk_score: int, risk_label: str, ai_summary: str,
+    stocks_picked: List[Dict], simulation_results: Dict[str, Any],
+    shap_explanation: Dict[str, Any] = None, 
+    goal_analysis: Dict[str, Any] = None,
+    feasibility_assessment: Dict[str, Any] = None, 
+    market_regime: Dict[str, Any] = None,
+    visualization_paths: Dict[str, str] = None
+):
+    """
+    Enhanced version of save_simulation_to_db with visualization support.
+    """
+    
+    try:
+        logger.info("💾 Saving enhanced simulation with SHAP data and visualizations to database")
+        
+        target_reached = simulation_results["end_value"] >= user_data["target_value"]
+        
+        # Create enhanced results object with all data including visualizations
+        enhanced_results = {
+            "name": user_data["goal"],
+            "stocks_picked": stocks_picked,
+            "starting_value": simulation_results["starting_value"],
+            "end_value": simulation_results["end_value"],
+            "return": simulation_results["portfolio_return"],
+            "target_reached": target_reached,
+            "risk_score": risk_score,
+            "risk_label": risk_label,
+            "timeline": simulation_results["timeline"],
+            # Enhanced data
+            "shap_explanation": shap_explanation,
+            "goal_analysis": goal_analysis,
+            "feasibility_assessment": feasibility_assessment,
+            "market_regime": market_regime,
+            "visualization_paths": visualization_paths or {},
+            "wealthwise_enhanced": True,
+            "has_visualizations": bool(visualization_paths),
+            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization with visualizations",
+            "created_timestamp": datetime.now().isoformat()
+        }
+        
+        # Clean the results before saving
+        cleaned_results = clean_simulation_results_for_db(enhanced_results)
+        
+        # Test serialization before database save
+        if not test_json_serialization(cleaned_results, "enhanced_results"):
+            raise ValueError("Enhanced results still not JSON serializable after cleaning")
+        
+        simulation = models.Simulation(
+            user_id=sim_input.get("user_id"),
+            name=user_data["goal"],
+            goal=user_data["goal"],
+            target_value=user_data["target_value"],
+            lump_sum=user_data["lump_sum"],
+            monthly=user_data["monthly"],
+            timeframe=user_data["timeframe"],
+            target_achieved=target_reached,
+            income_bracket=user_data["income_bracket"],
+            risk_score=risk_score,
+            risk_label=risk_label,
+            ai_summary=ai_summary,
+            results=cleaned_results
+        )
+        
+        db.add(simulation)
+        db.commit()
+        db.refresh(simulation)
+        
+        logger.info(f"✅ Enhanced simulation with visualizations saved (ID: {simulation.id})")
+        return simulation
+        
+    except Exception as e:
+        logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
+        db.rollback()
+        
+        # Fallback save without visualizations
+        try:
+            logger.warning("🔄 Attempting to save simulation without visualizations")
+            
+            basic_results = {
+                "name": user_data["goal"],
+                "stocks_picked": [
+                    {
+                        "symbol": str(stock.get("symbol", "")),
+                        "name": str(stock.get("name", "")),
+                        "allocation": float(stock.get("allocation", 0))
+                    }
+                    for stock in stocks_picked
+                ],
+                "starting_value": float(simulation_results["starting_value"]),
+                "end_value": float(simulation_results["end_value"]),
+                "return": float(simulation_results["portfolio_return"]),
+                "target_reached": target_reached,
+                "risk_score": risk_score,
+                "risk_label": risk_label,
+                "enhanced_save_failed": True,
+                "visualization_error": str(e)
+            }
+            
+            basic_simulation = models.Simulation(
+                user_id=sim_input.get("user_id"),
+                name=user_data["goal"],
+                goal=user_data["goal"],
+                target_value=user_data["target_value"],
+                lump_sum=user_data["lump_sum"],
+                monthly=user_data["monthly"],
+                timeframe=user_data["timeframe"],
+                target_achieved=target_reached,
+                income_bracket=user_data["income_bracket"],
+                risk_score=risk_score,
+                risk_label=risk_label,
+                ai_summary=ai_summary,
+                results=basic_results
+            )
+            
+            db.add(basic_simulation)
+            db.commit()
+            db.refresh(basic_simulation)
+            
+            logger.warning(f"⚠️ Saved basic simulation without visualizations (ID: {basic_simulation.id})")
+            return basic_simulation
+            
+        except Exception as basic_error:
+            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
+            db.rollback()
+            raise
+
+def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
+    """
+    Format enhanced simulation response with SHAP explanations and visualizations.
+    """
+    
+    # Get the results data
+    results = simulation.results or {}
+    
+    # Extract enhanced data
+    shap_explanation = results.get("shap_explanation")
+    visualization_paths = results.get("visualization_paths", {})
+    
+    has_shap_explanations = bool(shap_explanation)
+    has_visualizations = bool(visualization_paths)
+    
+    # Debug logging
+    logger.info(f"🔍 Formatting enhanced response for simulation {simulation.id}")
+    logger.info(f"📊 Has SHAP explanations: {has_shap_explanations}")
+    logger.info(f"📊 Has visualizations: {has_visualizations}")
+    logger.info(f"📊 Visualization types: {list(visualization_paths.keys())}")
+    
+    response = {
+        "id": simulation.id,
+        "user_id": simulation.user_id,
+        "name": simulation.name,
+        "goal": simulation.goal,
+        "target_value": simulation.target_value,
+        "lump_sum": simulation.lump_sum,
+        "monthly": simulation.monthly,
+        "timeframe": simulation.timeframe,
+        "target_achieved": simulation.target_achieved,
+        "income_bracket": simulation.income_bracket,
+        "risk_score": simulation.risk_score,
+        "risk_label": simulation.risk_label,
+        "ai_summary": simulation.ai_summary,
+        "results": results,
+        "created_at": simulation.created_at.isoformat() if simulation.created_at else datetime.utcnow().isoformat(),
+        
+        # Enhanced features
+        "shap_explanation": shap_explanation,
+        "has_shap_explanations": has_shap_explanations,
+        "visualization_paths": visualization_paths,
+        "has_visualizations": has_visualizations,
+        "wealthwise_enhanced": results.get("wealthwise_enhanced", False),
+        "methodology": results.get("methodology", "Standard simulation"),
+        
+        # Visualization metadata
+        "available_visualizations": list(visualization_paths.keys()),
+        "visualization_count": len(visualization_paths)
+    }
+    
+    return response
+
+# =============================================================================
+# ORIGINAL FUNCTIONS (PRESERVED FOR BACKWARD COMPATIBILITY)
 # =============================================================================
 
 async def get_enhanced_ai_recommendations(
@@ -200,16 +893,6 @@ async def get_enhanced_ai_recommendations(
 ) -> Dict[str, Any]:
     """
     Get enhanced AI recommendations with factor analysis, SHAP explanations and goal analysis.
-    
-    This function provides:
-    1. Goal-oriented analysis and feasibility assessment
-    2. Market regime-aware recommendations
-    3. Factor-based stock selection and ranking
-    4. SHAP explainable AI reasoning
-    5. Comprehensive decision transparency
-    
-    Returns:
-        Dict containing stocks, explanations, and analysis
     """
     
     if not WEALTHWISE_AVAILABLE:
@@ -225,7 +908,7 @@ async def get_enhanced_ai_recommendations(
         # Initialize WealthWise system
         init_result = initialize_complete_system({
             'LOG_LEVEL': 'INFO',
-            'LOG_TO_FILE': False,  # Don't create log files in production
+            'LOG_TO_FILE': False,
             'ENABLE_PERFORMANCE_TRACKING': True
         })
         
@@ -265,7 +948,7 @@ async def get_enhanced_ai_recommendations(
         
         # Step 5: Expand candidate universe based on risk profile and market regime
         logger.info("📊 Expanding candidate universe for factor analysis")
-        candidate_stocks = set(initial_recommendations)  # Start with goal-oriented picks
+        candidate_stocks = set(initial_recommendations)
         
         # Add risk-appropriate candidates
         if risk_score < 35:  # Conservative
@@ -277,10 +960,8 @@ async def get_enhanced_ai_recommendations(
         
         # Adjust for market regime
         if market_regime.get('regime') == 'bear':
-            # Add defensive stocks in bear markets
             candidate_stocks.update(["VYM", "SCHD", "VDC", "VHT"])
         elif market_regime.get('regime') == 'bull':
-            # Add growth stocks in bull markets
             candidate_stocks.update(["VGT", "VUG", "QQQ"])
             
         candidate_stocks = list(candidate_stocks)
@@ -295,8 +976,7 @@ async def get_enhanced_ai_recommendations(
                 timeframe=timeframe
             )
             
-            # Select top stocks based on factor scores
-            num_stocks = min(6, len(ranked_stocks))  # Diversify with up to 6 stocks
+            num_stocks = min(6, len(ranked_stocks))
             factor_selected_stocks = [stock for stock, score in ranked_stocks[:num_stocks]]
             
             logger.info(f"🎯 Factor analysis selected: {factor_selected_stocks}")
@@ -359,68 +1039,44 @@ async def get_enhanced_ai_recommendations(
         }
 
 def get_stock_explanation(ticker: str, recommendation_result: Dict[str, Any]) -> str:
-    """
-    Get explanation for why a specific stock was recommended.
-    
-    This uses the SHAP explanations and factor analysis to explain
-    each stock selection in human-readable terms.
-    """
+    """Get explanation for why a specific stock was recommended."""
     if recommendation_result.get("method") == "fallback":
         return f"{ticker} selected based on risk profile matching"
     
-    # Extract explanations from SHAP and factor analysis
     shap_explanation = recommendation_result.get("shap_explanation", {})
     
     if shap_explanation and "human_readable_explanation" in shap_explanation:
-        # Use SHAP human-readable explanations
         explanations = shap_explanation["human_readable_explanation"]
         if explanations:
-            # Return first relevant explanation
             for key, explanation in explanations.items():
-                if len(explanation) > 20:  # Non-empty explanation
+                if len(explanation) > 20:
                     return f"{ticker}: {explanation[:100]}..."
     
-    # Fallback explanation
     return f"{ticker} recommended by AI analysis for your goals and risk profile"
-
-# =============================================================================
-# ENHANCED PORTFOLIO OPTIMIZATION
-# =============================================================================
 
 def calculate_enhanced_portfolio_weights(
     data: pd.DataFrame, risk_score: int, recommendation_result: Dict[str, Any]
 ) -> np.ndarray:
-    """
-    Calculate enhanced portfolio weights using WealthWise optimization.
-    
-    If WealthWise is available, use its correlation-based optimization.
-    Otherwise, fall back to the original method.
-    """
+    """Calculate enhanced portfolio weights using WealthWise optimization."""
     
     if recommendation_result.get("method") == "fallback" or not WEALTHWISE_AVAILABLE:
-        # Use original weight calculation method
         return calculate_portfolio_weights(data, risk_score)
     
     try:
-        # Use WealthWise correlation-based optimization
         recommender = EnhancedStockRecommender()
         
-        # Create initial equal weights
         num_assets = len(data.columns)
         initial_weights = {col: 1.0/num_assets for col in data.columns}
         
-        # Optimize using correlation analysis
         optimized_weights = recommender.optimize_for_diversification(
             list(data.columns), initial_weights
         )
         
-        # Convert to numpy array in correct order
         weights_array = np.array([
             optimized_weights.get(col, 1.0/num_assets) 
             for col in data.columns
         ])
         
-        # Ensure weights sum to 1
         weights_array = weights_array / np.sum(weights_array)
         
         logger.info("✅ Using WealthWise correlation-optimized weights")
@@ -430,46 +1086,28 @@ def calculate_enhanced_portfolio_weights(
         logger.warning(f"⚠️ WealthWise optimization failed: {e}, using fallback")
         return calculate_portfolio_weights(data, risk_score)
 
-# =============================================================================
-# ENHANCED AI SUMMARY GENERATION
-# =============================================================================
-
-# 🔄 REPLACE your existing generate_enhanced_ai_summary function with this:
-
+# Enhanced AI summary generation function
 async def generate_enhanced_ai_summary(
     stocks_picked: List[Dict], user_data: Dict[str, Any], 
     risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
     shap_explanation: Optional[Dict] = None, goal_analysis: Optional[Dict] = None,
     feasibility_assessment: Optional[Dict] = None, market_regime: Optional[Dict] = None
 ) -> str:
-    """
-    🚀 INTEGRATED AI Summary: Combines SHAP explanations + News Analysis + Market Events
-    
-    This is the MASTER function that creates comprehensive educational content including:
-    1. Portfolio performance results
-    2. SHAP explanations for why stocks were chosen  
-    3. ⭐ NEWS ANALYSIS and market event correlation ⭐
-    4. Goal feasibility analysis
-    5. Market regime context
-    6. Educational insights with real-world examples
-    """
+    """Generate comprehensive AI summary with SHAP explanations and news analysis."""
     
     try:
         logger.info("🧠 Generating INTEGRATED AI summary with SHAP + News Analysis")
         
-        # Import the enhanced AI Analysis Service
         from services.ai_analysis import AIAnalysisService
         ai_service = AIAnalysisService()
         
-        # ⭐ STEP 1: Get the full news analysis first (THIS IS THE MISSING PIECE!)
+        # Get comprehensive news analysis
         logger.info("📰 Getting comprehensive news and market analysis...")
-        
-        # Call our enhanced news analysis function
         portfolio_news_analysis = await ai_service._analyze_portfolio_news_history(
             stocks_picked, user_data, simulation_results
         )
         
-        # ⭐ STEP 2: Create the INTEGRATED prompt with BOTH SHAP and News
+        # Create integrated prompt
         integrated_prompt = create_integrated_shap_news_prompt(
             stocks_picked=stocks_picked,
             user_data=user_data,
@@ -480,10 +1118,10 @@ async def generate_enhanced_ai_summary(
             goal_analysis=goal_analysis,
             feasibility_assessment=feasibility_assessment,
             market_regime=market_regime,
-            portfolio_news_analysis=portfolio_news_analysis  # ⭐ NEWS DATA!
+            portfolio_news_analysis=portfolio_news_analysis
         )
         
-        # ⭐ STEP 3: Generate the comprehensive summary
+        # Generate comprehensive summary
         logger.info("🤖 Generating integrated SHAP + News summary...")
         integrated_summary = await ai_service._get_groq_response(integrated_prompt)
         
@@ -493,7 +1131,6 @@ async def generate_enhanced_ai_summary(
     except Exception as e:
         logger.warning(f"⚠️ Integrated AI summary failed: {e}. Trying fallback methods...")
         
-        # Fallback 1: Try just the enhanced news analysis
         try:
             logger.info("🔄 Fallback 1: Using enhanced news analysis only...")
             return await ai_service.generate_portfolio_summary(
@@ -506,13 +1143,10 @@ async def generate_enhanced_ai_summary(
         except Exception as e2:
             logger.warning(f"⚠️ Enhanced news analysis also failed: {e2}. Using simple SHAP summary...")
             
-            # Fallback 2: Simple SHAP summary (your original logic)
             return generate_simple_enhanced_summary(
                 stocks_picked, user_data, risk_score, risk_label, 
                 simulation_results, shap_explanation, goal_analysis, feasibility_assessment
             )
-
-# 🆕 ADD this new function (it doesn't exist in your current code):
 
 def create_integrated_shap_news_prompt(
     stocks_picked: List[Dict], user_data: Dict[str, Any], 
@@ -521,14 +1155,7 @@ def create_integrated_shap_news_prompt(
     feasibility_assessment: Optional[Dict], market_regime: Optional[Dict],
     portfolio_news_analysis: Dict[str, Any]
 ) -> str:
-    """
-    🎯 Create the ULTIMATE prompt that combines EVERYTHING:
-    - SHAP AI explanations
-    - News and market events  
-    - Goal analysis  
-    - Market regime
-    - Educational context
-    """
+    """Create comprehensive prompt combining SHAP explanations with news analysis."""
     
     # Extract basic info
     goal = user_data.get("goal", "wealth building")
@@ -541,7 +1168,6 @@ def create_integrated_shap_news_prompt(
     total_contributed = lump_sum + (monthly * timeframe * 12)
     target_achieved = end_value >= target_value
     
-    # Extract portfolio symbols
     symbols = [stock.get('symbol', '') for stock in stocks_picked]
     
     # Format SHAP explanations
@@ -557,7 +1183,6 @@ The AI specifically chose this portfolio because:"""
                 shap_context += f"""
 • {explanation}"""
         
-        # Add portfolio quality score if available
         quality_score = shap_explanation.get('portfolio_quality_score')
         if quality_score:
             shap_context += f"""
@@ -591,7 +1216,7 @@ This score reflects how well the AI believes this portfolio matches your goals a
 • Trend Strength: {trend_score:.1f}/5.0 (bullish trend)
 • Volatility (VIX): {vix:.1f} ({"Low" if vix < 20 else "Moderate" if vix < 30 else "High"} fear level)"""
 
-    # ⭐ Format news analysis - THIS IS THE KEY MISSING PIECE!
+    # Format news analysis
     news_context = ""
     if 'recent_news_context' in portfolio_news_analysis and 'error' not in portfolio_news_analysis['recent_news_context']:
         recent_context = portfolio_news_analysis['recent_news_context']
@@ -617,44 +1242,7 @@ Recent News Headlines for Your Holdings:"""
 • {symbol}: {analysis.get('article_count', 0)} articles, {sentiment.get('sentiment_category', 'Neutral')} sentiment
   Latest: {headlines[0][:100] + '...' if headlines else 'No recent headlines'}"""
 
-    # Format historical events
-    historical_context = ""
-    if 'historical_market_events' in portfolio_news_analysis:
-        historical = portfolio_news_analysis['historical_market_events']
-        
-        corrections = historical.get('major_corrections', [])
-        rallies = historical.get('bull_market_periods', [])
-        economic_events = historical.get('economic_events', [])
-        
-        if corrections or rallies or economic_events:
-            historical_context = f"""
-📊 MAJOR MARKET EVENTS YOUR PORTFOLIO LIVED THROUGH:
-
-Market Corrections Your Portfolio Survived:"""
-            
-            for correction in corrections[:2]:
-                historical_context += f"""
-• {correction.get('type', 'Market Event')}: {correction.get('portfolio_impact', 'N/A')} impact
-  Caused by: {', '.join(correction.get('likely_news_themes', [])[:2])}"""
-            
-            historical_context += f"""
-
-Bull Market Rallies That Boosted Your Returns:"""
-            for rally in rallies[:2]:
-                historical_context += f"""
-• {rally.get('type', 'Market Rally')}: {rally.get('portfolio_impact', 'N/A')} gain
-  Driven by: {', '.join(rally.get('likely_news_themes', [])[:2])}"""
-            
-            if economic_events:
-                historical_context += f"""
-
-Major Economic Events During Your Investment Period:"""
-                for event in economic_events[:2]:
-                    historical_context += f"""
-• {event.get('event', 'Economic Event')} ({event.get('timeline', 'Timeline')})
-  Impact: {event.get('impact', 'Market impact')}"""
-
-    # Create the ultimate comprehensive prompt
+    # Create the comprehensive prompt
     return f"""
 You are an expert financial educator creating a comprehensive portfolio analysis that combines AI explainability with real-world market education. You must explain BOTH the AI's reasoning AND how actual market events affected the portfolio.
 
@@ -675,8 +1263,6 @@ Investment Period: {timeframe} years
 {market_context}
 
 {news_context}
-
-{historical_context}
 
 REQUIRED STRUCTURE (use this exact format):
 
@@ -722,89 +1308,18 @@ WRITING STYLE:
 - Explain both the "what" (results) and "why" (AI reasoning + market events)
 - Make SHAP explanations accessible and educational
 - Connect news events to portfolio movements with real examples
-- Use emojis and formatting for engagement
 - Focus on EDUCATION about both AI decision-making and market behavior
 
 This should be comprehensive and detailed - explain both the AI's transparent reasoning AND the real-world market context!
 """
 
 # =============================================================================
-# ENHANCED SIMPLE SUMMARY GENERATION
+# UTILITY FUNCTIONS FOR JSON SERIALIZATION
 # =============================================================================
-
-def generate_simple_enhanced_summary(
-    stocks_picked: List[Dict], user_data: Dict[str, Any], 
-    risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
-    shap_explanation: Optional[Dict] = None, goal_analysis: Optional[Dict] = None,
-    feasibility_assessment: Optional[Dict] = None
-) -> str:
-    """
-    Generate enhanced simple summary with available SHAP context.
-    """
-    
-    # Base summary
-    goal = user_data.get("goal", "wealth building")
-    timeframe = user_data.get("timeframe", 10)
-    start_value = simulation_results.get("starting_value", 0)
-    end_value = simulation_results.get("end_value", 0)
-    target_value = user_data.get("target_value", 50000)
-    stock_list = ", ".join([stock.get("symbol", "UNKNOWN") for stock in stocks_picked])
-    target_achieved = end_value >= target_value
-    
-    base_summary = f"""
-## 🎯 Your Goal-Oriented Portfolio Results
-
-Your {risk_label.lower()} risk portfolio, invested in {stock_list}, grew from £{start_value:,.2f} to £{end_value:,.2f} over {timeframe} years for your {goal} goal. Your target of £{target_value:,.2f} was {'✅ achieved' if target_achieved else '📈 partially achieved'}.
-"""
-
-    # Add SHAP explanations if available
-    shap_section = ""
-    if shap_explanation and "human_readable_explanation" in shap_explanation:
-        shap_section = f"""
-## 🔍 Why the AI Chose This Portfolio
-
-The AI analysis considered multiple factors for your specific situation:
-"""
-        explanations = shap_explanation["human_readable_explanation"]
-        for factor, explanation in explanations.items():
-            if explanation and len(explanation) > 10:
-                shap_section += f"• {explanation}\n"
-
-    # Add goal analysis if available
-    goal_section = ""
-    if goal_analysis and feasibility_assessment:
-        required_return = goal_analysis.get('required_return_percent', 0)
-        feasibility = feasibility_assessment.get('feasibility_score', 0)
-        
-        goal_section = f"""
-## 📊 Goal Analysis
-
-To reach your £{target_value:,.0f} target, you needed {required_return:.1f}% annual returns. The AI assessed your goal as {feasibility:.0f}% feasible given your risk tolerance and timeframe. This demonstrates how the AI creates personalized strategies for your specific goals.
-"""
-
-    return f"{base_summary}\n{shap_section}\n{goal_section}\n\n*This portfolio was optimized specifically for your goals using explainable AI that shows exactly why each decision was made.*"
-
-# =============================================================================
-# ENHANCED DATABASE FUNCTIONS
-# =============================================================================
-import json
-import numpy as np
-import pandas as pd
-from typing import Any, Dict, List, Union
-from datetime import datetime
-import logging
-
-logger = logging.getLogger(__name__)
 
 def serialize_for_json(data: Any) -> Any:
-    """
-    Recursively convert NumPy arrays, pandas objects, and other non-serializable objects to JSON-compatible types.
+    """Recursively convert non-serializable objects to JSON-compatible types."""
     
-    This function handles all the common serialization issues when saving AI model results to databases.
-    Specifically designed for WealthWise SHAP explanations and portfolio optimization results.
-    """
-    
-    # Handle None values
     if data is None:
         return None
     
@@ -828,156 +1343,43 @@ def serialize_for_json(data: Any) -> Any:
     elif isinstance(data, pd.Timestamp):
         return data.isoformat()
     
-    # Handle datetime objects
     elif isinstance(data, datetime):
         return data.isoformat()
     
-    # Handle complex numbers (sometimes in SHAP explanations)
     elif isinstance(data, complex):
         return {"real": data.real, "imag": data.imag}
     
-    # Handle dictionaries
     elif isinstance(data, dict):
         return {str(key): serialize_for_json(value) for key, value in data.items()}
     
-    # Handle lists and tuples
     elif isinstance(data, (list, tuple)):
         return [serialize_for_json(item) for item in data]
     
-    # Handle sets
     elif isinstance(data, set):
         return list(data)
     
-    # Handle custom objects with __dict__
     elif hasattr(data, '__dict__'):
         return serialize_for_json(data.__dict__)
     
-    # Handle objects with a to_dict method
     elif hasattr(data, 'to_dict'):
         return serialize_for_json(data.to_dict())
     
-    # Return as-is for basic JSON-serializable types
     elif isinstance(data, (str, int, float, bool)):
         return data
     
-    # For anything else, try to convert to string as fallback
     else:
         try:
             return str(data)
         except Exception:
             return f"<non-serializable: {type(data).__name__}>"
 
-def clean_shap_explanation(shap_data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Specifically clean SHAP explanation data for JSON serialization.
-    
-    SHAP explanations often contain NumPy arrays and complex nested structures
-    that need special handling.
-    """
-    if not shap_data:
-        return {}
-    
-    try:
-        cleaned_shap = {}
-        
-        # Handle common SHAP fields
-        for key, value in shap_data.items():
-            if key == 'shap_values':
-                # SHAP values are typically NumPy arrays
-                cleaned_shap[key] = serialize_for_json(value)
-            elif key == 'feature_importance':
-                # Feature importance scores
-                cleaned_shap[key] = serialize_for_json(value)
-            elif key == 'expected_value':
-                # Expected value (baseline)
-                cleaned_shap[key] = float(value) if value is not None else None
-            elif key == 'feature_names':
-                # Feature names should be strings
-                cleaned_shap[key] = [str(name) for name in value] if value else []
-            elif key == 'human_readable_explanation':
-                # Text explanations
-                cleaned_shap[key] = {str(k): str(v) for k, v in value.items()} if value else {}
-            elif key == 'portfolio_quality_score':
-                # Quality score
-                cleaned_shap[key] = float(value) if value is not None else None
-            elif key == 'confidence_score':
-                # Confidence score
-                cleaned_shap[key] = float(value) if value is not None else None
-            else:
-                # Generic cleaning for other fields
-                cleaned_shap[key] = serialize_for_json(value)
-        
-        return cleaned_shap
-        
-    except Exception as e:
-        logger.warning(f"⚠️ Error cleaning SHAP explanation: {e}")
-        return {"error": f"SHAP data cleaning failed: {str(e)}"}
-
 def clean_simulation_results_for_db(results: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Clean all simulation results before saving to database.
-    
-    This is the main function to call before saving any simulation results
-    that might contain NumPy arrays or other non-serializable objects.
-    """
+    """Clean all simulation results before saving to database."""
     try:
         logger.info("🧹 Cleaning simulation results for database storage")
         
-        # Create a deep copy to avoid modifying the original
         import copy
         cleaned_results = copy.deepcopy(results)
-        
-        # Special handling for known problematic fields
-        if 'shap_explanation' in cleaned_results:
-            cleaned_results['shap_explanation'] = clean_shap_explanation(
-                cleaned_results['shap_explanation']
-            )
-        
-        if 'goal_analysis' in cleaned_results:
-            cleaned_results['goal_analysis'] = serialize_for_json(
-                cleaned_results['goal_analysis']
-            )
-        
-        if 'feasibility_assessment' in cleaned_results:
-            cleaned_results['feasibility_assessment'] = serialize_for_json(
-                cleaned_results['feasibility_assessment']
-            )
-        
-        if 'market_regime' in cleaned_results:
-            cleaned_results['market_regime'] = serialize_for_json(
-                cleaned_results['market_regime']
-            )
-        
-        if 'stocks_picked' in cleaned_results:
-            # Clean stock allocation data
-            cleaned_stocks = []
-            for stock in cleaned_results['stocks_picked']:
-                cleaned_stock = {
-                    'symbol': str(stock.get('symbol', '')),
-                    'name': str(stock.get('name', '')),
-                    'allocation': float(stock.get('allocation', 0)),
-                    'explanation': str(stock.get('explanation', ''))
-                }
-                cleaned_stocks.append(cleaned_stock)
-            cleaned_results['stocks_picked'] = cleaned_stocks
-        
-        if 'timeline' in cleaned_results:
-            # Clean timeline data
-            timeline = cleaned_results['timeline']
-            if isinstance(timeline, dict):
-                for key, values in timeline.items():
-                    if isinstance(values, list):
-                        cleaned_timeline = []
-                        for item in values:
-                            if isinstance(item, dict):
-                                cleaned_item = {
-                                    'date': str(item.get('date', '')),
-                                    'value': float(item.get('value', 0))
-                                }
-                                cleaned_timeline.append(cleaned_item)
-                            else:
-                                cleaned_timeline.append(serialize_for_json(item))
-                        timeline[key] = cleaned_timeline
         
         # Apply general serialization to the entire structure
         cleaned_results = serialize_for_json(cleaned_results)
@@ -991,22 +1393,13 @@ def clean_simulation_results_for_db(results: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"❌ Failed to clean simulation results: {e}")
         
-        # Return a safe fallback structure
+        # Return safe fallback structure
         fallback_results = {
             "basic_info": {
                 "starting_value": float(results.get("starting_value", 0)),
                 "end_value": float(results.get("end_value", 0)),
                 "portfolio_return": float(results.get("return", 0)),
                 "target_reached": bool(results.get("target_reached", False))
-            },
-            "portfolio_summary": {
-                "stocks": [str(stock.get('symbol', '')) for stock in results.get('stocks_picked', [])],
-                "num_stocks": len(results.get('stocks_picked', []))
-            },
-            "metadata": {
-                "wealthwise_enhanced": bool(results.get("wealthwise_enhanced", False)),
-                "methodology": str(results.get("methodology", "standard")),
-                "serialization_note": f"Full results not serializable: {str(e)}"
             },
             "error_info": {
                 "original_error": str(e),
@@ -1015,13 +1408,11 @@ def clean_simulation_results_for_db(results: Dict[str, Any]) -> Dict[str, Any]:
             }
         }
         
-        # Test the fallback is serializable
         try:
             json.dumps(fallback_results)
             return fallback_results
         except Exception as fallback_error:
             logger.error(f"❌ Even fallback serialization failed: {fallback_error}")
-            # Return absolute minimum
             return {
                 "status": "serialization_failed",
                 "error": str(e),
@@ -1030,10 +1421,7 @@ def clean_simulation_results_for_db(results: Dict[str, Any]) -> Dict[str, Any]:
             }
 
 def test_json_serialization(data: Any, description: str = "data") -> bool:
-    """
-    Test if data can be JSON serialized.
-    Useful for debugging serialization issues.
-    """
+    """Test if data can be JSON serialized."""
     try:
         json.dumps(data)
         logger.info(f"✅ {description} is JSON serializable")
@@ -1042,411 +1430,285 @@ def test_json_serialization(data: Any, description: str = "data") -> bool:
         logger.error(f"❌ {description} is NOT JSON serializable: {e}")
         return False
 
-# Updated save_enhanced_simulation_to_db function
-def save_enhanced_simulation_to_db(
-    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
-    risk_score: int, risk_label: str, ai_summary: str,
-    stocks_picked: List[Dict], simulation_results: Dict[str, Any],
-    shap_explanation: Dict[str, Any] = None, 
-    goal_analysis: Dict[str, Any] = None,
-    feasibility_assessment: Dict[str, Any] = None, 
-    market_regime: Dict[str, Any] = None
-):
-    """
-    Enhanced version of save_simulation_to_db with proper JSON serialization.
-    """
-    
-    try:
-        logger.info("💾 Saving enhanced simulation with SHAP data to database")
-        
-        target_reached = simulation_results["end_value"] >= user_data["target_value"]
-        
-        # Create enhanced results object with all data
-        enhanced_results = {
-            "name": user_data["goal"],
-            "stocks_picked": stocks_picked,
-            "starting_value": simulation_results["starting_value"],
-            "end_value": simulation_results["end_value"],
-            "return": simulation_results["portfolio_return"],
-            "target_reached": target_reached,
-            "risk_score": risk_score,
-            "risk_label": risk_label,
-            "timeline": simulation_results["timeline"],
-            # Enhanced data
-            "shap_explanation": shap_explanation,
-            "goal_analysis": goal_analysis,
-            "feasibility_assessment": feasibility_assessment,
-            "market_regime": market_regime,
-            "wealthwise_enhanced": True,
-            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization",
-            "created_timestamp": datetime.now().isoformat()
-        }
-        
-        # ⭐ KEY FIX: Clean the results before saving ⭐
-        cleaned_results = clean_simulation_results_for_db(enhanced_results)
-        
-        # Test serialization before database save
-        if not test_json_serialization(cleaned_results, "enhanced_results"):
-            raise ValueError("Enhanced results still not JSON serializable after cleaning")
-        
-        # Import the models here to avoid circular imports
-        from database import models
-        
-        simulation = models.Simulation(
-            user_id=sim_input.get("user_id"),
-            name=user_data["goal"],
-            goal=user_data["goal"],
-            target_value=user_data["target_value"],
-            lump_sum=user_data["lump_sum"],
-            monthly=user_data["monthly"],
-            timeframe=user_data["timeframe"],
-            target_achieved=target_reached,
-            income_bracket=user_data["income_bracket"],
-            risk_score=risk_score,
-            risk_label=risk_label,
-            ai_summary=ai_summary,
-            results=cleaned_results  # ⭐ Use cleaned results ⭐
-        )
-        
-        db.add(simulation)
-        db.commit()
-        db.refresh(simulation)
-        
-        logger.info(f"✅ Enhanced simulation saved with SHAP data (ID: {simulation.id})")
-        return simulation
-        
-    except Exception as e:
-        logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
-        db.rollback()
-        
-        # If enhanced save fails, try to save a basic version
-        try:
-            logger.warning("🔄 Attempting to save basic simulation without enhanced data")
-            
-            basic_results = {
-                "name": user_data["goal"],
-                "stocks_picked": [
-                    {
-                        "symbol": str(stock.get("symbol", "")),
-                        "name": str(stock.get("name", "")),
-                        "allocation": float(stock.get("allocation", 0))
-                    }
-                    for stock in stocks_picked
-                ],
-                "starting_value": float(simulation_results["starting_value"]),
-                "end_value": float(simulation_results["end_value"]),
-                "return": float(simulation_results["portfolio_return"]),
-                "target_reached": target_reached,
-                "risk_score": risk_score,
-                "risk_label": risk_label,
-                "enhanced_save_failed": True,
-                "error_message": str(e)
-            }
-            
-            from database import models
-            
-            basic_simulation = models.Simulation(
-                user_id=sim_input.get("user_id"),
-                name=user_data["goal"],
-                goal=user_data["goal"],
-                target_value=user_data["target_value"],
-                lump_sum=user_data["lump_sum"],
-                monthly=user_data["monthly"],
-                timeframe=user_data["timeframe"],
-                target_achieved=target_reached,
-                income_bracket=user_data["income_bracket"],
-                risk_score=risk_score,
-                risk_label=risk_label,
-                ai_summary=ai_summary,
-                results=basic_results
-            )
-            
-            db.add(basic_simulation)
-            db.commit()
-            db.refresh(basic_simulation)
-            
-            logger.warning(f"⚠️ Saved basic simulation without enhanced data (ID: {basic_simulation.id})")
-            return basic_simulation
-            
-        except Exception as basic_error:
-            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
-            db.rollback()
-            raise
-
-# Example usage in your portfolio_simulator.py:
-"""
-Replace the existing save_enhanced_simulation_to_db call with:
-
-simulation = save_enhanced_simulation_to_db(
-    db=db,
-    sim_input=sim_input,
-    user_data=user_data,
-    risk_score=risk_score,
-    risk_label=risk_label,
-    ai_summary=ai_summary,
-    stocks_picked=stocks_picked,
-    simulation_results=simulation_results,
-    shap_explanation=shap_explanation,
-    goal_analysis=goal_analysis,
-    feasibility_assessment=feasibility_assessment,
-    market_regime=market_regime
-)
-"""
-
-def save_enhanced_simulation_to_db(
-    db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
-    risk_score: int, risk_label: str, ai_summary: str,
-    stocks_picked: List[Dict], simulation_results: Dict[str, Any],
-    shap_explanation: Dict[str, Any] = None, 
-    goal_analysis: Dict[str, Any] = None,
-    feasibility_assessment: Dict[str, Any] = None, 
-    market_regime: Dict[str, Any] = None
-):
-    """
-    Enhanced version of save_simulation_to_db with proper JSON serialization.
-    """
-    
-    try:
-        logger.info("💾 Saving enhanced simulation with SHAP data to database")
-        
-        target_reached = simulation_results["end_value"] >= user_data["target_value"]
-        
-        # Create enhanced results object with all data
-        enhanced_results = {
-            "name": user_data["goal"],
-            "stocks_picked": stocks_picked,
-            "starting_value": simulation_results["starting_value"],
-            "end_value": simulation_results["end_value"],
-            "return": simulation_results["portfolio_return"],
-            "target_reached": target_reached,
-            "risk_score": risk_score,
-            "risk_label": risk_label,
-            "timeline": simulation_results["timeline"],
-            # Enhanced data
-            "shap_explanation": shap_explanation,
-            "goal_analysis": goal_analysis,
-            "feasibility_assessment": feasibility_assessment,
-            "market_regime": market_regime,
-            "wealthwise_enhanced": True,
-            "methodology": "WealthWise SHAP-enhanced goal-oriented optimization",
-            "created_timestamp": datetime.now().isoformat()
-        }
-        
-        # ⭐ KEY FIX: Clean the results before saving ⭐
-        cleaned_results = clean_simulation_results_for_db(enhanced_results)
-        
-        # Test serialization before database save
-        if not test_json_serialization(cleaned_results, "enhanced_results"):
-            raise ValueError("Enhanced results still not JSON serializable after cleaning")
-        
-        simulation = models.Simulation(
-            user_id=sim_input.get("user_id"),
-            name=user_data["goal"],
-            goal=user_data["goal"],
-            target_value=user_data["target_value"],
-            lump_sum=user_data["lump_sum"],
-            monthly=user_data["monthly"],
-            timeframe=user_data["timeframe"],
-            target_achieved=target_reached,
-            income_bracket=user_data["income_bracket"],
-            risk_score=risk_score,
-            risk_label=risk_label,
-            ai_summary=ai_summary,
-            results=cleaned_results  # ⭐ Use cleaned results ⭐
-        )
-        
-        db.add(simulation)
-        db.commit()
-        db.refresh(simulation)
-        
-        logger.info(f"✅ Enhanced simulation saved with SHAP data (ID: {simulation.id})")
-        return simulation
-        
-    except Exception as e:
-        logger.error(f"❌ Error saving enhanced simulation: {str(e)}")
-        db.rollback()
-        
-        # If enhanced save fails, try to save a basic version
-        try:
-            logger.warning("🔄 Attempting to save basic simulation without enhanced data")
-            
-            basic_results = {
-                "name": user_data["goal"],
-                "stocks_picked": [
-                    {
-                        "symbol": str(stock.get("symbol", "")),
-                        "name": str(stock.get("name", "")),
-                        "allocation": float(stock.get("allocation", 0))
-                    }
-                    for stock in stocks_picked
-                ],
-                "starting_value": float(simulation_results["starting_value"]),
-                "end_value": float(simulation_results["end_value"]),
-                "return": float(simulation_results["portfolio_return"]),
-                "target_reached": target_reached,
-                "risk_score": risk_score,
-                "risk_label": risk_label,
-                "enhanced_save_failed": True,
-                "error_message": str(e)
-            }
-            
-            basic_simulation = models.Simulation(
-                user_id=sim_input.get("user_id"),
-                name=user_data["goal"],
-                goal=user_data["goal"],
-                target_value=user_data["target_value"],
-                lump_sum=user_data["lump_sum"],
-                monthly=user_data["monthly"],
-                timeframe=user_data["timeframe"],
-                target_achieved=target_reached,
-                income_bracket=user_data["income_bracket"],
-                risk_score=risk_score,
-                risk_label=risk_label,
-                ai_summary=ai_summary,
-                results=basic_results
-            )
-            
-            db.add(basic_simulation)
-            db.commit()
-            db.refresh(basic_simulation)
-            
-            logger.warning(f"⚠️ Saved basic simulation without enhanced data (ID: {basic_simulation.id})")
-            return basic_simulation
-            
-        except Exception as basic_error:
-            logger.error(f"❌ Even basic simulation save failed: {basic_error}")
-            db.rollback()
-            raise
-
-# 4. ALSO UPDATE YOUR REGULAR save_simulation_to_db FUNCTION:
-
-def save_simulation_to_db(db, sim_input: Dict[str, Any], user_data: Dict[str, Any],
-                         risk_score: int, risk_label: str, ai_summary: str,
-                         stocks_picked: List[Dict], simulation_results: Dict[str, Any]):
-    """
-    Original database save function with JSON serialization fix.
-    """
-    try:
-        logger.info("💾 Saving simulation results to database")
-        
-        target_reached = simulation_results["end_value"] >= user_data["target_value"]
-        
-        # Create results object
-        results = {
-            "name": user_data["goal"],
-            "stocks_picked": stocks_picked,
-            "starting_value": simulation_results["starting_value"],
-            "end_value": simulation_results["end_value"],
-            "return": simulation_results["portfolio_return"],
-            "target_reached": target_reached,
-            "risk_score": risk_score,
-            "risk_label": risk_label,
-            "timeline": simulation_results["timeline"]
-        }
-        
-        # ⭐ Clean the results before saving ⭐
-        cleaned_results = clean_simulation_results_for_db(results)
-        
-        simulation = models.Simulation(
-            user_id=sim_input.get("user_id"),
-            name=user_data["goal"],
-            goal=user_data["goal"],
-            target_value=user_data["target_value"],
-            lump_sum=user_data["lump_sum"],
-            monthly=user_data["monthly"],
-            timeframe=user_data["timeframe"],
-            target_achieved=target_reached,
-            income_bracket=user_data["income_bracket"],
-            risk_score=risk_score,
-            risk_label=risk_label,
-            ai_summary=ai_summary,
-            results=cleaned_results  # ⭐ Use cleaned results ⭐
-        )
-        
-        db.add(simulation)
-        db.commit()
-        db.refresh(simulation)
-        
-        logger.info(f"✅ Simulation saved successfully with ID: {simulation.id}")
-        return simulation
-        
-    except Exception as e:
-        logger.error(f"❌ Error saving simulation to database: {str(e)}")
-        db.rollback()
-        raise
-
-
-def format_enhanced_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
-    """
-    Format enhanced simulation response with SHAP explanations properly exposed.
-    
-    *** FIXED VERSION *** - Ensures SHAP data reaches frontend
-    """
-    
-    # Get the results data
-    results = simulation.results or {}
-    
-    # Extract SHAP data with debugging
-    shap_explanation = results.get("shap_explanation")
-    has_shap_explanations = bool(shap_explanation)
-    
-    # Debug logging
-    logger.info(f"🔍 Formatting response for simulation {simulation.id}")
-    logger.info(f"📊 Results keys: {list(results.keys())}")
-    logger.info(f"🔍 SHAP explanation exists: {has_shap_explanations}")
-    if shap_explanation:
-        logger.info(f"📊 SHAP keys: {list(shap_explanation.keys())}")
-        logger.info(f"💯 Portfolio quality score: {shap_explanation.get('portfolio_quality_score', 'N/A')}")
-    
-    response = {
-        "id": simulation.id,
-        "user_id": simulation.user_id,
-        "name": simulation.name,
-        "goal": simulation.goal,
-        "target_value": simulation.target_value,
-        "lump_sum": simulation.lump_sum,
-        "monthly": simulation.monthly,
-        "timeframe": simulation.timeframe,
-        "target_achieved": simulation.target_achieved,
-        "income_bracket": simulation.income_bracket,
-        "risk_score": simulation.risk_score,
-        "risk_label": simulation.risk_label,
-        "ai_summary": simulation.ai_summary,
-        "results": results,  # Include full results
-        "created_at": simulation.created_at.isoformat() if simulation.created_at else datetime.utcnow().isoformat(),
-        
-        # *** CRITICAL FIX *** - Expose SHAP data at top level for frontend
-        "shap_explanation": shap_explanation,  # ⭐ ADD THIS LINE
-        "has_shap_explanations": has_shap_explanations,
-        "wealthwise_enhanced": results.get("wealthwise_enhanced", False),
-        "methodology": results.get("methodology", "Standard simulation"),
-        
-        # Additional SHAP metadata for debugging
-        "shap_debug": {
-            "shap_in_results": bool(results.get("shap_explanation")),
-            "shap_keys": list(shap_explanation.keys()) if shap_explanation else [],
-            "portfolio_quality_score": shap_explanation.get("portfolio_quality_score") if shap_explanation else None,
-            "human_readable_available": bool(shap_explanation.get("human_readable_explanation")) if shap_explanation else False
-        }
-    }
-    
-    # Final verification
-    logger.info(f"✅ Response SHAP status: has_shap={response['has_shap_explanations']}, data_exists={bool(response['shap_explanation'])}")
-    
-    return response
-
-
 # =============================================================================
-# FALLBACK FUNCTIONS (unchanged from original)
+# FALLBACK FUNCTIONS (PRESERVED)
 # =============================================================================
+
+def get_fallback_stocks_by_risk_profile(risk_score: int, risk_label: str) -> List[str]:
+    """Original fallback stock selection method."""
+    logger.info(f"📊 Using fallback selection for {risk_label} risk profile (score: {risk_score})")
+    
+    if risk_score < 35:
+        return ["VTI", "BND", "VEA", "VTEB", "VWO"]
+    elif risk_score < 70:
+        return ["VTI", "VEA", "VWO", "VNQ", "BND"]
+    else:
+        return ["VTI", "VGT", "VUG", "ARKK", "VEA"]
+
+def download_stock_data(tickers: List[str], timeframe: int) -> pd.DataFrame:
+    """Download historical stock data."""
+    try:
+        days_needed = max(timeframe * 365, 365)
+        start_date = (datetime.today() - timedelta(days=days_needed)).strftime('%Y-%m-%d')
+        end_date = datetime.today().strftime('%Y-%m-%d')
+
+        logger.info(f"📅 Downloading data from {start_date} to {end_date} for {len(tickers)} stocks")
+
+        data = yf.download(tickers, start=start_date, end=end_date, progress=False)['Close']
+        
+        if isinstance(data, pd.Series):
+            data = data.to_frame()
+        
+        threshold = len(data) * 0.7
+        data = data.dropna(axis=1, thresh=threshold)
+        
+        logger.info(f"📊 Downloaded data shape: {data.shape}")
+        
+        if data.empty:
+            raise ValueError("No valid stock data available after quality filtering")
+            
+        return data
+        
+    except Exception as e:
+        logger.error(f"❌ Error downloading stock data: {str(e)}")
+        raise ValueError(f"Failed to download stock data: {str(e)}")
+
+def calculate_portfolio_weights(data: pd.DataFrame, risk_score: int) -> np.ndarray:
+    """Original portfolio weights calculation."""
+    num_assets = len(data.columns)
+    logger.info(f"⚖️ Calculating weights for {num_assets} assets (risk score: {risk_score})")
+    
+    if risk_score < 35:
+        weights = np.array([1 / num_assets] * num_assets)
+        logger.info("📊 Using equal weights (conservative approach)")
+        
+    elif risk_score < 70:
+        weights = np.array([0.3, 0.25, 0.2, 0.15, 0.1][:num_assets])
+        weights = weights / np.sum(weights)
+        logger.info("📊 Using moderate bias weighting")
+        
+    else:
+        weights = np.array([0.4, 0.3, 0.2, 0.1][:num_assets])
+        
+        if len(weights) < num_assets:
+            remaining = num_assets - len(weights)
+            additional_weights = np.array([0.05] * remaining)
+            weights = np.concatenate([weights, additional_weights])
+        
+        weights = weights / np.sum(weights)
+        logger.info("📊 Using concentrated weighting (aggressive approach)")
+    
+    return weights
+
+def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray, 
+                            lump_sum: float, monthly: float, timeframe: int) -> Dict[str, Any]:
+    """Enhanced portfolio growth simulation with comprehensive debugging."""
+    try:
+        logger.info(f"📈 Starting simulation: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
+        
+        # Debug input data quality
+        logger.info(f"📊 Input data shape: {data.shape}")
+        logger.info(f"📊 Columns: {list(data.columns)}")
+        logger.info(f"⚖️ Weights: {weights}")
+        logger.info(f"📊 Weights sum: {weights.sum()}")
+        
+        # Normalize with safety checks
+        first_day_values = data.iloc[0]
+        
+        # Check for zero or negative values that would break normalization
+        problematic_stocks = first_day_values[first_day_values <= 0]
+        if len(problematic_stocks) > 0:
+            logger.error(f"Zero/negative prices on first day: {problematic_stocks}")
+            first_day_values = first_day_values.replace(0, 0.01)
+            logger.warning("Replaced zero prices with 0.01")
+        
+        normalized = data.div(first_day_values)
+        logger.info(f"Normalized first values: {normalized.iloc[0]}")
+        
+        # Fill any remaining NaN values
+        if normalized.isna().any().any():
+            logger.warning("Found NaN values after normalization, forward filling...")
+            normalized = normalized.fillna(method='ffill').fillna(1.0)
+        
+        # Calculate weighted portfolio
+        weighted = normalized.dot(weights)
+        logger.info(f"Weighted portfolio first 5 values:\n{weighted.head()}")
+        
+        # Run simulation
+        portfolio_values = []
+        contributions = []
+        current_value = float(lump_sum)
+        total_contributions = float(lump_sum)
+        
+        for i, (date, growth_factor) in enumerate(weighted.items()):
+            # Add monthly contributions (every ~21 trading days)
+            if i > 0 and i % 21 == 0:
+                current_value += monthly
+                total_contributions += monthly
+            
+            # Apply growth with safety checks
+            if i > 0:
+                prev_value = weighted.iloc[i - 1]
+                
+                if prev_value <= 0:
+                    logger.error(f"Previous weighted value is zero/negative on {date}: {prev_value}")
+                    growth_rate = 1.0
+                else:
+                    growth_rate = growth_factor / prev_value
+                
+                # Detect suspicious growth rates
+                if growth_rate <= 0:
+                    logger.warning(f"Zero/negative growth rate on {date}: {growth_rate}")
+                    growth_rate = 1.0
+                elif growth_rate > 5.0:
+                    logger.warning(f"Extreme growth rate on {date}: {growth_rate}")
+                    growth_rate = min(growth_rate, 2.0)
+                
+                current_value *= growth_rate
+                
+                if current_value <= 0:
+                    logger.error(f"Portfolio value became zero/negative on {date}: {current_value}")
+                    current_value = total_contributions
+
+            # Store values with validation
+            safe_contributions = max(0, float(total_contributions))
+            safe_current_value = max(0, float(current_value))
+            
+            contributions.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "value": round(safe_contributions, 2)
+            })
+            portfolio_values.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "value": round(safe_current_value, 2)
+            })
+
+        # Calculate final results with validation
+        end_value = float(current_value)
+        starting_value = float(total_contributions)
+        
+        # Ensure reasonable results
+        if end_value <= 0:
+            logger.error(f"Final portfolio value is zero: {end_value}")
+            end_value = starting_value * (1.05 ** timeframe)
+            logger.warning(f"Using emergency fallback value: £{end_value:.2f}")
+        
+        portfolio_return = (end_value - starting_value) / starting_value if starting_value > 0 else 0
+
+        logger.info(f"FINAL RESULTS:")
+        logger.info(f"   Starting value (contributions): £{starting_value:,.2f}")
+        logger.info(f"   Ending value (portfolio): £{end_value:,.2f}")
+        logger.info(f"   Total return: {portfolio_return:.1%}")
+
+        return {
+            "starting_value": round(starting_value, 2),
+            "end_value": round(end_value, 2),
+            "portfolio_return": round(portfolio_return, 4),
+            "timeline": {
+                "contributions": contributions,
+                "portfolio": portfolio_values
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error in portfolio simulation: {str(e)}")
+        
+        # Enhanced fallback
+        logger.warning("Using enhanced fallback simulation")
+        starting_value = lump_sum + monthly * 12 * timeframe
+        
+        annual_return = 0.07
+        if hasattr(weights, '__len__') and len(weights) > 0:
+            risk_factor = max(weights) if len(weights) > 0 else 0.5
+            annual_return = 0.05 + (risk_factor * 0.05)
+        
+        end_value = starting_value * ((1 + annual_return) ** timeframe)
+        
+        # Create reasonable timeline
+        dates = pd.date_range(start=datetime.today() - timedelta(days=timeframe*365), 
+                            end=datetime.today(), freq='D')
+        timeline_entries = min(len(dates), 1000)
+        
+        contributions_timeline = []
+        portfolio_timeline = []
+        
+        for i in range(0, timeline_entries, max(1, timeline_entries//252)):
+            progress = i / timeline_entries
+            current_contributions = lump_sum + (monthly * 12 * timeframe * progress)
+            current_portfolio = starting_value + ((end_value - starting_value) * progress)
+            
+            date_str = dates[min(i, len(dates)-1)].strftime("%Y-%m-%d")
+            
+            contributions_timeline.append({
+                "date": date_str,
+                "value": round(current_contributions, 2)
+            })
+            portfolio_timeline.append({
+                "date": date_str,
+                "value": round(current_portfolio, 2)
+            })
+        
+        logger.info(f"Fallback results: £{starting_value:,.2f} → £{end_value:,.2f}")
+        
+        return {
+            "starting_value": round(starting_value, 2),
+            "end_value": round(end_value, 2),
+            "portfolio_return": round((end_value - starting_value) / starting_value, 4),
+            "timeline": {
+                "contributions": contributions_timeline,
+                "portfolio": portfolio_timeline
+            }
+        }
+
+def generate_simple_enhanced_summary(
+    stocks_picked: List[Dict], user_data: Dict[str, Any], 
+    risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
+    shap_explanation: Optional[Dict] = None, goal_analysis: Optional[Dict] = None,
+    feasibility_assessment: Optional[Dict] = None
+) -> str:
+    """Generate enhanced simple summary with available SHAP context."""
+    
+    goal = user_data.get("goal", "wealth building")
+    timeframe = user_data.get("timeframe", 10)
+    start_value = simulation_results.get("starting_value", 0)
+    end_value = simulation_results.get("end_value", 0)
+    target_value = user_data.get("target_value", 50000)
+    stock_list = ", ".join([stock.get("symbol", "UNKNOWN") for stock in stocks_picked])
+    target_achieved = end_value >= target_value
+    
+    base_summary = f"""
+Your {risk_label.lower()} risk portfolio, invested in {stock_list}, grew from £{start_value:,.2f} to £{end_value:,.2f} over {timeframe} years for your {goal} goal. Your target of £{target_value:,.2f} was {'achieved' if target_achieved else 'partially achieved'}.
+"""
+
+    # Add SHAP explanations if available
+    shap_section = ""
+    if shap_explanation and "human_readable_explanation" in shap_explanation:
+        shap_section = f"""
+
+The AI analysis considered multiple factors for your specific situation:
+"""
+        explanations = shap_explanation["human_readable_explanation"]
+        for factor, explanation in explanations.items():
+            if explanation and len(explanation) > 10:
+                shap_section += f"• {explanation}\n"
+
+    # Add goal analysis if available
+    goal_section = ""
+    if goal_analysis and feasibility_assessment:
+        required_return = goal_analysis.get('required_return_percent', 0)
+        feasibility = feasibility_assessment.get('feasibility_score', 0)
+        
+        goal_section = f"""
+
+To reach your £{target_value:,.0f} target, you needed {required_return:.1f}% annual returns. The AI assessed your goal as {feasibility:.0f}% feasible given your risk tolerance and timeframe. This demonstrates how the AI creates personalized strategies for your specific goals.
+"""
+
+    return f"{base_summary}{shap_section}{goal_section}\n\n*This portfolio was optimized specifically for your goals using explainable AI that shows exactly why each decision was made.*"
 
 async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
-    """
-    Fallback to original simulation when enhanced version fails.
-    This ensures the system always works even if WealthWise is unavailable.
-    """
+    """Fallback to original simulation when enhanced version fails."""
     
-    logger.info("🔄 Running fallback simulation")
+    logger.info("Running fallback simulation")
     
     # Extract user data
     user_data = {
@@ -1465,7 +1727,7 @@ async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) ->
     # Use original recommendation method
     tickers = get_fallback_stocks_by_risk_profile(risk_score, risk_label)
     
-    # Continue with original simulation...
+    # Continue with original simulation
     stock_data = download_stock_data(tickers, user_data["timeframe"])
     weights = calculate_portfolio_weights(stock_data, risk_score)
     
@@ -1506,268 +1768,11 @@ async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) ->
     
     return format_simulation_response(simulation)
 
-# Keep all original functions for backward compatibility
-def get_fallback_stocks_by_risk_profile(risk_score: int, risk_label: str) -> List[str]:
-    """Original fallback stock selection method."""
-    logger.info(f"📊 Using fallback selection for {risk_label} risk profile (score: {risk_score})")
-    
-    if risk_score < 35:
-        return ["VTI", "BND", "VEA", "VTEB", "VWO"]
-    elif risk_score < 70:
-        return ["VTI", "VEA", "VWO", "VNQ", "BND"]
-    else:
-        return ["VTI", "VGT", "VUG", "ARKK", "VEA"]
-
-def download_stock_data(tickers: List[str], timeframe: int) -> pd.DataFrame:
-    """Original stock data download function - unchanged"""
-    try:
-        days_needed = max(timeframe * 365, 365)
-        start_date = (datetime.today() - timedelta(days=days_needed)).strftime('%Y-%m-%d')
-        end_date = datetime.today().strftime('%Y-%m-%d')
-
-        logger.info(f"📅 Downloading data from {start_date} to {end_date} for {len(tickers)} stocks")
-
-        data = yf.download(tickers, start=start_date, end=end_date, progress=False)['Close']
-        
-        if isinstance(data, pd.Series):
-            data = data.to_frame()
-        
-        threshold = len(data) * 0.7
-        data = data.dropna(axis=1, thresh=threshold)
-        
-        logger.info(f"📊 Downloaded data shape: {data.shape}")
-        
-        if data.empty:
-            raise ValueError("No valid stock data available after quality filtering")
-            
-        return data
-        
-    except Exception as e:
-        logger.error(f"❌ Error downloading stock data: {str(e)}")
-        raise ValueError(f"Failed to download stock data: {str(e)}")
-
-def calculate_portfolio_weights(data: pd.DataFrame, risk_score: int) -> np.ndarray:
-    """Original portfolio weights calculation - unchanged"""
-    num_assets = len(data.columns)
-    logger.info(f"⚖️ Calculating weights for {num_assets} assets (risk score: {risk_score})")
-    
-    if risk_score < 35:
-        weights = np.array([1 / num_assets] * num_assets)
-        logger.info("📊 Using equal weights (conservative approach)")
-        
-    elif risk_score < 70:
-        weights = np.array([0.3, 0.25, 0.2, 0.15, 0.1][:num_assets])
-        weights = weights / np.sum(weights)
-        logger.info("📊 Using moderate bias weighting")
-        
-    else:
-        weights = np.array([0.4, 0.3, 0.2, 0.1][:num_assets])
-        
-        if len(weights) < num_assets:
-            remaining = num_assets - len(weights)
-            additional_weights = np.array([0.05] * remaining)
-            weights = np.concatenate([weights, additional_weights])
-        
-        weights = weights / np.sum(weights)
-        logger.info("📊 Using concentrated weighting (aggressive approach)")
-    
-    return weights
-
-def simulate_portfolio_growth(data: pd.DataFrame, weights: np.ndarray, 
-                            lump_sum: float, monthly: float, timeframe: int) -> Dict[str, Any]:
-    """Enhanced portfolio growth simulation with comprehensive debugging"""
-    try:
-        logger.info(f"📈 Starting simulation: £{lump_sum:,.2f} initial + £{monthly:,.2f}/month for {timeframe} years")
-        
-        # STEP 1: Debug input data quality
-        logger.info(f"📊 Input data shape: {data.shape}")
-        logger.info(f"📊 Columns: {list(data.columns)}")
-        logger.info(f"⚖️ Weights: {weights}")
-        logger.info(f"📊 Weights sum: {weights.sum()}")
-        
-        # Check for data quality issues
-        logger.info(f"📊 First day values:\n{data.iloc[0]}")
-        logger.info(f"📊 Any zeros in first day: {(data.iloc[0] == 0).any()}")
-        logger.info(f"📊 Any NaN in data: {data.isna().any().any()}")
-        logger.info(f"📊 Data date range: {data.index[0]} to {data.index[-1]}")
-        
-        # STEP 2: Normalize with safety checks
-        first_day_values = data.iloc[0]
-        
-        # Check for zero or negative values that would break normalization
-        problematic_stocks = first_day_values[first_day_values <= 0]
-        if len(problematic_stocks) > 0:
-            logger.error(f"❌ Zero/negative prices on first day: {problematic_stocks}")
-            # Replace zeros with small positive value
-            first_day_values = first_day_values.replace(0, 0.01)
-            logger.warning(f"⚠️ Replaced zero prices with 0.01")
-        
-        normalized = data.div(first_day_values)
-        logger.info(f"📊 Normalized first values: {normalized.iloc[0]}")
-        logger.info(f"📊 Any NaN after normalization: {normalized.isna().any().any()}")
-        
-        # Fill any remaining NaN values
-        if normalized.isna().any().any():
-            logger.warning("⚠️ Found NaN values after normalization, forward filling...")
-            normalized = normalized.fillna(method='ffill').fillna(1.0)
-        
-        # STEP 3: Calculate weighted portfolio with debugging
-        weighted = normalized.dot(weights)
-        logger.info(f"📊 Weighted portfolio first 5 values:\n{weighted.head()}")
-        logger.info(f"📊 Weighted portfolio last 5 values:\n{weighted.tail()}")
-        logger.info(f"📊 Any NaN in weighted data: {weighted.isna().any()}")
-        logger.info(f"📊 Any zero in weighted data: {(weighted == 0).any()}")
-        
-        # STEP 4: Run simulation with enhanced debugging
-        portfolio_values = []
-        contributions = []
-        current_value = float(lump_sum)
-        total_contributions = float(lump_sum)
-        
-        logger.info(f"📊 Starting simulation with current_value: {current_value}")
-
-        for i, (date, growth_factor) in enumerate(weighted.items()):
-            # Add monthly contributions (every ~21 trading days)
-            if i > 0 and i % 21 == 0:
-                current_value += monthly
-                total_contributions += monthly
-                if i < 100:  # Log first few months
-                    logger.info(f"📅 Month {i//21}: Added £{monthly}, total contributions now £{total_contributions}")
-            
-            # Apply growth with safety checks
-            if i > 0:
-                prev_value = weighted.iloc[i - 1]
-                
-                # Enhanced debugging for growth calculation
-                if prev_value <= 0:
-                    logger.error(f"❌ Previous weighted value is zero/negative on {date}: {prev_value}")
-                    growth_rate = 1.0  # No growth if previous value is invalid
-                else:
-                    growth_rate = growth_factor / prev_value
-                
-                # Detect suspicious growth rates
-                if growth_rate <= 0:
-                    logger.warning(f"⚠️ Zero/negative growth rate on {date}: {growth_rate} (current: {growth_factor}, prev: {prev_value})")
-                    growth_rate = 1.0  # Prevent negative/zero growth
-                elif growth_rate > 5.0:  # 500% daily growth is suspicious
-                    logger.warning(f"⚠️ Extreme growth rate on {date}: {growth_rate} (current: {growth_factor}, prev: {prev_value})")
-                    growth_rate = min(growth_rate, 2.0)  # Cap at 200% daily growth
-                
-                current_value *= growth_rate
-                
-                # Log extreme portfolio values
-                if current_value <= 0:
-                    logger.error(f"❌ Portfolio value became zero/negative on {date}: {current_value}")
-                    current_value = total_contributions  # Reset to contributions if value goes to zero
-                
-                # Debug first few days
-                if i < 10:
-                    logger.info(f"📅 Day {i} ({date}): growth_factor={growth_factor:.4f}, growth_rate={growth_rate:.4f}, portfolio_value=£{current_value:.2f}")
-
-            # Store values with validation
-            safe_contributions = max(0, float(total_contributions))
-            safe_current_value = max(0, float(current_value))
-            
-            contributions.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "value": round(safe_contributions, 2)
-            })
-            portfolio_values.append({
-                "date": date.strftime("%Y-%m-%d"),
-                "value": round(safe_current_value, 2)
-            })
-
-        # STEP 5: Calculate final results with validation
-        end_value = float(current_value)
-        starting_value = float(total_contributions)
-        
-        # Ensure reasonable results
-        if end_value <= 0:
-            logger.error(f"❌ Final portfolio value is zero: {end_value}")
-            logger.error("🔧 This indicates a fundamental calculation error")
-            # Emergency fallback
-            end_value = starting_value * (1.05 ** timeframe)  # 5% annual growth fallback
-            logger.warning(f"⚠️ Using emergency fallback value: £{end_value:.2f}")
-        
-        portfolio_return = (end_value - starting_value) / starting_value if starting_value > 0 else 0
-
-        # Final validation logging
-        logger.info(f"💰 FINAL RESULTS:")
-        logger.info(f"   Starting value (contributions): £{starting_value:,.2f}")
-        logger.info(f"   Ending value (portfolio): £{end_value:,.2f}")
-        logger.info(f"   Total return: {portfolio_return:.1%}")
-        logger.info(f"   Timeline entries: {len(portfolio_values)}")
-        logger.info(f"   Last portfolio entry: {portfolio_values[-1] if portfolio_values else 'None'}")
-
-        return {
-            "starting_value": round(starting_value, 2),
-            "end_value": round(end_value, 2),
-            "portfolio_return": round(portfolio_return, 4),
-            "timeline": {
-                "contributions": contributions,
-                "portfolio": portfolio_values
-            }
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Error in portfolio simulation: {str(e)}")
-        logger.error(f"📊 Data info: shape={data.shape if 'data' in locals() else 'N/A'}")
-        logger.error(f"⚖️ Weights info: {weights if 'weights' in locals() else 'N/A'}")
-        
-        # Enhanced fallback with better calculations
-        logger.warning("🔄 Using enhanced fallback simulation")
-        starting_value = lump_sum + monthly * 12 * timeframe
-        
-        # Use risk-adjusted return estimate
-        annual_return = 0.07  # 7% default
-        if hasattr(weights, '__len__') and len(weights) > 0:
-            # Higher risk portfolio might have higher expected returns
-            risk_factor = max(weights) if len(weights) > 0 else 0.5
-            annual_return = 0.05 + (risk_factor * 0.05)  # 5-10% range
-        
-        end_value = starting_value * ((1 + annual_return) ** timeframe)
-        
-        # Create reasonable timeline
-        dates = pd.date_range(start=datetime.today() - timedelta(days=timeframe*365), 
-                            end=datetime.today(), freq='D')
-        timeline_entries = min(len(dates), 1000)  # Limit entries
-        
-        contributions_timeline = []
-        portfolio_timeline = []
-        
-        for i in range(0, timeline_entries, max(1, timeline_entries//252)):  # Roughly daily for a year
-            progress = i / timeline_entries
-            current_contributions = lump_sum + (monthly * 12 * timeframe * progress)
-            current_portfolio = starting_value + ((end_value - starting_value) * progress)
-            
-            date_str = dates[min(i, len(dates)-1)].strftime("%Y-%m-%d")
-            
-            contributions_timeline.append({
-                "date": date_str,
-                "value": round(current_contributions, 2)
-            })
-            portfolio_timeline.append({
-                "date": date_str,
-                "value": round(current_portfolio, 2)
-            })
-        
-        logger.info(f"💰 Fallback results: £{starting_value:,.2f} → £{end_value:,.2f}")
-        
-        return {
-            "starting_value": round(starting_value, 2),
-            "end_value": round(end_value, 2),
-            "portfolio_return": round((end_value - starting_value) / starting_value, 4),
-            "timeline": {
-                "contributions": contributions_timeline,
-                "portfolio": portfolio_timeline
-            }
-        }
-
 def generate_simple_summary(stocks_picked: List[Dict], user_data: Dict[str, Any], 
                           risk_score: int, risk_label: str, 
                           simulation_results: Dict[str, Any]) -> str:
-    """Original simple summary generation - unchanged"""
-    logger.info("📝 Generating simple fallback summary")
+    """Original simple summary generation."""
+    logger.info("Generating simple fallback summary")
     
     goal = user_data.get("goal", "wealth building")
     timeframe = user_data.get("timeframe", 10)
@@ -1786,7 +1791,7 @@ This simulation demonstrates how diversified investing can help build wealth ove
 """.strip()
 
 def get_company_name(ticker: str) -> str:
-    """Original company name mapping - unchanged"""
+    """Original company name mapping."""
     name_mapping = {
         "VTI": "Vanguard Total Stock Market ETF",
         "BND": "Vanguard Total Bond Market ETF",
@@ -1803,11 +1808,27 @@ def get_company_name(ticker: str) -> str:
 def save_simulation_to_db(db: Session, sim_input: Dict[str, Any], user_data: Dict[str, Any],
                          risk_score: int, risk_label: str, ai_summary: str,
                          stocks_picked: List[Dict], simulation_results: Dict[str, Any]) -> models.Simulation:
-    """Original database save function - unchanged"""
+    """Original database save function with JSON serialization fix."""
     try:
-        logger.info("💾 Saving simulation results to database")
+        logger.info("Saving simulation results to database")
         
         target_reached = simulation_results["end_value"] >= user_data["target_value"]
+        
+        # Create results object
+        results = {
+            "name": user_data["goal"],
+            "stocks_picked": stocks_picked,
+            "starting_value": simulation_results["starting_value"],
+            "end_value": simulation_results["end_value"],
+            "return": simulation_results["portfolio_return"],
+            "target_reached": target_reached,
+            "risk_score": risk_score,
+            "risk_label": risk_label,
+            "timeline": simulation_results["timeline"]
+        }
+        
+        # Clean the results before saving
+        cleaned_results = clean_simulation_results_for_db(results)
         
         simulation = models.Simulation(
             user_id=sim_input.get("user_id"),
@@ -1822,34 +1843,24 @@ def save_simulation_to_db(db: Session, sim_input: Dict[str, Any], user_data: Dic
             risk_score=risk_score,
             risk_label=risk_label,
             ai_summary=ai_summary,
-            results={
-                "name": user_data["goal"],
-                "stocks_picked": stocks_picked,
-                "starting_value": simulation_results["starting_value"],
-                "end_value": simulation_results["end_value"],
-                "return": simulation_results["portfolio_return"],
-                "target_reached": target_reached,
-                "risk_score": risk_score,
-                "risk_label": risk_label,
-                "timeline": simulation_results["timeline"]
-            }
+            results=cleaned_results
         )
         
         db.add(simulation)
         db.commit()
         db.refresh(simulation)
         
-        logger.info(f"✅ Simulation saved successfully with ID: {simulation.id}")
+        logger.info(f"Simulation saved successfully with ID: {simulation.id}")
         return simulation
         
     except Exception as e:
-        logger.error(f"❌ Error saving simulation to database: {str(e)}")
+        logger.error(f"Error saving simulation to database: {str(e)}")
         db.rollback()
         raise
 
 def format_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
-    """Original response formatting - unchanged"""
-    logger.info("📋 Formatting simulation response for API")
+    """Original response formatting."""
+    logger.info("Formatting simulation response for API")
     
     return {
         "id": simulation.id,
@@ -1870,25 +1881,14 @@ def format_simulation_response(simulation: models.Simulation) -> Dict[str, Any]:
     }
 
 # =============================================================================
-# NEW API ENDPOINTS FOR ENHANCED FEATURES
+# NEW API ENDPOINTS FOR VISUALIZATION ENGINE
 # =============================================================================
 
 async def get_shap_visualization(simulation_id: int, db: Session) -> Optional[str]:
-    """
-    Generate SHAP visualization for a specific simulation.
+    """Generate SHAP visualization for a specific simulation."""
     
-    This endpoint allows you to create visual explanations of why
-    the AI made specific recommendations for a simulation.
-    
-    Args:
-        simulation_id: ID of the simulation to visualize
-        db: Database session
-        
-    Returns:
-        Path to generated SHAP visualization or None if unavailable
-    """
-    
-    if not WEALTHWISE_AVAILABLE:
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
         return None
     
     try:
@@ -1900,10 +1900,6 @@ async def get_shap_visualization(simulation_id: int, db: Session) -> Optional[st
         if not simulation or not simulation.results.get("shap_explanation"):
             return None
         
-        # Initialize visualization engine
-        from ai_models.stock_model.explainable_ai import VisualizationEngine
-        viz_engine = VisualizationEngine()
-        
         # Create SHAP visualization
         save_path = f"./static/visualizations/shap_explanation_{simulation_id}.png"
         result = viz_engine.create_shap_waterfall_chart(
@@ -1911,30 +1907,18 @@ async def get_shap_visualization(simulation_id: int, db: Session) -> Optional[st
         )
         
         if "saved" in result:
-            logger.info(f"✅ SHAP visualization created: {save_path}")
+            logger.info(f"SHAP visualization created: {save_path}")
             return save_path
         else:
-            logger.warning(f"⚠️ SHAP visualization failed: {result}")
+            logger.warning(f"SHAP visualization failed: {result}")
             return None
             
     except Exception as e:
-        logger.error(f"❌ Error creating SHAP visualization: {e}")
+        logger.error(f"Error creating SHAP visualization: {e}")
         return None
 
 async def analyze_simulation_with_news(simulation_id: int, db: Session) -> Dict[str, Any]:
-    """
-    Analyze a simulation with current news context.
-    
-    This combines the simulation results with current news analysis
-    for the recommended stocks.
-    
-    Args:
-        simulation_id: ID of the simulation to analyze
-        db: Database session
-        
-    Returns:
-        Analysis combining simulation and news data
-    """
+    """Analyze a simulation with current news context."""
     
     try:
         # Get simulation from database
@@ -1966,64 +1950,72 @@ async def analyze_simulation_with_news(simulation_id: int, db: Session) -> Dict[
         }
         
     except Exception as e:
-        logger.error(f"❌ Error analyzing simulation with news: {e}")
+        logger.error(f"Error analyzing simulation with news: {e}")
         return {"error": str(e)}
 
 # =============================================================================
-# MIGRATION NOTES FOR YOUR EXISTING SYSTEM
+# INTEGRATION NOTES
 # =============================================================================
 
 """
-INTEGRATION STEPS:
+ENHANCED PORTFOLIO SIMULATOR WITH VISUALIZATION ENGINE
 
-1. REPLACE YOUR EXISTING portfolio_simulator.py WITH THIS FILE
+This enhanced version adds comprehensive visualization capabilities:
 
-2. UPDATE YOUR API ROUTES (api/routers/ai_analysis.py):
-   Add these new endpoints:
+1. AUTOMATIC VISUALIZATIONS CREATED:
+   - Portfolio allocation pie chart
+   - Portfolio growth timeline
+   - SHAP explanation waterfall chart
+   - Risk vs return scatter plot
+   - Goal achievement progress chart
 
-   @router.get("/simulation/{simulation_id}/shap-visualization")
-   async def get_simulation_shap_viz(simulation_id: int, db: Session = Depends(get_db)):
-       viz_path = await get_shap_visualization(simulation_id, db)
-       if viz_path:
-           return {"visualization_path": viz_path}
-       else:
-           raise HTTPException(status_code=404, detail="SHAP visualization not available")
+2. VISUALIZATION ENGINE INTEGRATION:
+   - get_visualization_engine() - Global instance management
+   - create_simulation_visualizations() - Creates all charts
+   - update_visualization_paths_with_id() - Updates file names with DB ID
 
-   @router.get("/simulation/{simulation_id}/news-analysis")
-   async def get_simulation_news_analysis(simulation_id: int, db: Session = Depends(get_db)):
-       analysis = await analyze_simulation_with_news(simulation_id, db)
-       return analysis
+3. NEW API ENDPOINTS:
+   - get_simulation_visualizations() - Returns available charts
+   - regenerate_shap_visualization() - Recreates SHAP charts
+   - create_custom_visualization() - Creates custom charts
 
-3. BENEFITS YOU'LL GET:
-   - ✅ Goal-oriented portfolio optimization (matches user's specific target)
-   - ✅ SHAP explainable AI (transparent reasoning for every recommendation)
-   - ✅ Market regime detection (adapts to current market conditions)
-   - ✅ Multi-factor analysis (professional-grade stock evaluation)
-   - ✅ Enhanced educational summaries (explains WHY stocks were chosen)
-   - ✅ Backward compatibility (falls back to original system if WealthWise fails)
-   - ✅ Database integration (stores SHAP explanations for future analysis)
+4. DATABASE INTEGRATION:
+   - Visualization paths stored in simulation results
+   - Proper JSON serialization handling
+   - Fallback protection for failed saves
 
-4. WHAT CHANGES FOR YOUR USERS:
-   - Same API interface - no frontend changes needed
-   - Enhanced portfolio recommendations based on their specific goals
-   - Detailed explanations of why each stock was recommended
-   - Better educational content in AI summaries
-   - Optional new endpoints for SHAP visualizations and news analysis
+5. USAGE IN YOUR API:
 
-5. FALLBACK PROTECTION:
-   - If WealthWise fails to load, system automatically uses original logic
-   - All existing functionality preserved
-   - Graceful degradation ensures system reliability
+   # Add these routes to your api/routers/ai_analysis.py:
+   
+   @router.get("/simulation/{simulation_id}/visualizations")
+   async def get_simulation_viz(simulation_id: int, db: Session = Depends(get_db)):
+       return await get_simulation_visualizations(simulation_id, db)
 
-6. TESTING:
-   - Test with WEALTHWISE_AVAILABLE = False to ensure fallback works
-   - Test with WEALTHWISE_AVAILABLE = True to see enhanced features
-   - Monitor logs for any integration issues
+   @router.post("/simulation/{simulation_id}/regenerate-shap")
+   async def regenerate_shap_viz(simulation_id: int, db: Session = Depends(get_db)):
+       return await regenerate_shap_visualization(simulation_id, db)
 
-NEXT STEPS:
-1. Install the WealthWise package in your project directory
-2. Replace portfolio_simulator.py with this enhanced version
-3. Test the enhanced simulation endpoint
-4. Add the new API routes for SHAP visualizations
-5. Monitor performance and user feedback
+   @router.post("/simulation/{simulation_id}/custom-visualization")
+   async def create_custom_viz(
+       simulation_id: int, 
+       viz_type: str,
+       options: Dict[str, Any],
+       db: Session = Depends(get_db)
+   ):
+       return await create_custom_visualization(simulation_id, viz_type, options, db)
+
+6. FRONTEND INTEGRATION:
+   - Access visualization_paths from API response
+   - Display charts using file paths
+   - Request custom visualizations as needed
+
+7. BENEFITS:
+   - Rich visual explanations of portfolio recommendations
+   - SHAP transparency through waterfall charts
+   - Goal tracking with progress visualizations
+   - Risk analysis through scatter plots
+   - Timeline visualization of portfolio growth
+
+All original functionality is preserved with fallback protection.
 """
