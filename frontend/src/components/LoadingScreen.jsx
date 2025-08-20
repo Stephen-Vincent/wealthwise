@@ -16,8 +16,13 @@ export default function LoadingScreen() {
   const rawSimulationId = localStorage.getItem("simulationId");
   const simulationId =
     rawSimulationId && rawSimulationId !== "null" ? rawSimulationId : null;
-  const isCreatingPortfolio =
-    localStorage.getItem("isCreatingPortfolio") === "true";
+
+  // Get fresh isCreatingPortfolio state and add debugging
+  const [isCreatingPortfolio, setIsCreatingPortfolio] = useState(() => {
+    const flag = localStorage.getItem("isCreatingPortfolio") === "true";
+    console.log("📱 Initial isCreatingPortfolio flag:", flag);
+    return flag;
+  });
 
   const [index, setIndex] = useState(0);
   const [fade, setFade] = useState(true);
@@ -26,7 +31,37 @@ export default function LoadingScreen() {
   const [readyToNavigate, setReadyToNavigate] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
-  // Simplified smooth progress animation
+  // Monitor and clear the isCreatingPortfolio flag
+  useEffect(() => {
+    const checkAndClearFlag = () => {
+      const currentFlag =
+        localStorage.getItem("isCreatingPortfolio") === "true";
+
+      // Clear flag if we have portfolio data
+      if (portfolioData && portfolioData.id && currentFlag) {
+        console.log(
+          "🔄 Clearing isCreatingPortfolio flag - portfolio data received"
+        );
+        localStorage.setItem("isCreatingPortfolio", "false");
+        setIsCreatingPortfolio(false);
+      }
+
+      // Force clear flag after 8 seconds to prevent infinite loading
+      setTimeout(() => {
+        if (localStorage.getItem("isCreatingPortfolio") === "true") {
+          console.log(
+            "⏰ Force clearing isCreatingPortfolio flag after 8 seconds"
+          );
+          localStorage.setItem("isCreatingPortfolio", "false");
+          setIsCreatingPortfolio(false);
+        }
+      }, 8000);
+    };
+
+    checkAndClearFlag();
+  }, [portfolioData]);
+
+  // Enhanced progress calculation with better debugging
   useEffect(() => {
     if (!hasStarted) {
       setHasStarted(true);
@@ -40,27 +75,42 @@ export default function LoadingScreen() {
       const elapsed = Date.now() - startTime;
       const timeProgress = Math.min(elapsed / minLoadingDuration, 1);
 
-      // Calculate target progress - SIMPLIFIED LOGIC
+      // Calculate target progress with detailed logging
       let targetProgress = 0;
+      let progressReason = "initializing";
 
-      // Always start with time-based progress (0-80% over 4 seconds)
-      targetProgress = timeProgress * 80;
+      // Always start with time-based progress (0-70% over 4 seconds)
+      targetProgress = timeProgress * 70;
+      progressReason = "time-based";
 
       // Add data-based progress
       if (portfolioData && portfolioData.id) {
-        targetProgress = Math.max(targetProgress, 90);
+        targetProgress = Math.max(targetProgress, 85);
+        progressReason = "data-received";
       }
 
-      // Complete when all conditions are met
-      if (
-        portfolioData &&
-        portfolioData.id &&
-        minTimeElapsed &&
-        userId &&
-        simulationId &&
-        !isCreatingPortfolio
-      ) {
+      // Complete when all conditions are met - SIMPLIFIED CONDITIONS
+      const hasRequiredData = portfolioData && portfolioData.id;
+      const hasRequiredIds = userId && simulationId;
+      const timeComplete = minTimeElapsed;
+
+      if (hasRequiredData && hasRequiredIds && timeComplete) {
         targetProgress = 100;
+        progressReason = "all-conditions-met";
+      }
+
+      // Debug progress blocking factors
+      if (targetProgress < 100 && elapsed > 5000) {
+        // After 5 seconds, start debugging
+        console.log("🔍 Progress Debug:", {
+          targetProgress,
+          progressReason,
+          hasRequiredData,
+          hasRequiredIds,
+          timeComplete,
+          isCreatingPortfolio,
+          elapsed: Math.round(elapsed / 1000) + "s",
+        });
       }
 
       // Smooth progress animation using easing - ONLY MOVE FORWARD
@@ -120,20 +170,16 @@ export default function LoadingScreen() {
   // Ensure minimum loading time
   useEffect(() => {
     const minLoadingTime = setTimeout(() => {
+      console.log("⏰ Minimum loading time elapsed");
       setMinTimeElapsed(true);
     }, 4000);
 
     return () => clearTimeout(minLoadingTime);
   }, []);
 
-  // Check if ready to navigate - SIMPLIFIED
+  // Check if ready to navigate - ENHANCED WITH BETTER VALIDATION
   useEffect(() => {
     const checkReadyToNavigate = () => {
-      // Clear creating portfolio flag if we have data
-      if (portfolioData && portfolioData.id && isCreatingPortfolio) {
-        localStorage.setItem("isCreatingPortfolio", "false");
-      }
-
       const isDataReady =
         portfolioData &&
         portfolioData.id &&
@@ -146,12 +192,17 @@ export default function LoadingScreen() {
 
       setReadyToNavigate(canNavigate);
 
+      // Enhanced logging with more details
       console.log("🔍 Navigation check:", {
         hasPortfolioData: !!portfolioData,
         hasId: !!portfolioData?.id,
+        hasStocks: !!portfolioData?.stocks_picked?.length,
+        hasBreakdown: !!portfolioData?.breakdown,
+        hasResults: !!portfolioData?.results,
         minTimeElapsed,
         userId: !!userId,
         simulationId: !!simulationId,
+        isCreatingPortfolio,
         canNavigate,
         progress: Math.round(progress),
       });
@@ -170,32 +221,89 @@ export default function LoadingScreen() {
     progress,
   ]);
 
-  // Navigate when progress reaches 100% and ready
+  // Navigate when progress reaches 100% and ready - ENHANCED
   useEffect(() => {
-    if (readyToNavigate && progress >= 99.5) {
+    if (readyToNavigate && progress >= 99) {
+      // Lowered threshold to 99%
       console.log("✅ Navigation conditions met, redirecting to dashboard");
+      console.log("📊 Final navigation data:", {
+        portfolioId: portfolioData?.id,
+        userId,
+        simulationId,
+        progress: Math.round(progress),
+        hasShap: !!portfolioData?.shap_explanation,
+      });
 
       // Clear the creating portfolio flag
       localStorage.setItem("isCreatingPortfolio", "false");
+      setIsCreatingPortfolio(false);
 
       setTimeout(() => {
         navigate(`/dashboard/${userId}/${simulationId}`);
       }, 500);
     }
-  }, [readyToNavigate, progress, navigate, userId, simulationId]);
+  }, [
+    readyToNavigate,
+    progress,
+    navigate,
+    userId,
+    simulationId,
+    portfolioData,
+  ]);
 
-  // Fallback navigation after 10 seconds if we have data
+  // Enhanced fallback navigation with better conditions
   useEffect(() => {
     const fallbackTimeout = setTimeout(() => {
       if (portfolioData && portfolioData.id && userId && simulationId) {
         console.log("⏰ Fallback navigation triggered");
+        console.log("🔍 Fallback triggered because:", {
+          progress: Math.round(progress),
+          readyToNavigate,
+          isCreatingPortfolio,
+          hasMinTimeElapsed: minTimeElapsed,
+          portfolioDataKeys: Object.keys(portfolioData || {}),
+        });
+
         localStorage.setItem("isCreatingPortfolio", "false");
+        setIsCreatingPortfolio(false);
         navigate(`/dashboard/${userId}/${simulationId}`);
       }
     }, 10000);
 
     return () => clearTimeout(fallbackTimeout);
-  }, [portfolioData, userId, simulationId, navigate]);
+  }, [
+    portfolioData,
+    userId,
+    simulationId,
+    navigate,
+    progress,
+    readyToNavigate,
+    isCreatingPortfolio,
+    minTimeElapsed,
+  ]);
+
+  // Emergency navigation for stuck states
+  useEffect(() => {
+    const emergencyTimeout = setTimeout(() => {
+      if (
+        portfolioData &&
+        portfolioData.id &&
+        userId &&
+        simulationId &&
+        progress < 99
+      ) {
+        console.log(
+          "🚨 Emergency navigation - progress stuck at",
+          Math.round(progress)
+        );
+        localStorage.setItem("isCreatingPortfolio", "false");
+        setIsCreatingPortfolio(false);
+        navigate(`/dashboard/${userId}/${simulationId}`);
+      }
+    }, 15000); // 15 second emergency backup
+
+    return () => clearTimeout(emergencyTimeout);
+  }, [portfolioData, userId, simulationId, navigate, progress]);
 
   // Progress circle component with smooth animations
   const ProgressCircle = ({ percentage }) => {
@@ -293,9 +401,20 @@ export default function LoadingScreen() {
       </p>
 
       {/* Completion message */}
-      {progress >= 99.5 && readyToNavigate && (
+      {progress >= 99 && readyToNavigate && (
         <div className="mt-4 text-green-600 font-semibold animate-pulse">
           🎉 Portfolio ready! Redirecting...
+        </div>
+      )}
+
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed bottom-4 left-4 text-xs bg-black text-white p-2 rounded max-w-xs">
+          <div>Progress: {Math.round(progress)}%</div>
+          <div>Ready: {readyToNavigate ? "Yes" : "No"}</div>
+          <div>Creating: {isCreatingPortfolio ? "Yes" : "No"}</div>
+          <div>Min Time: {minTimeElapsed ? "Yes" : "No"}</div>
+          <div>Data: {portfolioData?.id ? "Yes" : "No"}</div>
         </div>
       )}
     </div>
