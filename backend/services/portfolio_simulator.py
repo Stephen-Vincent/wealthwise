@@ -199,14 +199,14 @@ async def get_enhanced_ai_recommendations(
     current_investment: float = 0, monthly_contribution: float = 0
 ) -> Dict[str, Any]:
     """
-    Get enhanced AI recommendations with SHAP explanations and goal analysis.
+    Get enhanced AI recommendations with factor analysis, SHAP explanations and goal analysis.
     
     This function provides:
-    1. Goal-oriented stock recommendations
-    2. SHAP explainable AI reasoning
-    3. Feasibility assessment
-    4. Market regime analysis
-    5. Transparent decision explanations
+    1. Goal-oriented analysis and feasibility assessment
+    2. Market regime-aware recommendations
+    3. Factor-based stock selection and ranking
+    4. SHAP explainable AI reasoning
+    5. Comprehensive decision transparency
     
     Returns:
         Dict containing stocks, explanations, and analysis
@@ -220,7 +220,7 @@ async def get_enhanced_ai_recommendations(
         }
     
     try:
-        logger.info("🎯 Initializing WealthWise enhanced recommendation system")
+        logger.info("🎯 Initializing WealthWise enhanced recommendation system with factor analysis")
         
         # Initialize WealthWise system
         init_result = initialize_complete_system({
@@ -234,6 +234,7 @@ async def get_enhanced_ai_recommendations(
         
         # Initialize core components
         recommender = EnhancedStockRecommender()
+        factor_analyzer = FactorAnalyzer()
         shap_explainer = SHAPExplainer()
         goal_calculator = GoalCalculator()
         feasibility_assessor = FeasibilityAssessor()
@@ -255,14 +256,56 @@ async def get_enhanced_ai_recommendations(
         # Step 3: Detect market regime
         market_regime = market_detector.detect_market_regime()
         
-        # Step 4: Get goal-oriented stock recommendations
-        logger.info("🤖 Generating goal-oriented stock recommendations")
-        recommended_stocks = recommender.recommend_stocks(
+        # Step 4: Get initial goal-oriented stock universe
+        logger.info("🤖 Generating goal-oriented stock universe")
+        initial_recommendations = recommender.recommend_stocks(
             target_value, timeframe, risk_score, 
             current_investment, monthly_contribution
         )
         
-        # Step 5: Generate SHAP explanations
+        # Step 5: Expand candidate universe based on risk profile and market regime
+        logger.info("📊 Expanding candidate universe for factor analysis")
+        candidate_stocks = set(initial_recommendations)  # Start with goal-oriented picks
+        
+        # Add risk-appropriate candidates
+        if risk_score < 35:  # Conservative
+            candidate_stocks.update(["VTI", "BND", "VEA", "VTEB", "VWO", "AGG", "VNQ", "SCHD", "VYM"])
+        elif risk_score < 70:  # Moderate
+            candidate_stocks.update(["VTI", "VEA", "VWO", "VNQ", "BND", "VUG", "VGT", "VOO", "VXUS"])
+        else:  # Aggressive
+            candidate_stocks.update(["VTI", "VGT", "VUG", "ARKK", "VEA", "QQQ", "ARKQ", "TQQQ", "SOXL"])
+        
+        # Adjust for market regime
+        if market_regime.get('regime') == 'bear':
+            # Add defensive stocks in bear markets
+            candidate_stocks.update(["VYM", "SCHD", "VDC", "VHT"])
+        elif market_regime.get('regime') == 'bull':
+            # Add growth stocks in bull markets
+            candidate_stocks.update(["VGT", "VUG", "QQQ"])
+            
+        candidate_stocks = list(candidate_stocks)
+        logger.info(f"📈 Analyzing {len(candidate_stocks)} candidate stocks with factor analysis")
+        
+        # Step 6: Apply factor analysis to rank all candidates
+        try:
+            ranked_stocks = factor_analyzer.rank_stocks_by_factors(
+                candidate_stocks,
+                market_regime=market_regime,
+                risk_score=risk_score,
+                timeframe=timeframe
+            )
+            
+            # Select top stocks based on factor scores
+            num_stocks = min(6, len(ranked_stocks))  # Diversify with up to 6 stocks
+            factor_selected_stocks = [stock for stock, score in ranked_stocks[:num_stocks]]
+            
+            logger.info(f"🎯 Factor analysis selected: {factor_selected_stocks}")
+            
+        except Exception as factor_error:
+            logger.warning(f"⚠️ Factor analysis failed: {factor_error}, using initial recommendations")
+            factor_selected_stocks = initial_recommendations[:6]
+        
+        # Step 7: Generate SHAP explanations
         logger.info("🔍 Generating SHAP explanations for transparency")
         shap_explanation = None
         if shap_explainer.is_available():
@@ -283,15 +326,26 @@ async def get_enhanced_ai_recommendations(
                     market_regime.get('trend_score', 2.5)
                 )
         
-        logger.info(f"✅ Enhanced recommendations complete: {len(recommended_stocks)} stocks selected")
+        # Step 8: Create enhanced response with factor analysis insights
+        factor_insights = None
+        if 'ranked_stocks' in locals():
+            factor_insights = {
+                "methodology": "Multi-factor quantitative analysis",
+                "factors_analyzed": factor_analyzer.get_analyzed_factors(),
+                "top_stocks_scores": dict(ranked_stocks[:num_stocks]),
+                "selection_rationale": f"Selected top {num_stocks} stocks based on factor scores, market regime, and goal alignment"
+            }
+        
+        logger.info(f"✅ Enhanced recommendations complete: {len(factor_selected_stocks)} stocks selected via factor analysis")
         
         return {
-            "stocks": recommended_stocks,
+            "stocks": factor_selected_stocks,
             "shap_explanation": shap_explanation,
             "goal_analysis": goal_analysis,
             "feasibility_assessment": feasibility_assessment,
             "market_regime": market_regime,
-            "method": "wealthwise_enhanced"
+            "factor_insights": factor_insights,
+            "method": "wealthwise_enhanced_with_factors"
         }
         
     except Exception as e:
