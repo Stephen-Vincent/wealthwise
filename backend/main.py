@@ -5,12 +5,14 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from datetime import datetime
+from pathlib import Path
 
 # Updated imports for new database structure
 from core.config import settings
-from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization  # ✅ ADD SHAP
+from api.routers import auth, onboarding, simulations, instruments, ai_analysis, password_reset, shap_visualization
 from database.db import engine, Base  
 from database.models import User, Simulation, PasswordResetToken  
 
@@ -22,38 +24,55 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("🚀 Starting WealthWise API...")
+    logger.info("Starting WealthWise API...")
+    
+    # Create static directories if they don't exist
+    static_dirs = ["static", "static/visualizations"]
+    for dir_path in static_dirs:
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
+        logger.info(f"Ensured directory exists: {dir_path}")
     
     # Create all database tables
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database tables created successfully")
+        logger.info("Database tables created successfully")
         
         # Log database type being used
         database_url = os.getenv("DATABASE_URL")
         if database_url is None:
-            logger.info("🗄️  Using SQLite for local development")
+            logger.info("Using SQLite for local development")
         else:
-            logger.info("🐘 Using PostgreSQL for production")
+            logger.info("Using PostgreSQL for production")
             
     except Exception as e:
-        logger.error(f"❌ Database initialization failed: {e}")
+        logger.error(f"Database initialization failed: {e}")
         raise
     
     # Log environment info
     environment = os.getenv("ENVIRONMENT", "development")
-    logger.info(f"🌍 Environment: {environment}")
+    logger.info(f"Environment: {environment}")
+    
+    # Check SHAP visualization availability
+    try:
+        from services.portfolio_simulator import get_visualization_engine
+        viz_engine = get_visualization_engine()
+        if viz_engine:
+            logger.info("SHAP VisualizationEngine available")
+        else:
+            logger.warning("SHAP VisualizationEngine not available - using fallbacks")
+    except ImportError:
+        logger.warning("Portfolio simulator service not available")
     
     yield
     
     # Shutdown
-    logger.info("👋 Shutting down WealthWise API...")
+    logger.info("Shutting down WealthWise API...")
 
 # Create FastAPI app with lifespan
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="AI-powered investment portfolio simulation and analysis for university projects",
+    description="AI-powered investment portfolio simulation and analysis with SHAP explainable AI",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan
@@ -85,7 +104,7 @@ def setup_cors():
         "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
         "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
         "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",
-        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",  # Latest domain
+        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",
         
         # Wildcard pattern for all Vercel deployments
         "https://*.vercel.app"
@@ -128,10 +147,14 @@ def setup_cors():
         expose_headers=["*"]
     )
     
-    logger.info(f"🌐 CORS configured for origins: {all_origins}")
+    logger.info(f"CORS configured for origins: {all_origins}")
 
 # Setup CORS
 setup_cors()
+
+# CRITICAL: Mount static files BEFORE other routes to serve visualization images
+app.mount("/static", StaticFiles(directory="static"), name="static")
+logger.info("Static file serving enabled for /static directory")
 
 # Add this after setup_cors() call
 @app.middleware("http")
@@ -158,7 +181,7 @@ async def add_cors_to_errors(request, call_next):
             "https://wealthwise-six-gamma.vercel.app",
             "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
             "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"  # Add latest
+            "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"
         ]
         
         if origin in allowed_origins or origin.endswith(".vercel.app"):
@@ -191,7 +214,8 @@ async def root():
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
             "instruments": "/api/instruments",
-            "shap": "/api/shap"  # ✅ ADD SHAP ENDPOINT INFO
+            "shap": "/api/shap",
+            "static_files": "/static"
         }
     }
 
@@ -213,6 +237,14 @@ async def health_check():
     groq_api_key = os.getenv("GROQ_API_KEY")
     ai_status = "configured" if groq_api_key else "missing_api_key"
     
+    # Check SHAP visualization availability
+    try:
+        from services.portfolio_simulator import get_visualization_engine
+        viz_engine = get_visualization_engine()
+        shap_status = "available" if viz_engine else "fallback_only"
+    except:
+        shap_status = "unavailable"
+    
     return {
        "status": "healthy",
         "message": "WealthWise API is running",
@@ -220,6 +252,7 @@ async def health_check():
         "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
         "ai_service": ai_status,
+        "shap_visualization": shap_status,
         "version": settings.APP_VERSION
     }
 
@@ -236,18 +269,18 @@ def include_routers():
         (password_reset.router, "/auth", ["password-reset"]),
         (onboarding.router, "/onboarding", ["onboarding"]),
         (simulations.router, "/simulations", ["simulations"]),
-        # These three ALREADY have /api/... in their own files → don't re-prefix here
+        # These routers already have /api prefix in their own files
         (instruments.router, "", ["instruments"]),
         (ai_analysis.router, "", ["ai-analysis"]),
-        (shap_visualization.router, "", ["shap"]),
+        (shap_visualization.router, "/api/shap", ["shap-visualization"]),
     ]
     
     for router, prefix, tags in routers_config:
         try:
             app.include_router(router, prefix=prefix, tags=tags)
-            logger.info(f"✅ Included router: {prefix}")
+            logger.info(f"Included router: {prefix if prefix else 'root'}")
         except Exception as e:
-            logger.error(f"❌ Failed to include router {prefix}: {e}")
+            logger.error(f"Failed to include router {prefix}: {e}")
             # Continue with other routers even if one fails
 
 # Include all routers
@@ -268,9 +301,9 @@ if os.getenv("DEBUG", "true").lower() == "true":
     @app.middleware("http")
     async def log_requests(request, call_next):
         origin = request.headers.get("origin", "No origin")
-        logger.info(f"📨 {request.method} {request.url} from {origin}")
+        logger.info(f"{request.method} {request.url} from {origin}")
         response = await call_next(request)
-        logger.info(f"📤 Response: {response.status_code}")
+        logger.info(f"Response: {response.status_code}")
         return response
 
 # Railway deployment specific configurations
@@ -278,12 +311,12 @@ def configure_for_railway():
     """Configure app for Railway deployment"""
     port = os.getenv("PORT")
     if port:
-        logger.info(f"🚂 Railway deployment detected. Port: {port}")
+        logger.info(f"Railway deployment detected. Port: {port}")
     
     # Railway provides DATABASE_URL automatically
     database_url = os.getenv("DATABASE_URL")
     if database_url and "railway" in database_url:
-        logger.info("🚂 Using Railway PostgreSQL database")
+        logger.info("Using Railway PostgreSQL database")
 
 # Configure for Railway if deployed there
 configure_for_railway()
@@ -294,21 +327,23 @@ async def demo_info():
     """Demo endpoint for university project showcase"""
     return {
         "project": "WealthWise - AI Investment Portfolio Simulator",
-        "description": "University project demonstrating AI-powered financial technology",
+        "description": "University project demonstrating AI-powered financial technology with explainable AI",
         "features": [
             "AI portfolio analysis using free Groq API",
             "Risk assessment and recommendations", 
             "Portfolio simulation and tracking",
             "User authentication and data persistence",
             "Password reset functionality",
-            "SHAP explainable AI visualizations",  # ✅ ADD SHAP FEATURE
+            "SHAP explainable AI visualizations with interactive charts",
+            "Factor analysis and market regime detection",
             "Cross-database compatibility (SQLite/PostgreSQL)"
         ],
         "technology_stack": {
             "backend": "FastAPI + SQLAlchemy",
             "frontend": "React + Vite", 
             "database": "SQLite (dev) / PostgreSQL (prod)",
-            "ai": "Groq API (free tier) + SHAP",  # ✅ MENTION SHAP
+            "ai": "Groq API (free tier) + SHAP + Custom ML models",
+            "visualization": "Custom VisualizationEngine with matplotlib fallbacks",
             "email": "SMTP (configurable)",
             "hosting": "Railway (backend) + Vercel (frontend)"
         },
@@ -325,7 +360,7 @@ if os.getenv("ENVIRONMENT") == "development":
     async def dev_database_info():
         """Development endpoint to check database status"""
         try:
-            from backend.database.db import SessionLocal
+            from database.db import SessionLocal
             from database.models import User, Simulation, PasswordResetToken
             
             db = SessionLocal()
@@ -347,18 +382,17 @@ if os.getenv("ENVIRONMENT") == "development":
         except Exception as e:
             return {"error": str(e), "status": "error"}
 
-# ✅ ADD SHAP-specific development endpoint
-if os.getenv("ENVIRONMENT") == "development":
     @app.get("/api/dev/shap-info")
     async def dev_shap_info():
         """Development endpoint to check SHAP functionality"""
         try:
-            from backend.database.db import SessionLocal
+            from database.db import SessionLocal
             from database.models import Simulation
             
             db = SessionLocal()
             
             # Count simulations with SHAP data
+            total_simulations = db.query(Simulation).count()
             simulations_with_shap = db.query(Simulation).filter(
                 Simulation.results.op('->>')('shap_explanation').isnot(None)
             ).count()
@@ -368,30 +402,83 @@ if os.getenv("ENVIRONMENT") == "development":
                 Simulation.results.op('->>')('shap_explanation').isnot(None)
             ).order_by(Simulation.created_at.desc()).first()
             
+            # Check visualization files
+            viz_dir = Path("static/visualizations")
+            viz_files = list(viz_dir.glob("*.png")) if viz_dir.exists() else []
+            
             db.close()
             
             return {
-                "total_simulations_with_shap": simulations_with_shap,
+                "total_simulations": total_simulations,
+                "simulations_with_shap": simulations_with_shap,
                 "latest_shap_simulation": {
                     "id": latest_shap_sim.id if latest_shap_sim else None,
                     "name": latest_shap_sim.name if latest_shap_sim else None,
-                    "created_at": latest_shap_sim.created_at.isoformat() if latest_shap_sim else None
+                    "created_at": latest_shap_sim.created_at.isoformat() if latest_shap_sim else None,
+                    "has_visualizations": bool(latest_shap_sim.results.get("visualization_paths")) if latest_shap_sim else False
                 },
+                "visualization_files": len(viz_files),
                 "shap_endpoints": [
                     "/api/shap/simulation/{id}/explanation",
-                    "/api/shap/simulation/{id}/visualization", 
-                    "/api/shap/simulation/{id}/chart-data"
-                ]
+                    "/api/shap/simulation/{id}/visualizations",
+                    "/api/shap/simulation/{id}/chart/{chart_type}",
+                    "/api/shap/simulation/{id}/chart-data",
+                    "/api/shap/simulation/{id}/regenerate-shap"
+                ],
+                "static_endpoint": "/static/visualizations/{filename}"
             }
         except Exception as e:
             return {"error": str(e), "status": "error"}
 
+    @app.get("/api/dev/test-visualization/{simulation_id}")
+    async def test_visualization_endpoint(simulation_id: int):
+        """Test endpoint to verify visualization functionality"""
+        try:
+            from database.db import SessionLocal
+            from services.portfolio_simulator import get_simulation_visualizations
+            
+            db = SessionLocal()
+            result = await get_simulation_visualizations(simulation_id, db)
+            db.close()
+            
+            return {
+                "simulation_id": simulation_id,
+                "visualization_result": result,
+                "test_endpoints": {
+                    "explanation": f"/api/shap/simulation/{simulation_id}/explanation",
+                    "chart_data": f"/api/shap/simulation/{simulation_id}/chart-data",
+                    "visualizations": f"/api/shap/simulation/{simulation_id}/visualizations"
+                }
+            }
+        except Exception as e:
+            return {"error": str(e), "test_failed": True}
+
+# Error handlers for SHAP-specific issues
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    # Check if it's a visualization file request
+    if "/static/visualizations/" in str(request.url):
+        logger.warning(f"Visualization file not found: {request.url}")
+        return {
+            "error": "Visualization not found",
+            "message": "The requested visualization file does not exist or has not been generated yet.",
+            "suggestion": "Try regenerating the visualization or check if the simulation has SHAP data.",
+            "status_code": 404
+        }
+    
+    return {
+        "error": "Not found",
+        "message": "The requested resource was not found.",
+        "status_code": 404
+    }
+
 # Startup message
-logger.info("🎓 WealthWise API configured for university project deployment")
-logger.info("💰 Using free tier services: Groq AI + Railway + Vercel")
-logger.info("🔗 Health check available at /health and /api/health")
-logger.info("🔑 Password reset functionality enabled")
-logger.info("🧠 SHAP explainable AI endpoints enabled")  # ✅ ADD SHAP LOG
+logger.info("WealthWise API configured for university project deployment")
+logger.info("Using free tier services: Groq AI + Railway + Vercel")
+logger.info("Health check available at /health and /api/health")
+logger.info("Password reset functionality enabled")
+logger.info("SHAP explainable AI endpoints enabled at /api/shap")
+logger.info("Static file serving enabled at /static")
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
