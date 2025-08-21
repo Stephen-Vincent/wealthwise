@@ -368,7 +368,6 @@ const SHAPDashboard = ({
     resolvedApiBase,
     imageBase,
     withCredentials,
-    chartLoading,
     preferPathsForCharts,
     portfolioData?.visualization_paths,
   ]);
