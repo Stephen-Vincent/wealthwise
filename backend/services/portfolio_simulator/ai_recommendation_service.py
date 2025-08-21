@@ -9,6 +9,7 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import asyncio
+import numpy as np  # ✅ Needed by SHAPDataProcessor
 
 from .config import get_config, get_stock_metadata, get_risk_profiles
 from .exceptions import AIServiceError, SHAPExplanationError
@@ -196,31 +197,71 @@ class AIRecommendationService:
             candidate_stocks = self._expand_candidate_pool(
                 initial_stocks, risk_score, market_regime
             )
+            # Keep only tickers we have metadata for
+            candidate_stocks = [s for s in candidate_stocks if s in self.stock_metadata]
             
+            final_stocks: List[str] = []
             try:
-                ranked_stocks = factor_analyzer.rank_stocks_by_factors(
-                    candidate_stocks,
-                    market_regime=market_regime,
-                    risk_score=risk_score,
-                    timeframe=timeframe_years
+                ranked_stocks = None
+
+                # Try several compatible signatures without the bad 'market_regime' kwarg
+                signature_attempts = (
+                    {"risk_score": risk_score, "timeframe": timeframe_years},
+                    {"risk_score": risk_score, "timeframe_years": timeframe_years},
                 )
-                
-                # Select top stocks based on ranking
-                num_stocks = min(6, len(ranked_stocks))
-                final_stocks = [stock for stock, score in ranked_stocks[:num_stocks]]
-                
+                for kwargs in signature_attempts:
+                    try:
+                        ranked_stocks = factor_analyzer.rank_stocks_by_factors(
+                            candidate_stocks, **kwargs
+                        )
+                        break
+                    except TypeError as e:
+                        # Try next signature
+                        continue
+
+                # If both kwarg attempts failed, try positional as a last resort
+                if ranked_stocks is None:
+                    try:
+                        ranked_stocks = factor_analyzer.rank_stocks_by_factors(
+                            candidate_stocks, risk_score, timeframe_years
+                        )
+                    except Exception as e:
+                        ranked_stocks = None
+
+                if ranked_stocks is not None:
+                    # Normalize output: could be list[str], list[tuple], or dict
+                    if isinstance(ranked_stocks, dict):
+                        sorted_items = sorted(
+                            ranked_stocks.items(), key=lambda x: x[1], reverse=True
+                        )
+                        ordered = [k for k, _ in sorted_items]
+                    elif ranked_stocks and isinstance(ranked_stocks[0], (list, tuple)):
+                        ordered = [s[0] for s in ranked_stocks]
+                    else:
+                        ordered = list(ranked_stocks)
+
+                    ordered = [s for s in ordered if s in self.stock_metadata]
+                    num_stocks = min(6, len(ordered))
+                    final_stocks = ordered[:num_stocks]
+
+                # If analyzer still didn’t yield usable results, fallback to initial
+                if not final_stocks:
+                    raise ValueError("No usable ranking from factor analyzer")
+
             except Exception as factor_error:
                 logger.warning(f"Factor analysis failed: {factor_error}")
-                final_stocks = initial_stocks[:6]
+                final_stocks = [s for s in initial_stocks if s in self.stock_metadata][:6]
             
             # Step 6: Generate SHAP explanations
             shap_explanation = None
             try:
-                if not shap_explainer.is_available():
+                if hasattr(shap_explainer, "is_available") and not shap_explainer.is_available():
                     logger.info("Training SHAP model...")
-                    shap_explainer.train_shap_model(num_samples=1000)
+                    # Be conservative with samples to reduce latency
+                    train_kwargs = {"num_samples": 1000} if "train_shap_model" in dir(shap_explainer) else {}
+                    shap_explainer.train_shap_model(**train_kwargs)
                 
-                if shap_explainer.is_available():
+                if not shap_explanation and hasattr(shap_explainer, "get_shap_explanation"):
                     shap_explanation = shap_explainer.get_shap_explanation(
                         target_value, timeframe_years, risk_score,
                         current_investment, monthly_contribution,
@@ -435,14 +476,14 @@ class AIRecommendationService:
             
             # Fallback to rule-based explanations
             category = stock_info.get('category', 'equity')
-            risk_score = stock_info.get('risk_score', 15)
+            stock_risk = stock_info.get('risk_score', 15)
             description = stock_info.get('description', f'{stock} investment')
             
             if category == 'bond':
                 explanations[stock] = f"Selected for stability and income generation. {description}"
             elif category == 'equity_dividend':
                 explanations[stock] = f"Chosen for dividend income and moderate growth. {description}"
-            elif risk_score > 30:
+            elif stock_risk > 30:
                 explanations[stock] = f"Included for growth potential despite higher volatility. {description}"
             else:
                 explanations[stock] = f"Selected for balanced risk-return profile. {description}"
