@@ -37,7 +37,7 @@ const SHAPDashboard = ({
 
   // Resolve API base
   const resolvedApiBase = useMemo(() => {
-    const env = (import.meta.env.VITE_API_BASE_URL || apiBase || "").trim();
+    const env = (import.meta.env.VITE_API_URL || apiBase || "").trim();
     if (!env) return "/api";
     return env.replace(/\/+$/, "");
   }, [apiBase]);
