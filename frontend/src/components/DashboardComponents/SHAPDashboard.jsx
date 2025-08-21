@@ -130,21 +130,21 @@ const SHAPDashboard = ({
     return hasData;
   }, [shapData]);
 
-  // Fetch visualization charts when SHAP data is available
+  // Fetch visualization charts as base64 data when SHAP data is available
   useEffect(() => {
     if (simulationId && hasShapData && !chartLoading) {
       setChartLoading(true);
 
-      // Fetch all charts at once
-      fetch(`${apiBase}/shap/simulation/${simulationId}/all-charts`, {
+      // Fetch all charts as base64 data
+      fetch(`${apiBase}/shap/simulation/${simulationId}/charts/all`, {
         method: "GET",
         headers: { Accept: "application/json" },
         credentials: withCredentials ? "include" : "same-origin",
       })
         .then((res) => res.json())
         .then((data) => {
-          console.log("📊 Charts fetched:", data);
-          if (data.charts) {
+          console.log("📊 Base64 charts fetched:", data);
+          if (data.success && data.charts) {
             setChartImages(data.charts);
           }
           if (data.errors) {
@@ -152,9 +152,9 @@ const SHAPDashboard = ({
           }
         })
         .catch((err) => {
-          console.error("Failed to fetch charts:", err);
+          console.error("Failed to fetch base64 charts:", err);
           // Try individual chart endpoints as fallback
-          fetchIndividualCharts();
+          fetchIndividualChartsAsBase64();
         })
         .finally(() => {
           setChartLoading(false);
@@ -162,20 +162,21 @@ const SHAPDashboard = ({
     }
   }, [simulationId, hasShapData, apiBase, withCredentials]);
 
-  const fetchIndividualCharts = async () => {
+  const fetchIndividualChartsAsBase64 = async () => {
     const chartEndpoints = [
-      { key: "shap_waterfall", endpoint: "shap-chart" },
-      { key: "portfolio_composition", endpoint: "portfolio-chart" },
-      { key: "risk_return", endpoint: "risk-return-chart" },
-      { key: "market_regime", endpoint: "market-regime-chart" },
+      { key: "shap_explanation", type: "shap_explanation" },
+      { key: "portfolio_composition", type: "portfolio_composition" },
+      { key: "risk_return_analysis", type: "risk_return_analysis" },
+      { key: "factor_importance", type: "factor_importance" },
+      { key: "market_regime", type: "market_regime" },
     ];
 
     const newChartImages = {};
 
-    for (const { key, endpoint } of chartEndpoints) {
+    for (const { key, type } of chartEndpoints) {
       try {
         const res = await fetch(
-          `${apiBase}/shap/simulation/${simulationId}/${endpoint}`,
+          `${apiBase}/shap/simulation/${simulationId}/chart/${type}/image`,
           {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -185,8 +186,8 @@ const SHAPDashboard = ({
 
         if (res.ok) {
           const data = await res.json();
-          if (data.chart_url) {
-            newChartImages[key] = data.chart_url;
+          if (data.success && data.image_data) {
+            newChartImages[key] = data.image_data;
           }
         }
       } catch (err) {
@@ -401,6 +402,7 @@ const SHAPDashboard = ({
             simulationId={simulationId}
             apiBase={apiBase}
             withCredentials={withCredentials}
+            onRefreshCharts={fetchIndividualChartsAsBase64}
           />
         )}
         {activeTab === "insights" && (
@@ -415,38 +417,22 @@ const SHAPDashboard = ({
   );
 };
 
-// New Visualizations Tab Component
+// Updated Visualizations Tab Component for Base64 Images
 const VisualizationsTab = ({
   chartImages,
   chartLoading,
   simulationId,
   apiBase,
   withCredentials,
+  onRefreshCharts,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const refreshCharts = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch(
-        `${apiBase}/shap/simulation/${simulationId}/all-charts`,
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          credentials: withCredentials ? "include" : "same-origin",
-        }
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        // Force reload images by adding timestamp
-        const timestamp = Date.now();
-        const refreshedImages = {};
-        Object.entries(data.charts || {}).forEach(([key, url]) => {
-          refreshedImages[key] = `${url}?t=${timestamp}`;
-        });
-        window.location.reload(); // Simple way to refresh charts
-      }
+      // Call the parent's refresh function
+      await onRefreshCharts();
     } catch (err) {
       console.error("Failed to refresh charts:", err);
     } finally {
@@ -471,7 +457,7 @@ const VisualizationsTab = ({
 
   const chartConfigs = [
     {
-      key: "shap_waterfall",
+      key: "shap_explanation",
       title: "SHAP Decision Waterfall",
       description:
         "Shows exactly how each factor influenced the AI's portfolio recommendations",
@@ -484,10 +470,17 @@ const VisualizationsTab = ({
       icon: "🥧",
     },
     {
-      key: "risk_return",
+      key: "risk_return_analysis",
       title: "Risk vs Return Profile",
       description: "Where your portfolio sits in the risk-return spectrum",
       icon: "📈",
+    },
+    {
+      key: "factor_importance",
+      title: "Factor Importance Analysis",
+      description:
+        "Which factors had the biggest impact on your recommendations",
+      icon: "🔍",
     },
     {
       key: "market_regime",
@@ -557,18 +550,30 @@ const VisualizationsTab = ({
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4">
-                <img
-                  src={chartImages[config.key]}
-                  alt={config.title}
-                  className="w-full h-auto rounded border"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                    e.target.nextSibling.style.display = "block";
-                  }}
-                />
+                {chartImages[config.key] ? (
+                  <img
+                    src={chartImages[config.key]}
+                    alt={config.title}
+                    className="w-full h-auto rounded border"
+                    onError={(e) => {
+                      console.error(`Failed to load chart: ${config.key}`);
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Chart data not available</p>
+                  </div>
+                )}
                 <div className="hidden text-center py-8 text-gray-500">
                   <p>Chart could not be displayed</p>
-                  <p className="text-sm">URL: {chartImages[config.key]}</p>
+                  <button
+                    onClick={refreshCharts}
+                    className="mt-2 px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                  >
+                    Try Again
+                  </button>
                 </div>
               </div>
             </div>
@@ -604,6 +609,29 @@ const VisualizationsTab = ({
           </div>
         </div>
       )}
+
+      {/* Debug Info for Charts */}
+      <details className="bg-gray-50 border rounded-lg p-4">
+        <summary className="cursor-pointer font-medium text-gray-700">
+          🔍 Chart Debug Information
+        </summary>
+        <div className="mt-3 space-y-2 text-sm">
+          <p>
+            <strong>Charts Available:</strong> {Object.keys(chartImages).length}
+          </p>
+          <p>
+            <strong>Chart Keys:</strong> {Object.keys(chartImages).join(", ")}
+          </p>
+          {Object.entries(chartImages).map(([key, value]) => (
+            <div key={key} className="mt-2">
+              <p>
+                <strong>{key}:</strong>{" "}
+                {value ? `${value.substring(0, 50)}...` : "No data"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </details>
     </div>
   );
 };
