@@ -9,9 +9,7 @@ from database import schemas
 from database.db import get_db
 from services.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
 
-# Set up logging
 logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 # Try to import AI analysis service (optional)
@@ -25,7 +23,6 @@ except Exception as e:
     AI_ANALYSIS_AVAILABLE = False
 
 
-# Utility function to sanitize floats in the response to ensure JSON compliance
 def sanitize_floats(data):
     if isinstance(data, dict):
         return {k: sanitize_floats(v) for k, v in data.items()}
@@ -36,21 +33,61 @@ def sanitize_floats(data):
     return data
 
 
+def _normalize_simulation(sim_result: dict) -> dict:
+    """
+    Normalize the simulator response so the UI always finds canonical keys.
+    We keep the original payload too, but ensure these exist:
+    - id
+    - stocks  (list)
+    - breakdown (dict)
+    - results (dict)
+    - target_achieved (bool)
+    """
+    if not isinstance(sim_result, dict):
+        sim_result = {}
+
+    sim_id = sim_result.get("id")
+    stocks = (
+        sim_result.get("stocks")
+        or sim_result.get("recommended_stocks")
+        or []
+    )
+    breakdown = (
+        sim_result.get("breakdown")
+        or sim_result.get("allocation_breakdown")
+        or {}
+    )
+    results = (
+        sim_result.get("results")
+        or sim_result.get("projection")
+        or {}
+    )
+    target_achieved = sim_result.get("target_achieved", False)
+
+    return {
+        "id": sim_id,
+        "stocks": stocks,
+        "breakdown": breakdown,
+        "results": results,
+        "target_achieved": target_achieved,
+    }
+
+
 async def get_portfolio_simulation(simulation_input: dict, db: Session):
     """
-    Get portfolio simulation using the NEW modular simulator only.
+    Use the NEW modular simulator only, importing directly from its module
+    to avoid package-level side effects or missing re-exports.
     """
     try:
-        # Import inside the function so we can catch and log import-time errors cleanly
-        from services.portfolio_simulator import simulate_portfolio_workflow
-        logger.info("Using modular portfolio simulator")
+        # IMPORTANT: bypass services.portfolio_simulator __init__.py
+        from services.portfolio_simulator.main_service import simulate_portfolio_workflow
+        logger.info("Using modular portfolio simulator (direct module import)")
         return await simulate_portfolio_workflow(simulation_input, db)
     except Exception as e:
-        # Log full traceback to reveal root cause (missing deps, bad export, init error, etc.)
         logger.exception("Modular simulator unavailable or failed")
         raise HTTPException(
             status_code=503,
-            detail="Portfolio simulation failed. Check server logs for details."
+            detail="Portfolio simulation failed. Check server logs for details.",
         ) from e
 
 
@@ -61,20 +98,19 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
     portfolio simulation using the modular simulator.
     """
     try:
-        logger.info(f"Processing onboarding for user {onboarding_data.user_id}")
+        logger.info("Processing onboarding for user %s", onboarding_data.user_id)
 
-        # Step 1: Calculate comprehensive risk profile from onboarding input
+        # 1) Risk assessment
         risk_profile = calculate_user_risk(onboarding_data)
-        logger.info(
-            "Risk assessment completed: score=%s, level=%s",
-            risk_profile["risk_score"],
-            risk_profile["risk_level"],
-        )
-
-        # Step 2: Extract risk score and label (keep legacy label only for backwards compatibility in UI, if needed)
         risk_score = risk_profile["risk_score"]
         risk_label = risk_profile["risk_level"]
+        logger.info(
+            "Risk assessment completed: score=%s, level=%s",
+            risk_score,
+            risk_label,
+        )
 
+        # 2) Provide legacy mapping only if your simulator expects it
         legacy_risk_mapping = {
             "Ultra Conservative": "Low",
             "Conservative": "Low",
@@ -86,26 +122,22 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
         }
         legacy_risk_label = legacy_risk_mapping.get(risk_label, "Medium")
 
-        # Step 3: Merge risk data with onboarding input for simulation
+        # 3) Build simulator input
         simulation_input = onboarding_data.dict()
         simulation_input["risk_score"] = risk_score
-        simulation_input["risk_label"] = legacy_risk_label  # if your simulator expects the legacy label
+        simulation_input["risk_label"] = legacy_risk_label
         simulation_input["detailed_risk_profile"] = risk_profile
 
-        # Step 4: Run portfolio simulation (modular only)
+        # 4) Run simulator
         simulation_result = await get_portfolio_simulation(simulation_input, db)
         logger.info("Portfolio simulation completed for user %s", onboarding_data.user_id)
 
-        # Step 5: Extract simulation data safely
-        simulation_id = simulation_result.get("id")
+        # 5) Normalize for UI
+        normalized = _normalize_simulation(simulation_result)
 
-        # New modular format preferred
-        target_reached = simulation_result.get("target_achieved", False)
-        simulation_data = simulation_result
-
-        # Step 6: Construct response payload
+        # 6) Build response
         response_payload = {
-            "id": simulation_id,
+            "id": normalized["id"],
             "user_id": onboarding_data.user_id,
             "name": onboarding_data.name,
             "goal": onboarding_data.goal,
@@ -113,24 +145,29 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             "lump_sum": onboarding_data.lump_sum,
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
-            "target_achieved": target_reached,
             "income_bracket": onboarding_data.income_bracket,
 
-            # Enhanced risk info
+            # Risk info
             "risk_score": risk_score,
             "risk_label": risk_label,
             "legacy_risk_label": legacy_risk_label,
-            "risk_description": risk_profile["risk_description"],
-            "allocation_guidance": risk_profile["allocation_guidance"],
-            "recommended_stock_allocation": risk_profile["recommended_stock_allocation"],
-            "recommended_bond_allocation": risk_profile["recommended_bond_allocation"],
-            "risk_explanation": risk_profile["explanation"],
+            "risk_description": risk_profile.get("risk_description"),
+            "allocation_guidance": risk_profile.get("allocation_guidance"),
+            "recommended_stock_allocation": risk_profile.get("recommended_stock_allocation"),
+            "recommended_bond_allocation": risk_profile.get("recommended_bond_allocation"),
+            "risk_explanation": risk_profile.get("explanation"),
 
-            # Include all simulation results
-            **simulation_data,
+            # Canonical UI keys
+            "target_achieved": normalized["target_achieved"],
+            "stocks": normalized["stocks"],
+            "breakdown": normalized["breakdown"],
+            "results": normalized["results"],
+
+            # Include full simulator payload too
+            **simulation_result,
+
+            # Metadata
             "created_at": datetime.utcnow().isoformat(),
-
-            # Metadata about simulator used
             "simulator_type": simulation_result.get("simulator_type", "Modular"),
             "enhanced_features": simulation_result.get("enhanced_features_enabled", {}),
             "has_shap_explanations": simulation_result.get("has_shap_explanations", False),
@@ -158,9 +195,7 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
     Legacy endpoint kept for compatibility; it now routes through the modular simulator.
     """
     try:
-        logger.info(f"Processing legacy onboarding for user {onboarding_data.user_id}")
-
-        # Use the legacy risk calculation but still run the modular simulator
+        logger.info("Processing legacy onboarding for user %s", onboarding_data.user_id)
         risk_score, risk_label = calculate_user_risk_legacy(onboarding_data)
 
         simulation_input = onboarding_data.dict()
@@ -168,12 +203,10 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
         simulation_input["risk_label"] = risk_label
 
         simulation_result = await get_portfolio_simulation(simulation_input, db)
-
-        simulation_id = simulation_result.get("id")
-        target_reached = simulation_result.get("target_achieved", False)
+        normalized = _normalize_simulation(simulation_result)
 
         response_payload = {
-            "id": simulation_id,
+            "id": normalized["id"],
             "user_id": onboarding_data.user_id,
             "name": onboarding_data.name,
             "goal": onboarding_data.goal,
@@ -181,10 +214,17 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
             "lump_sum": onboarding_data.lump_sum,
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
-            "target_achieved": target_reached,
             "income_bracket": onboarding_data.income_bracket,
             "risk_score": risk_score,
             "risk_label": risk_label,
+
+            # Canonical UI keys
+            "target_achieved": normalized["target_achieved"],
+            "stocks": normalized["stocks"],
+            "breakdown": normalized["breakdown"],
+            "results": normalized["results"],
+
+            # Full payload & metadata
             **simulation_result,
             "created_at": datetime.utcnow().isoformat(),
         }
@@ -206,7 +246,10 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
 
 @router.get("/health")
 async def health_check():
-    """Check the health of onboarding service dependencies (modular simulator only)."""
+    """
+    Check the health of onboarding service dependencies (modular simulator only).
+    Import directly from the module to avoid package-level side effects.
+    """
     try:
         health_status = {
             "service": "onboarding",
@@ -216,13 +259,13 @@ async def health_check():
         }
 
         try:
-            from services.portfolio_simulator import simulate_portfolio_workflow  # noqa: F401
+            # IMPORTANT: bypass services.portfolio_simulator __init__.py
+            from services.portfolio_simulator.main_service import simulate_portfolio_workflow  # noqa: F401
             health_status["modular_simulator"] = "available"
         except Exception as e:
             health_status["modular_simulator"] = f"unavailable: {e}"
             health_status["status"] = "degraded"
 
-        # Risk assessor check
         try:
             from services.risk_assessor import calculate_user_risk  # noqa: F401
             health_status["risk_assessor"] = "available"
