@@ -81,29 +81,17 @@ def get_visualization_engine() -> Optional['VisualizationEngine']:
 
 async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
     """
-    Enhanced portfolio simulation with WealthWise SHAP integration and visualizations.
+    Enhanced portfolio simulation with CORRECTED visualization integration.
     
-    This function now includes:
-    1. Goal-oriented portfolio optimization
-    2. SHAP explainable AI explanations
-    3. Interactive visualizations and charts
-    4. Market regime detection
-    5. Multi-factor analysis
-    6. Enhanced AI educational summaries
-    
-    Args:
-        sim_input: Dictionary containing user onboarding data
-        db: Database session for saving results
-    
-    Returns:
-        Enhanced simulation results with SHAP explanations and visualization paths
+    This version uses the actual methods available in your VisualizationEngine
+    and handles all the data formatting issues that were causing failures.
     """
     
     try:
-        logger.info("🚀 Starting enhanced portfolio simulation with WealthWise + Visualizations")
+        logger.info("Starting enhanced portfolio simulation with corrected visualizations")
         
         # STEP 1: Extract and validate user investment preferences
-        logger.info("📋 Extracting user investment data")
+        logger.info("Extracting user investment data")
         user_data = {
             "experience": sim_input.get("years_of_experience", 0),
             "goal": sim_input.get("goal", "wealth building"),
@@ -115,14 +103,14 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
         }
 
         # Extract risk assessment results
-        risk_score = sim_input.get("risk_score", 35)  # 0-100 scale
-        risk_label = sim_input.get("risk_label", "Medium")  # Human-readable label
+        risk_score = sim_input.get("risk_score", 35)
+        risk_label = sim_input.get("risk_label", "Medium")
 
-        logger.info(f"📊 User profile: goal={user_data['goal']}, target=£{user_data['target_value']:,.2f}, timeframe={user_data['timeframe']} years")
-        logger.info(f"⚖️ Risk assessment: score={risk_score}/100, label={risk_label}")
+        logger.info(f"User profile: goal={user_data['goal']}, target=£{user_data['target_value']:,.2f}, timeframe={user_data['timeframe']} years")
+        logger.info(f"Risk assessment: score={risk_score}/100, label={risk_label}")
 
         # STEP 2: Enhanced AI-powered stock recommendations with SHAP
-        logger.info("🤖 Getting enhanced AI stock recommendations with explanations")
+        logger.info("Getting enhanced AI stock recommendations with explanations")
         recommendation_result = await get_enhanced_ai_recommendations(
             target_value=user_data["target_value"],
             timeframe=user_data["timeframe"],
@@ -139,10 +127,10 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
         feasibility_assessment = recommendation_result.get("feasibility_assessment")
         market_regime = recommendation_result.get("market_regime")
         
-        logger.info(f"📈 Enhanced AI recommended stocks: {tickers}")
+        logger.info(f"Enhanced AI recommended stocks: {tickers}")
 
         # STEP 3: Validate investment inputs
-        logger.info("✅ Validating investment parameters")
+        logger.info("Validating investment parameters")
         lump_sum = user_data["lump_sum"]
         monthly = user_data["monthly"]
         timeframe = user_data["timeframe"]
@@ -154,17 +142,17 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             raise ValueError("Timeframe must be greater than 0")
 
         # STEP 4: Download historical market data for simulation
-        logger.info("📊 Downloading historical market data")
+        logger.info("Downloading historical market data")
         stock_data = download_stock_data(tickers, timeframe)
         
         # STEP 5: Enhanced portfolio weights using WealthWise optimization
-        logger.info("⚖️ Calculating enhanced portfolio allocation weights")
+        logger.info("Calculating enhanced portfolio allocation weights")
         weights = calculate_enhanced_portfolio_weights(
             stock_data, risk_score, recommendation_result
         )
         
         # STEP 6: Create structured list of selected stocks with allocations
-        logger.info("📋 Creating final stock allocation list")
+        logger.info("Creating final stock allocation list")
         stocks_picked = [
             {
                 "symbol": ticker, 
@@ -175,18 +163,24 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             for ticker, weight in zip(tickers, weights)
         ]
         
-        logger.info("💼 Enhanced portfolio allocation:")
+        logger.info("Enhanced portfolio allocation:")
         for stock in stocks_picked:
             logger.info(f"   {stock['symbol']}: {stock['allocation']*100:.1f}% ({stock['name']})")
 
         # STEP 7: Run the portfolio growth simulation
-        logger.info("📈 Running portfolio growth simulation")
+        logger.info("Running portfolio growth simulation")
         simulation_results = simulate_portfolio_growth(
             stock_data, weights, lump_sum, monthly, timeframe
         )
 
-        # STEP 8: Generate visualizations
-        logger.info("📊 Creating interactive visualizations")
+        # STEP 8: Generate visualizations with CORRECTED integration
+        logger.info("Creating visualizations with corrected integration")
+        
+        # Add market regime to shap_explanation for visualization access
+        if shap_explanation and market_regime:
+            shap_explanation['market_regime'] = market_regime
+        
+        # Use the corrected visualization function
         visualization_paths = await create_simulation_visualizations(
             simulation_id=None,  # Will be set after saving to DB
             stocks_picked=stocks_picked,
@@ -195,9 +189,29 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
             user_data=user_data,
             stock_data=stock_data
         )
+        
+        # Alternative: Use comprehensive report method if no individual charts created
+        if not visualization_paths:
+            logger.info("Trying comprehensive report method as fallback")
+            
+            all_data = {
+                'stocks_picked': stocks_picked,
+                'simulation_results': simulation_results,
+                'shap_explanation': shap_explanation,
+                'user_data': user_data,
+                'risk_score': risk_score,
+                'market_regime': market_regime
+            }
+            
+            comprehensive_paths = await create_comprehensive_visualization_report(
+                simulation_id=0,  # Temporary ID
+                all_simulation_data=all_data
+            )
+            
+            visualization_paths.update(comprehensive_paths)
 
         # STEP 9: Generate enhanced AI summary with SHAP explanations
-        logger.info("🧠 Generating enhanced AI educational summary with SHAP")
+        logger.info("Generating enhanced AI educational summary with SHAP")
         ai_summary = await generate_enhanced_ai_summary(
             stocks_picked, user_data, risk_score, risk_label, 
             simulation_results, shap_explanation, goal_analysis, 
@@ -205,7 +219,7 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
         )
 
         # STEP 10: Save enhanced simulation results to database
-        logger.info("💾 Saving enhanced simulation to database")
+        logger.info("Saving enhanced simulation to database")
         simulation = save_enhanced_simulation_to_db(
             db=db,
             sim_input=sim_input,
@@ -224,7 +238,7 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
 
         # STEP 11: Update visualizations with actual simulation ID
         if visualization_paths and simulation.id:
-            logger.info("🔄 Updating visualizations with simulation ID")
+            logger.info("Updating visualizations with simulation ID")
             updated_paths = await update_visualization_paths_with_id(
                 simulation.id, visualization_paths
             )
@@ -234,19 +248,72 @@ async def simulate_portfolio(sim_input: Dict[str, Any], db: Session) -> Dict[str
                 simulation.results["visualization_paths"] = updated_paths
                 db.commit()
 
-        logger.info(f"✅ Enhanced portfolio simulation completed successfully (ID: {simulation.id})")
+        logger.info(f"Enhanced portfolio simulation completed successfully (ID: {simulation.id})")
         return format_enhanced_simulation_response(simulation)
 
     except Exception as e:
-        logger.error(f"❌ Enhanced portfolio simulation failed: {str(e)}")
+        logger.error(f"Enhanced portfolio simulation failed: {str(e)}")
         db.rollback()
         
         # Fallback to original simulation if enhanced version fails
-        logger.warning("🔄 Falling back to original simulation method")
+        logger.warning("Falling back to original simulation method")
         return await simulate_portfolio_fallback(sim_input, db)
 
 # =============================================================================
-# VISUALIZATION FUNCTIONS
+# DEBUG FUNCTIONS TO UNDERSTAND YOUR VISUALIZATIONENGINE
+# =============================================================================
+
+def debug_visualization_methods():
+    """
+    Debug function to check what methods are actually available in your VisualizationEngine.
+    """
+    
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
+        logger.error("VisualizationEngine not available")
+        return
+    
+    try:
+        import inspect
+        
+        logger.info("=== VISUALIZATION ENGINE DEBUG ===")
+        logger.info(f"VisualizationEngine class: {type(viz_engine)}")
+        
+        # Get all methods
+        all_methods = [method for method in dir(viz_engine) if not method.startswith('_')]
+        create_methods = [method for method in all_methods if method.startswith('create_')]
+        
+        logger.info(f"Available create methods: {create_methods}")
+        
+        # Check method signatures
+        for method_name in create_methods:
+            try:
+                method = getattr(viz_engine, method_name)
+                if callable(method):
+                    sig = inspect.signature(method)
+                    logger.info(f"{method_name}{sig}")
+            except Exception as e:
+                logger.warning(f"Could not inspect {method_name}: {e}")
+        
+        logger.info("=== END DEBUG ===")
+        
+        # Test SHAP method with dummy data
+        logger.info("Testing SHAP method with dummy data...")
+        dummy_shap = {
+            'feature_contributions': {'risk_score': 0.1, 'timeframe': -0.05},
+            'base_value': 50.0,
+            'portfolio_quality_score': 75.0
+        }
+        
+        result = viz_engine.create_shap_waterfall_chart(dummy_shap, None)
+        logger.info(f"SHAP test result: {result}")
+        
+    except Exception as e:
+        logger.error(f"Error debugging VisualizationEngine: {e}")
+
+
+# =============================================================================
+# CORRECTED VISUALIZATION FUNCTIONS - MATCHES YOUR ACTUAL VISUALIZATIONENGINE
 # =============================================================================
 
 async def create_simulation_visualizations(
@@ -258,23 +325,21 @@ async def create_simulation_visualizations(
     stock_data: pd.DataFrame
 ) -> Dict[str, str]:
     """
-    Create comprehensive visualizations for the portfolio simulation.
+    Create visualizations using the ACTUAL methods available in your VisualizationEngine.
     
-    Args:
-        simulation_id: Database ID of simulation (None if not saved yet)
-        stocks_picked: List of selected stocks with allocations
-        simulation_results: Portfolio growth simulation results
-        shap_explanation: SHAP explanation data
-        user_data: User investment preferences
-        stock_data: Historical stock price data
-    
-    Returns:
-        Dictionary mapping visualization types to file paths
+    Based on your actual VisualizationEngine code, the available methods are:
+    - create_shap_waterfall_chart
+    - create_portfolio_composition_chart (NOT create_portfolio_allocation_chart)
+    - create_risk_return_scatter
+    - create_factor_importance_chart
+    - create_market_regime_visualization
+    - create_interactive_dashboard
+    - create_comprehensive_report
     """
     
     viz_engine = get_visualization_engine()
     if not viz_engine:
-        logger.warning("⚠️ VisualizationEngine not available, skipping visualizations")
+        logger.warning("VisualizationEngine not available, skipping visualizations")
         return {}
     
     try:
@@ -288,152 +353,261 @@ async def create_simulation_visualizations(
         
         visualization_paths = {}
         
-        # 1. Portfolio Allocation Pie Chart
-        logger.info("📊 Creating portfolio allocation visualization")
+        # 1. Portfolio Composition Chart (using CORRECT method name)
+        logger.info("Creating portfolio composition visualization")
         try:
-            allocation_data = {
-                stock["symbol"]: stock["allocation"] 
-                for stock in stocks_picked
-            }
+            # Extract stocks and weights in the format your method expects
+            stocks = [stock["symbol"] for stock in stocks_picked]
+            weights = {stock["symbol"]: stock["allocation"] for stock in stocks_picked}
             
-            allocation_path = viz_dir / f"{base_filename}_allocation.png"
-            result = viz_engine.create_portfolio_allocation_chart(
-                allocation_data, str(allocation_path)
+            composition_path = viz_dir / f"{base_filename}_composition.png"
+            result = viz_engine.create_portfolio_composition_chart(
+                stocks, weights, str(composition_path)
             )
             
             if "saved" in result.lower():
-                visualization_paths["portfolio_allocation"] = str(allocation_path)
-                logger.info(f"✅ Portfolio allocation chart saved: {allocation_path}")
+                visualization_paths["portfolio_composition"] = str(composition_path)
+                logger.info(f"Portfolio composition chart saved: {composition_path}")
             else:
-                logger.warning(f"⚠️ Portfolio allocation chart failed: {result}")
+                logger.warning(f"Portfolio composition chart failed: {result}")
                 
         except Exception as e:
-            logger.error(f"❌ Error creating allocation chart: {e}")
+            logger.error(f"Error creating composition chart: {e}")
         
-        # 2. Portfolio Growth Timeline
-        logger.info("📈 Creating portfolio growth timeline")
-        try:
-            timeline_data = simulation_results.get("timeline", {})
-            portfolio_values = timeline_data.get("portfolio", [])
-            contributions = timeline_data.get("contributions", [])
-            
-            if portfolio_values and contributions:
-                # Convert to DataFrame for visualization
-                timeline_df = pd.DataFrame({
-                    'date': [item['date'] for item in portfolio_values],
-                    'portfolio_value': [item['value'] for item in portfolio_values],
-                    'contributions': [item['value'] for item in contributions]
-                })
-                timeline_df['date'] = pd.to_datetime(timeline_df['date'])
-                
-                timeline_path = viz_dir / f"{base_filename}_timeline.png"
-                result = viz_engine.create_portfolio_timeline_chart(
-                    timeline_df, str(timeline_path), user_data.get("goal", "Portfolio Growth")
-                )
-                
-                if "saved" in result.lower():
-                    visualization_paths["portfolio_timeline"] = str(timeline_path)
-                    logger.info(f"✅ Portfolio timeline chart saved: {timeline_path}")
-                else:
-                    logger.warning(f"⚠️ Portfolio timeline chart failed: {result}")
-            
-        except Exception as e:
-            logger.error(f"❌ Error creating timeline chart: {e}")
-        
-        # 3. SHAP Explanation Waterfall Chart
+        # 2. SHAP Waterfall Chart (fix numpy formatting issue)
         if shap_explanation:
-            logger.info("🔍 Creating SHAP explanation visualization")
+            logger.info("Creating SHAP explanation visualization")
             try:
                 shap_path = viz_dir / f"{base_filename}_shap_explanation.png"
+                
+                # Clean SHAP data to prevent numpy formatting errors
+                cleaned_shap = clean_shap_for_visualization(shap_explanation)
+                
                 result = viz_engine.create_shap_waterfall_chart(
-                    shap_explanation, str(shap_path)
+                    cleaned_shap, str(shap_path)
                 )
                 
                 if "saved" in result.lower():
                     visualization_paths["shap_explanation"] = str(shap_path)
-                    logger.info(f"✅ SHAP explanation chart saved: {shap_path}")
+                    logger.info(f"SHAP explanation chart saved: {shap_path}")
                 else:
-                    logger.warning(f"⚠️ SHAP explanation chart failed: {result}")
+                    logger.warning(f"SHAP explanation chart failed: {result}")
                     
             except Exception as e:
-                logger.error(f"❌ Error creating SHAP chart: {e}")
+                logger.error(f"Error creating SHAP chart: {e}")
         
-        # 4. Risk vs Return Scatter Plot
-        logger.info("⚖️ Creating risk vs return analysis")
+        # 3. Risk-Return Scatter Plot (fix data format)
+        logger.info("Creating risk vs return analysis")
         try:
             if len(stock_data.columns) > 1:
-                # Calculate returns and volatility for each stock
+                # Calculate portfolio metrics in the format your method expects
                 returns = stock_data.pct_change().dropna()
                 
-                risk_return_data = []
-                for ticker in stock_data.columns:
+                # Calculate portfolio-level metrics
+                portfolio_weights = np.array([stock["allocation"] for stock in stocks_picked])
+                portfolio_returns = returns.dot(portfolio_weights)
+                
+                portfolio_metrics = {
+                    'expected_return': float(portfolio_returns.mean() * 252),  # Annualized
+                    'volatility': float(portfolio_returns.std() * np.sqrt(252)),  # Annualized
+                    'sharpe_ratio': float((portfolio_returns.mean() * 252) / (portfolio_returns.std() * np.sqrt(252)))
+                }
+                
+                # Create benchmark data for comparison
+                benchmark_data = []
+                for ticker in stock_data.columns[:3]:  # Use first 3 stocks as individual benchmarks
                     if ticker in returns.columns:
-                        annual_return = returns[ticker].mean() * 252
-                        annual_volatility = returns[ticker].std() * np.sqrt(252)
-                        
-                        # Find allocation for this stock
-                        allocation = 0
-                        for stock in stocks_picked:
-                            if stock["symbol"] == ticker:
-                                allocation = stock["allocation"]
-                                break
-                        
-                        risk_return_data.append({
-                            "symbol": ticker,
-                            "return": annual_return,
-                            "risk": annual_volatility,
-                            "allocation": allocation
+                        stock_return = returns[ticker].mean() * 252
+                        stock_vol = returns[ticker].std() * np.sqrt(252)
+                        benchmark_data.append({
+                            'name': f'{ticker} Individual',
+                            'expected_return': float(stock_return),
+                            'volatility': float(stock_vol)
                         })
                 
-                if risk_return_data:
-                    risk_return_path = viz_dir / f"{base_filename}_risk_return.png"
-                    result = viz_engine.create_risk_return_scatter(
-                        risk_return_data, str(risk_return_path)
-                    )
-                    
-                    if "saved" in result.lower():
-                        visualization_paths["risk_return_analysis"] = str(risk_return_path)
-                        logger.info(f"✅ Risk vs return chart saved: {risk_return_path}")
-                    else:
-                        logger.warning(f"⚠️ Risk vs return chart failed: {result}")
-            
-        except Exception as e:
-            logger.error(f"❌ Error creating risk vs return chart: {e}")
-        
-        # 5. Goal Achievement Progress Chart
-        logger.info("🎯 Creating goal achievement visualization")
-        try:
-            target_value = user_data.get("target_value", 50000)
-            end_value = simulation_results.get("end_value", 0)
-            
-            goal_data = {
-                "target_value": target_value,
-                "achieved_value": end_value,
-                "achievement_percentage": min(100, (end_value / target_value) * 100) if target_value > 0 else 0,
-                "goal_name": user_data.get("goal", "Financial Goal"),
-                "timeframe": user_data.get("timeframe", 10)
-            }
-            
-            goal_path = viz_dir / f"{base_filename}_goal_progress.png"
-            result = viz_engine.create_goal_achievement_chart(
-                goal_data, str(goal_path)
-            )
-            
-            if "saved" in result.lower():
-                visualization_paths["goal_achievement"] = str(goal_path)
-                logger.info(f"✅ Goal achievement chart saved: {goal_path}")
-            else:
-                logger.warning(f"⚠️ Goal achievement chart failed: {result}")
+                risk_return_path = viz_dir / f"{base_filename}_risk_return.png"
+                result = viz_engine.create_risk_return_scatter(
+                    portfolio_metrics, benchmark_data, str(risk_return_path)
+                )
                 
+                if "saved" in result.lower():
+                    visualization_paths["risk_return_analysis"] = str(risk_return_path)
+                    logger.info(f"Risk vs return chart saved: {risk_return_path}")
+                else:
+                    logger.warning(f"Risk vs return chart failed: {result}")
+            
         except Exception as e:
-            logger.error(f"❌ Error creating goal achievement chart: {e}")
+            logger.error(f"Error creating risk vs return chart: {e}")
         
-        logger.info(f"📊 Created {len(visualization_paths)} visualizations successfully")
+        # 4. Factor Importance Chart (if we have SHAP data)
+        if shap_explanation and shap_explanation.get("feature_contributions"):
+            logger.info("Creating factor importance visualization")
+            try:
+                factor_scores = shap_explanation["feature_contributions"]
+                
+                factor_path = viz_dir / f"{base_filename}_factor_importance.png"
+                result = viz_engine.create_factor_importance_chart(
+                    factor_scores, str(factor_path)
+                )
+                
+                if "saved" in result.lower():
+                    visualization_paths["factor_importance"] = str(factor_path)
+                    logger.info(f"Factor importance chart saved: {factor_path}")
+                else:
+                    logger.warning(f"Factor importance chart failed: {result}")
+                    
+            except Exception as e:
+                logger.error(f"Error creating factor importance chart: {e}")
+        
+        # 5. Market Regime Visualization (if we have market data)
+        market_regime = shap_explanation.get('market_regime') if shap_explanation else None
+        if market_regime:
+            logger.info("Creating market regime visualization")
+            try:
+                market_path = viz_dir / f"{base_filename}_market_regime.png"
+                result = viz_engine.create_market_regime_visualization(
+                    market_regime, str(market_path)
+                )
+                
+                if "saved" in result.lower():
+                    visualization_paths["market_regime"] = str(market_path)
+                    logger.info(f"Market regime chart saved: {market_path}")
+                else:
+                    logger.warning(f"Market regime chart failed: {result}")
+                
+            except Exception as e:
+                logger.error(f"Error creating market regime chart: {e}")
+        
+        logger.info(f"Created {len(visualization_paths)} visualizations successfully")
         return visualization_paths
         
     except Exception as e:
-        logger.error(f"❌ Error creating simulation visualizations: {e}")
+        logger.error(f"Error creating simulation visualizations: {e}")
         return {}
+
+def clean_shap_for_visualization(shap_explanation: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Clean SHAP explanation data to fix numpy formatting issues.
+    
+    The error "unsupported format string passed to numpy.ndarray.__format__"
+    occurs when matplotlib tries to format numpy arrays incorrectly.
+    """
+    
+    try:
+        cleaned_shap = {}
+        
+        for key, value in shap_explanation.items():
+            if isinstance(value, np.ndarray):
+                # Convert numpy arrays to Python lists
+                cleaned_shap[key] = value.tolist()
+            elif isinstance(value, (np.integer, np.floating)):
+                # Convert numpy scalars to Python types
+                cleaned_shap[key] = float(value) if isinstance(value, np.floating) else int(value)
+            elif isinstance(value, dict):
+                # Recursively clean nested dictionaries
+                cleaned_shap[key] = clean_shap_for_visualization(value)
+            elif key == "feature_contributions" and isinstance(value, dict):
+                # Ensure feature contributions are clean
+                cleaned_contributions = {}
+                for feature, contribution in value.items():
+                    if isinstance(contribution, (np.floating, np.integer)):
+                        cleaned_contributions[feature] = float(contribution)
+                    else:
+                        cleaned_contributions[feature] = contribution
+                cleaned_shap[key] = cleaned_contributions
+            else:
+                cleaned_shap[key] = value
+        
+        return cleaned_shap
+        
+    except Exception as e:
+        logger.error(f"Error cleaning SHAP data: {e}")
+        return shap_explanation  # Return original if cleaning fails
+    
+# =============================================================================
+# COMPREHENSIVE REPORT GENERATION USING YOUR ACTUAL METHOD
+# =============================================================================
+
+async def create_comprehensive_visualization_report(
+    simulation_id: int,
+    all_simulation_data: Dict[str, Any]
+) -> Dict[str, str]:
+    """
+    Create a comprehensive report using your VisualizationEngine's built-in method.
+    
+    This uses the create_comprehensive_report method from your VisualizationEngine
+    which generates all visualizations at once.
+    """
+    
+    viz_engine = get_visualization_engine()
+    if not viz_engine:
+        logger.warning("VisualizationEngine not available")
+        return {}
+    
+    try:
+        # Prepare output directory
+        output_dir = f"./static/visualizations/sim_{simulation_id}/"
+        
+        # Format data for the comprehensive report method
+        formatted_data = {
+            'shap_explanation': all_simulation_data.get('shap_explanation'),
+            'portfolio': {
+                'stocks': [stock["symbol"] for stock in all_simulation_data.get('stocks_picked', [])],
+                'weights': {stock["symbol"]: stock["allocation"] for stock in all_simulation_data.get('stocks_picked', [])}
+            },
+            'portfolio_metrics': calculate_portfolio_metrics_for_viz(all_simulation_data),
+            'market_regime': all_simulation_data.get('market_regime')
+        }
+        
+        # Use the comprehensive report method
+        result_paths = viz_engine.create_comprehensive_report(formatted_data, output_dir)
+        
+        logger.info(f"Comprehensive report created with {len(result_paths)} visualizations")
+        return result_paths
+        
+    except Exception as e:
+        logger.error(f"Error creating comprehensive report: {e}")
+        return {}
+
+def calculate_portfolio_metrics_for_viz(simulation_data: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Calculate portfolio metrics in the format expected by VisualizationEngine.
+    """
+    
+    try:
+        # Extract basic metrics from simulation results
+        simulation_results = simulation_data.get('simulation_results', {})
+        portfolio_return = simulation_results.get('portfolio_return', 0.08)
+        timeframe = simulation_data.get('user_data', {}).get('timeframe', 10)
+        
+        # Convert total return to annualized return
+        if timeframe > 0:
+            annualized_return = (1 + portfolio_return) ** (1/timeframe) - 1
+        else:
+            annualized_return = 0.08  # Default 8%
+        
+        # Estimate volatility based on risk score
+        risk_score = simulation_data.get('risk_score', 35)
+        estimated_volatility = 0.05 + (risk_score / 100) * 0.20  # 5% to 25% range
+        
+        # Calculate Sharpe ratio (assuming 2% risk-free rate)
+        risk_free_rate = 0.02
+        sharpe_ratio = (annualized_return - risk_free_rate) / estimated_volatility if estimated_volatility > 0 else 0
+        
+        return {
+            'expected_return': float(annualized_return),
+            'volatility': float(estimated_volatility),
+            'sharpe_ratio': float(sharpe_ratio)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating portfolio metrics: {e}")
+        return {
+            'expected_return': 0.08,
+            'volatility': 0.15,
+            'sharpe_ratio': 0.5
+        }
+
 
 async def update_visualization_paths_with_id(
     simulation_id: int, 
@@ -1086,7 +1260,10 @@ def calculate_enhanced_portfolio_weights(
         logger.warning(f"⚠️ WealthWise optimization failed: {e}, using fallback")
         return calculate_portfolio_weights(data, risk_score)
 
-# Enhanced AI summary generation function
+# =============================================================================
+# FIXED NEWS ANALYSIS INTEGRATION
+# =============================================================================
+
 async def generate_enhanced_ai_summary(
     stocks_picked: List[Dict], user_data: Dict[str, Any], 
     risk_score: int, risk_label: str, simulation_results: Dict[str, Any],
@@ -1096,16 +1273,20 @@ async def generate_enhanced_ai_summary(
     """Generate comprehensive AI summary with SHAP explanations and news analysis."""
     
     try:
-        logger.info("🧠 Generating INTEGRATED AI summary with SHAP + News Analysis")
+        logger.info("Generating INTEGRATED AI summary with SHAP + News Analysis")
         
         from services.ai_analysis import AIAnalysisService
         ai_service = AIAnalysisService()
         
-        # Get comprehensive news analysis
-        logger.info("📰 Getting comprehensive news and market analysis...")
-        portfolio_news_analysis = await ai_service._analyze_portfolio_news_history(
-            stocks_picked, user_data, simulation_results
-        )
+        # Get comprehensive news analysis with error handling
+        logger.info("Getting comprehensive news and market analysis...")
+        try:
+            portfolio_news_analysis = await ai_service._analyze_portfolio_news_history(
+                stocks_picked, user_data, simulation_results
+            )
+        except Exception as news_error:
+            logger.warning(f"News analysis failed: {news_error}, proceeding without news data")
+            portfolio_news_analysis = {"error": str(news_error)}
         
         # Create integrated prompt
         integrated_prompt = create_integrated_shap_news_prompt(
@@ -1122,17 +1303,19 @@ async def generate_enhanced_ai_summary(
         )
         
         # Generate comprehensive summary
-        logger.info("🤖 Generating integrated SHAP + News summary...")
+        logger.info("Generating integrated SHAP + News summary...")
         integrated_summary = await ai_service._get_groq_response(integrated_prompt)
         
-        logger.info("✅ Integrated AI summary with SHAP + News generated successfully!")
+        logger.info("Integrated AI summary with SHAP + News generated successfully!")
         return ai_service._format_ai_response(integrated_summary)
         
     except Exception as e:
-        logger.warning(f"⚠️ Integrated AI summary failed: {e}. Trying fallback methods...")
+        logger.warning(f"Integrated AI summary failed: {e}. Trying fallback methods...")
         
         try:
-            logger.info("🔄 Fallback 1: Using enhanced news analysis only...")
+            logger.info("Fallback 1: Using enhanced news analysis only...")
+            from services.ai_analysis import AIAnalysisService
+            ai_service = AIAnalysisService()
             return await ai_service.generate_portfolio_summary(
                 stocks_picked=stocks_picked,
                 user_data=user_data,
@@ -1141,7 +1324,7 @@ async def generate_enhanced_ai_summary(
                 simulation_results=simulation_results
             )
         except Exception as e2:
-            logger.warning(f"⚠️ Enhanced news analysis also failed: {e2}. Using simple SHAP summary...")
+            logger.warning(f"Enhanced news analysis also failed: {e2}. Using simple SHAP summary...")
             
             return generate_simple_enhanced_summary(
                 stocks_picked, user_data, risk_score, risk_label, 
