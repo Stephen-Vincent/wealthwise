@@ -20,17 +20,25 @@ from database.models import User, Simulation, PasswordResetToken
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Create static directories BEFORE app initialization
+def ensure_static_directories():
+    """Create static directories if they don't exist"""
+    static_dirs = ["static", "static/visualizations"]
+    for dir_path in static_dirs:
+        try:
+            Path(dir_path).mkdir(parents=True, exist_ok=True)
+            logger.info(f"Ensured directory exists: {dir_path}")
+        except Exception as e:
+            logger.error(f"Failed to create directory {dir_path}: {e}")
+
+# Create directories before FastAPI app initialization
+ensure_static_directories()
+
 # Lifespan context manager for startup/shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting WealthWise API...")
-    
-    # Create static directories if they don't exist
-    static_dirs = ["static", "static/visualizations"]
-    for dir_path in static_dirs:
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Ensured directory exists: {dir_path}")
     
     # Create all database tables
     try:
@@ -152,9 +160,13 @@ def setup_cors():
 # Setup CORS
 setup_cors()
 
-# CRITICAL: Mount static files BEFORE other routes to serve visualization images
-app.mount("/static", StaticFiles(directory="static"), name="static")
-logger.info("Static file serving enabled for /static directory")
+# Mount static files - now directory exists
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    logger.info("Static file serving enabled for /static directory")
+except Exception as e:
+    logger.error(f"Failed to mount static files: {e}")
+    logger.warning("Continuing without static file serving - will use fallback methods")
 
 # Add this after setup_cors() call
 @app.middleware("http")
@@ -245,6 +257,9 @@ async def health_check():
     except:
         shap_status = "unavailable"
     
+    # Check static file serving
+    static_status = "enabled" if Path("static").exists() else "disabled"
+    
     return {
        "status": "healthy",
         "message": "WealthWise API is running",
@@ -253,6 +268,7 @@ async def health_check():
         "database": db_status,
         "ai_service": ai_status,
         "shap_visualization": shap_status,
+        "static_files": static_status,
         "version": settings.APP_VERSION
     }
 
@@ -418,6 +434,7 @@ if os.getenv("ENVIRONMENT") == "development":
                     "has_visualizations": bool(latest_shap_sim.results.get("visualization_paths")) if latest_shap_sim else False
                 },
                 "visualization_files": len(viz_files),
+                "sample_files": [str(f) for f in viz_files[:5]],
                 "shap_endpoints": [
                     "/api/shap/simulation/{id}/explanation",
                     "/api/shap/simulation/{id}/visualizations",
@@ -453,6 +470,18 @@ if os.getenv("ENVIRONMENT") == "development":
         except Exception as e:
             return {"error": str(e), "test_failed": True}
 
+    @app.get("/api/dev/static-test")
+    async def test_static_files():
+        """Test static file serving"""
+        viz_dir = Path("static/visualizations")
+        return {
+            "static_directory_exists": Path("static").exists(),
+            "visualizations_directory_exists": viz_dir.exists(),
+            "visualization_files": list(viz_dir.glob("*.png")) if viz_dir.exists() else [],
+            "test_url": "/static/visualizations/test.png",
+            "mount_status": "mounted" if hasattr(app, "_mount_static") else "unknown"
+        }
+
 # Error handlers for SHAP-specific issues
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
@@ -478,7 +507,12 @@ logger.info("Using free tier services: Groq AI + Railway + Vercel")
 logger.info("Health check available at /health and /api/health")
 logger.info("Password reset functionality enabled")
 logger.info("SHAP explainable AI endpoints enabled at /api/shap")
-logger.info("Static file serving enabled at /static")
+
+# Check if static files are properly mounted
+if Path("static").exists():
+    logger.info("Static file serving enabled at /static")
+else:
+    logger.warning("Static directory not found - visualization serving may not work")
 
 # Add this at the very end of main.py
 if __name__ == "__main__":
