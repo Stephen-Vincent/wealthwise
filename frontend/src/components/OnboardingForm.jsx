@@ -538,7 +538,7 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
         console.log("🔄 Making API call to create simulation in background...");
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/onboarding`,
+          `${import.meta.env.VITE_API_URL}/onboarding/`,
           {
             method: "POST",
             headers: {

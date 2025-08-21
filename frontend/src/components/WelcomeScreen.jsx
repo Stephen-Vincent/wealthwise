@@ -36,7 +36,7 @@ export default function WelcomeScreen({
     console.log("Environment mode:", import.meta.env.MODE);
     console.log("All env vars:", import.meta.env);
 
-    const apiUrl = `${import.meta.env.VITE_API_URL}/simulations`;
+    const apiUrl = `${import.meta.env.VITE_API_URL}/simulations/`;
     console.log("🔍 About to fetch URL:", apiUrl);
 
     try {

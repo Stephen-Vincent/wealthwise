@@ -21,7 +21,7 @@ export default function Simulations({ onBack, onShowLoading }) {
     console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
     console.log(
       "Full constructed URL:",
-      `${import.meta.env.VITE_API_URL}/simulations`
+      `${import.meta.env.VITE_API_URL}/simulations/`
     );
     console.log("Environment mode:", import.meta.env.MODE);
     console.log("All env vars:", import.meta.env);
