@@ -33,6 +33,7 @@ const SHAPDashboard = ({
   const [loading, setLoading] = useState(!!simulationId && !portfolioDataProp);
   const [error, setError] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({}); // Add debug state
 
   // Resolve API base
   const resolvedApiBase = useMemo(() => {
@@ -62,6 +63,65 @@ const SHAPDashboard = ({
     enhancedData,
   });
 
+  // Enhanced debugging helper function
+  const debugApiResponse = async (url, response, responseText, parsedData) => {
+    const debug = {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries()),
+      responseTextLength: responseText?.length || 0,
+      responseTextPreview: responseText?.substring(0, 200) || "",
+      isValidJson: false,
+      parsedDataKeys: [],
+      parsedDataStructure: null,
+      expectedKeys: ["success", "chart_data", "enhanced_data"],
+    };
+
+    try {
+      if (parsedData) {
+        debug.isValidJson = true;
+        debug.parsedDataKeys = Object.keys(parsedData);
+        debug.parsedDataStructure = {
+          hasSuccess: "success" in parsedData,
+          successValue: parsedData.success,
+          hasChartData: "chart_data" in parsedData,
+          hasEnhancedData: "enhanced_data" in parsedData,
+          hasError: "error" in parsedData,
+          errorValue: parsedData.error,
+          topLevelKeys: Object.keys(parsedData),
+        };
+
+        if (parsedData.chart_data) {
+          debug.chartDataKeys = Object.keys(parsedData.chart_data);
+        }
+        if (parsedData.enhanced_data) {
+          debug.enhancedDataKeys = Object.keys(parsedData.enhanced_data);
+        }
+      }
+    } catch (e) {
+      debug.parseError = e.message;
+    }
+
+    console.group(`🔍 API Debug: ${url}`);
+    console.log("📊 Response Status:", debug.status, debug.ok ? "✅" : "❌");
+    console.log("📋 Headers:", debug.headers);
+    console.log("📄 Response Preview:", debug.responseTextPreview);
+    console.log("🔧 Parsed Data Structure:", debug.parsedDataStructure);
+    console.log("🎯 Expected vs Received Keys:", {
+      expected: debug.expectedKeys,
+      received: debug.parsedDataKeys,
+      missing: debug.expectedKeys.filter(
+        (key) => !debug.parsedDataKeys.includes(key)
+      ),
+    });
+    console.groupEnd();
+
+    setDebugInfo((prev) => ({ ...prev, [url]: debug }));
+    return debug;
+  };
+
   // Helper functions
   const looksLikeSpaHtmlResponse = (res) => {
     const ct = res.headers.get("content-type") || "";
@@ -70,13 +130,40 @@ const SHAPDashboard = ({
 
   async function safeJson(res) {
     const ct = res.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) {
-      const txt = await res.text().catch(() => "");
+    const responseText = await res.text();
+
+    console.log(`🔍 Raw response for ${res.url}:`, {
+      contentType: ct,
+      textLength: responseText.length,
+      textPreview: responseText.substring(0, 300),
+      startsWithBrace: responseText.startsWith("{"),
+      endsWithBrace: responseText.endsWith("}"),
+    });
+
+    if (!ct.includes("application/json") && !responseText.startsWith("{")) {
+      console.error(
+        `❌ Expected JSON but got "${ct}". Response:`,
+        responseText.slice(0, 200)
+      );
       throw new Error(
-        `Expected JSON but got "${ct}". First bytes: ${txt.slice(0, 80)}`
+        `Expected JSON but got "${ct}". First bytes: ${responseText.slice(
+          0,
+          80
+        )}`
       );
     }
-    return res.json();
+
+    try {
+      const parsed = JSON.parse(responseText);
+      console.log(`✅ Successfully parsed JSON:`, parsed);
+      await debugApiResponse(res.url, res, responseText, parsed);
+      return parsed;
+    } catch (parseError) {
+      console.error(`❌ JSON parse failed:`, parseError);
+      console.log(`📄 Full response text:`, responseText);
+      await debugApiResponse(res.url, res, responseText, null);
+      throw new Error(`Invalid JSON response: ${parseError.message}`);
+    }
   }
 
   // Fetch simulation data
@@ -97,27 +184,38 @@ const SHAPDashboard = ({
             credentials: withCredentials ? "include" : "same-origin",
           }
         );
+
+        console.log(`🔍 Simulation fetch response:`, res.status, res.ok);
+
         if (!res.ok)
           throw new Error(
             `Failed to load simulation ${derivedSimulationId}: ${res.status}`
           );
 
         const sim = await safeJson(res);
+        console.log(`📊 Simulation data received:`, sim);
 
         // If SHAP missing, fetch SHAP explanation and merge
         const hasShap = !!sim?.results?.shap_explanation;
+        console.log(`🔍 Has SHAP in simulation:`, hasShap);
+
         if (!hasShap) {
           try {
-            const shapRes = await fetch(
-              `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/explanation`,
-              {
-                method: "GET",
-                headers: { Accept: "application/json" },
-                credentials: withCredentials ? "include" : "same-origin",
-              }
-            );
+            const shapUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/explanation`;
+            console.log(`🔍 Fetching SHAP from:`, shapUrl);
+
+            const shapRes = await fetch(shapUrl, {
+              method: "GET",
+              headers: { Accept: "application/json" },
+              credentials: withCredentials ? "include" : "same-origin",
+            });
+
+            console.log(`🔍 SHAP fetch response:`, shapRes.status, shapRes.ok);
+
             if (shapRes.ok) {
               const shapJson = await safeJson(shapRes);
+              console.log(`📊 SHAP data received:`, shapJson);
+
               const merged = {
                 ...sim,
                 results: {
@@ -129,17 +227,21 @@ const SHAPDashboard = ({
                     shapJson?.market_regime ?? sim?.results?.market_regime,
                 },
               };
+              console.log(`🔄 Merged simulation data:`, merged);
               if (alive) setPortfolioData(merged);
             } else {
+              console.warn(`⚠️ SHAP fetch failed, using original sim data`);
               if (alive) setPortfolioData(sim);
             }
-          } catch {
+          } catch (shapError) {
+            console.error(`❌ SHAP fetch error:`, shapError);
             if (alive) setPortfolioData(sim);
           }
         } else {
           if (alive) setPortfolioData(sim);
         }
       } catch (e) {
+        console.error(`❌ Simulation fetch failed:`, e);
         if (alive) setError(e?.message || "Failed to fetch simulation");
       } finally {
         if (alive) setLoading(false);
@@ -158,7 +260,10 @@ const SHAPDashboard = ({
 
   // Prefer prop if provided
   useEffect(() => {
-    if (portfolioDataProp) setPortfolioData(portfolioDataProp);
+    if (portfolioDataProp) {
+      console.log(`🔄 Using portfolio data from props:`, portfolioDataProp);
+      setPortfolioData(portfolioDataProp);
+    }
   }, [portfolioDataProp]);
 
   // SHAP data detection
@@ -168,11 +273,12 @@ const SHAPDashboard = ({
       portfolioData?.results?.shap_explanation ||
       null;
 
-    console.log("SHAP Data Detection:", {
+    console.log("🔍 SHAP Data Detection:", {
       topLevel: !!portfolioData?.shap_explanation,
       resultsLevel: !!portfolioData?.results?.shap_explanation,
       finalData: data,
       dataKeys: data ? Object.keys(data) : [],
+      dataPreview: data ? JSON.stringify(data).substring(0, 200) : null,
     });
 
     return data;
@@ -180,13 +286,19 @@ const SHAPDashboard = ({
 
   const hasShapData = useMemo(() => {
     const hasData = shapData && Object.keys(shapData || {}).length > 0;
-    console.log("Has SHAP Data:", hasData);
+    console.log("🎯 Has SHAP Data:", hasData, shapData);
     return hasData;
   }, [shapData]);
 
-  // Fetch chart data when SHAP data is available
+  // Enhanced chart data fetching with better error handling
   useEffect(() => {
-    if (!derivedSimulationId || !hasShapData) return;
+    if (!derivedSimulationId || !hasShapData) {
+      console.log(`⏭️ Skipping chart data fetch:`, {
+        hasSimId: !!derivedSimulationId,
+        hasShapData,
+      });
+      return;
+    }
 
     let cancelled = false;
     setChartLoading(true);
@@ -194,61 +306,150 @@ const SHAPDashboard = ({
     const loadChartData = async () => {
       try {
         console.log(
-          "🔄 Fetching chart data for simulation:",
+          `🔄 Fetching chart data for simulation:`,
           derivedSimulationId
         );
 
         // Fetch comprehensive chart data
-        const chartRes = await fetch(
-          `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/chart-data`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            credentials: withCredentials ? "include" : "same-origin",
-          }
-        );
+        const chartUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/chart-data`;
+        console.log(`🔍 Chart data URL:`, chartUrl);
 
-        console.log("📊 Chart data response:", chartRes.status, chartRes.ok);
+        const chartRes = await fetch(chartUrl, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: withCredentials ? "include" : "same-origin",
+        });
 
-        if (chartRes.ok && !looksLikeSpaHtmlResponse(chartRes)) {
-          const chartDataResult = await safeJson(chartRes);
-          console.log("📊 Chart data received:", chartDataResult);
-          if (chartDataResult.success && !cancelled) {
-            setChartData(chartDataResult.chart_data);
+        console.log("📊 Chart data response:", {
+          status: chartRes.status,
+          ok: chartRes.ok,
+          statusText: chartRes.statusText,
+          url: chartRes.url,
+        });
+
+        // Check if response looks like SPA HTML
+        if (looksLikeSpaHtmlResponse(chartRes)) {
+          console.warn(
+            "⚠️ Received HTML response instead of JSON for chart data"
+          );
+          throw new Error("Received HTML response instead of JSON");
+        }
+
+        if (chartRes.ok) {
+          try {
+            const chartDataResult = await safeJson(chartRes);
+            console.log("📊 Chart data received:", chartDataResult);
+
+            // Check expected structure
+            if (chartDataResult && typeof chartDataResult === "object") {
+              if (
+                chartDataResult.success === true &&
+                chartDataResult.chart_data
+              ) {
+                console.log("✅ Chart data has expected structure");
+                if (!cancelled) {
+                  setChartData(chartDataResult.chart_data);
+                }
+              } else if (chartDataResult.success === false) {
+                console.error(
+                  "❌ Chart data API returned success: false",
+                  chartDataResult
+                );
+                throw new Error(
+                  chartDataResult.error || "Chart data API request failed"
+                );
+              } else {
+                console.warn(
+                  "⚠️ Unexpected chart data structure:",
+                  chartDataResult
+                );
+                // Try to use the data anyway if it looks valid
+                if (chartDataResult.chart_data && !cancelled) {
+                  setChartData(chartDataResult.chart_data);
+                } else if (
+                  Object.keys(chartDataResult).length > 0 &&
+                  !cancelled
+                ) {
+                  // Maybe the whole response is the chart data
+                  setChartData(chartDataResult);
+                }
+              }
+            } else {
+              console.error(
+                "❌ Chart data is not an object:",
+                typeof chartDataResult,
+                chartDataResult
+              );
+            }
+          } catch (jsonError) {
+            console.error("❌ Chart data JSON parse failed:", jsonError);
+            throw jsonError;
           }
         } else {
-          console.warn("Chart data fetch failed:", chartRes.status);
+          console.error(
+            "❌ Chart data fetch failed:",
+            chartRes.status,
+            chartRes.statusText
+          );
+          throw new Error(
+            `Chart data fetch failed: ${chartRes.status} ${chartRes.statusText}`
+          );
         }
 
         // Fetch enhanced portfolio data
-        const enhancedRes = await fetch(
-          `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/enhanced-data`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            credentials: withCredentials ? "include" : "same-origin",
-          }
-        );
+        const enhancedUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/enhanced-data`;
+        console.log(`🔍 Enhanced data URL:`, enhancedUrl);
 
-        console.log(
-          "📈 Enhanced data response:",
-          enhancedRes.status,
-          enhancedRes.ok
-        );
+        const enhancedRes = await fetch(enhancedUrl, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: withCredentials ? "include" : "same-origin",
+        });
+
+        console.log("📈 Enhanced data response:", {
+          status: enhancedRes.status,
+          ok: enhancedRes.ok,
+          statusText: enhancedRes.statusText,
+        });
 
         if (enhancedRes.ok && !looksLikeSpaHtmlResponse(enhancedRes)) {
-          const enhancedDataResult = await safeJson(enhancedRes);
-          console.log("📈 Enhanced data received:", enhancedDataResult);
-          if (enhancedDataResult.success && !cancelled) {
-            setEnhancedData(enhancedDataResult.enhanced_data);
+          try {
+            const enhancedDataResult = await safeJson(enhancedRes);
+            console.log("📈 Enhanced data received:", enhancedDataResult);
+
+            if (
+              enhancedDataResult &&
+              enhancedDataResult.success &&
+              enhancedDataResult.enhanced_data &&
+              !cancelled
+            ) {
+              setEnhancedData(enhancedDataResult.enhanced_data);
+            } else if (enhancedDataResult && !enhancedDataResult.success) {
+              console.warn(
+                "⚠️ Enhanced data API returned success: false",
+                enhancedDataResult
+              );
+            }
+          } catch (jsonError) {
+            console.error("❌ Enhanced data JSON parse failed:", jsonError);
           }
         } else {
-          console.warn("Enhanced data fetch failed:", enhancedRes.status);
+          console.warn(
+            "⚠️ Enhanced data fetch failed or returned HTML:",
+            enhancedRes.status
+          );
         }
       } catch (error) {
-        console.error("Failed to fetch chart data:", error);
+        console.error("❌ Failed to fetch chart data:", error);
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        });
       } finally {
-        if (!cancelled) setChartLoading(false);
+        if (!cancelled) {
+          setChartLoading(false);
+        }
       }
     };
 
@@ -298,7 +499,7 @@ const SHAPDashboard = ({
           </p>
         </div>
 
-        {/* Debug information */}
+        {/* Enhanced Debug information */}
         <details className="bg-gray-50 border rounded-lg p-4">
           <summary className="cursor-pointer font-medium text-gray-700">
             Debug Information
@@ -332,6 +533,17 @@ const SHAPDashboard = ({
               </div>
             )}
 
+            {portfolioData?.results && (
+              <div className="mt-3">
+                <p>
+                  <strong>Results Keys:</strong>
+                </p>
+                <code className="block bg-white p-2 rounded text-xs">
+                  {Object.keys(portfolioData.results).join(", ")}
+                </code>
+              </div>
+            )}
+
             {shapData && (
               <div className="mt-3">
                 <p>
@@ -339,6 +551,18 @@ const SHAPDashboard = ({
                 </p>
                 <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-32">
                   {JSON.stringify(shapData, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* API Debug Info */}
+            {Object.keys(debugInfo).length > 0 && (
+              <div className="mt-3">
+                <p>
+                  <strong>API Debug Info:</strong>
+                </p>
+                <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-48">
+                  {JSON.stringify(debugInfo, null, 2)}
                 </pre>
               </div>
             )}
@@ -368,7 +592,7 @@ const SHAPDashboard = ({
         )}
       </div>
 
-      {/* Debug Panel */}
+      {/* Enhanced Debug Panel */}
       <details className="bg-gray-50 border rounded-lg p-4">
         <summary className="cursor-pointer font-medium text-gray-700">
           Chart Data Debug
@@ -384,6 +608,7 @@ const SHAPDashboard = ({
           <p>
             <strong>Chart Loading:</strong> {chartLoading ? "🔄" : "✅"}
           </p>
+
           {chartData && (
             <div>
               <p>
@@ -392,8 +617,17 @@ const SHAPDashboard = ({
               <code className="block bg-white p-2 rounded text-xs">
                 {Object.keys(chartData).join(", ")}
               </code>
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-gray-600">
+                  View Chart Data Structure
+                </summary>
+                <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-32 mt-1">
+                  {JSON.stringify(chartData, null, 2)}
+                </pre>
+              </details>
             </div>
           )}
+
           {enhancedData && (
             <div>
               <p>
@@ -403,6 +637,17 @@ const SHAPDashboard = ({
                 {Object.keys(enhancedData).join(", ")}
               </code>
             </div>
+          )}
+
+          {Object.keys(debugInfo).length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-xs text-gray-600">
+                View API Debug Info
+              </summary>
+              <pre className="bg-white p-2 rounded text-xs overflow-auto max-h-48 mt-1">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </details>
           )}
         </div>
       </details>
@@ -463,6 +708,9 @@ const SHAPDashboard = ({
     </div>
   );
 };
+
+// Rest of your component code remains the same...
+// [Include all the other components: SummaryTab, FactorsTab, etc.]
 
 // Summary Tab
 const SummaryTab = ({ shapData, portfolioData, chartData }) => {
@@ -532,10 +780,12 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ symbol, value }) => `${symbol}: ${value}%`}
+                  label={({ symbol, allocation }) =>
+                    `${symbol}: ${allocation}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="value"
+                  dataKey="allocation"
                 >
                   {chartData.portfolio_composition.map((entry, index) => (
                     <Cell
@@ -675,7 +925,7 @@ const FactorsTab = ({ chartData, shapData }) => {
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData.shap_waterfall}>
+              <ComposedChart data={chartData.shap_waterfall.contributions}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="feature"
@@ -685,13 +935,15 @@ const FactorsTab = ({ chartData, shapData }) => {
                 />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value">
-                  {chartData.shap_waterfall.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.isPositive ? "#10B981" : "#EF4444"}
-                    />
-                  ))}
+                <Bar dataKey="contribution">
+                  {chartData.shap_waterfall.contributions.map(
+                    (entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.contribution >= 0 ? "#10B981" : "#EF4444"}
+                      />
+                    )
+                  )}
                 </Bar>
                 <Line
                   type="monotone"
@@ -789,11 +1041,16 @@ const VisualizationsTab = ({
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart data={chartData.risk_return_analysis}>
+              <ScatterChart
+                data={[
+                  chartData.risk_return_analysis.portfolio,
+                  ...chartData.risk_return_analysis.benchmark,
+                ]}
+              >
                 <CartesianGrid />
                 <XAxis
                   type="number"
-                  dataKey="risk"
+                  dataKey="volatility"
                   name="Risk"
                   label={{
                     value: "Risk (%)",
@@ -803,7 +1060,7 @@ const VisualizationsTab = ({
                 />
                 <YAxis
                   type="number"
-                  dataKey="return"
+                  dataKey="expected_return"
                   name="Return"
                   label={{
                     value: "Expected Return (%)",
@@ -814,16 +1071,19 @@ const VisualizationsTab = ({
                 <Tooltip
                   cursor={{ strokeDasharray: "3 3" }}
                   formatter={(value, name) => [
-                    `${value.toFixed(2)}%`,
-                    name === "risk" ? "Risk" : "Expected Return",
+                    `${(value * 100).toFixed(2)}%`,
+                    name === "volatility" ? "Risk" : "Expected Return",
                   ]}
                   labelFormatter={(label, payload) =>
-                    payload?.[0]?.payload?.symbol || "Portfolio Asset"
+                    payload?.[0]?.payload?.label || "Portfolio Asset"
                   }
                 />
                 <Scatter
                   name="Assets"
-                  data={chartData.risk_return_analysis}
+                  data={[
+                    chartData.risk_return_analysis.portfolio,
+                    ...chartData.risk_return_analysis.benchmark,
+                  ]}
                   fill="#3B82F6"
                 />
               </ScatterChart>
@@ -840,13 +1100,38 @@ const VisualizationsTab = ({
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData.market_regime}>
+              <BarChart
+                data={Object.entries(
+                  chartData.market_regime.regime_probabilities || {}
+                ).map(([name, value]) => ({
+                  name,
+                  probability: value,
+                  isCurrent: name === chartData.market_regime.current_regime,
+                }))}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="current" fill="#3B82F6" name="Current" />
-                <Bar dataKey="normal" fill="#9CA3AF" name="Normal" />
+                <Tooltip
+                  formatter={(value) => [
+                    `${(value * 100).toFixed(1)}%`,
+                    "Probability",
+                  ]}
+                />
+                <Bar dataKey="probability" radius={[4, 4, 0, 0]}>
+                  {Object.entries(
+                    chartData.market_regime.regime_probabilities || {}
+                  ).map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        entry[0] === chartData.market_regime.current_regime
+                          ? "#3B82F6"
+                          : "#9CA3AF"
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -868,19 +1153,22 @@ const VisualizationsTab = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                £{chartData.goal_analysis.projected_value?.toLocaleString()}
+                £{chartData.goal_analysis.current_value?.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">Projected Value</div>
+              <div className="text-sm text-gray-600">Current Value</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {chartData.goal_analysis.probability_of_success}%
+                {(chartData.goal_analysis.probability_of_success * 100).toFixed(
+                  0
+                )}
+                %
               </div>
               <div className="text-sm text-gray-600">Success Probability</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {chartData.goal_analysis.timeframe_years} years
+                {chartData.goal_analysis.time_horizon} years
               </div>
               <div className="text-sm text-gray-600">Time Horizon</div>
             </div>
@@ -945,29 +1233,29 @@ const VisualizationsTab = ({
         </div>
       )}
 
-      {/* Stock Performance Breakdown */}
-      {enhancedData?.stock_performance && (
+      {/* Individual Stock Performance */}
+      {enhancedData?.individual_stock_performance && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">
             Individual Stock Analysis
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={enhancedData.stock_performance}>
+              <BarChart data={enhancedData.individual_stock_performance}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="symbol" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
                 <Bar
-                  dataKey="weight"
+                  dataKey="allocation"
                   fill="#3B82F6"
                   name="Portfolio Weight %"
                 />
                 <Bar
-                  dataKey="estimated_return"
+                  dataKey="risk_metrics.volatility"
                   fill="#10B981"
-                  name="Expected Return %"
+                  name="Volatility"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -1055,63 +1343,17 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
           3
         )}.`,
       });
-
-      const riskFactor = chartData.factor_importance.find((f) =>
-        f.factor.toLowerCase().includes("risk")
-      );
-      const timeFactor = chartData.factor_importance.find(
-        (f) =>
-          f.factor.toLowerCase().includes("timeline") ||
-          f.factor.toLowerCase().includes("timeframe")
-      );
-
-      if (riskFactor && timeFactor) {
-        insights.push({
-          icon: "Scale",
-          title: "Risk & Time Balance",
-          description: `Your risk comfort level and investment timeline work ${
-            (riskFactor.importance > 0 && timeFactor.importance > 0) ||
-            (riskFactor.importance < 0 && timeFactor.importance < 0)
-              ? "well together"
-              : "against each other"
-          } in this portfolio strategy.`,
-        });
-      }
-    }
-
-    // Market regime insights
-    if (chartData?.market_regime) {
-      const vixData = chartData.market_regime.find(
-        (item) => item.name === "VIX Level"
-      );
-      const trendData = chartData.market_regime.find(
-        (item) => item.name === "Trend Score"
-      );
-
-      if (vixData || trendData) {
-        insights.push({
-          icon: "Waves",
-          title: "Market Conditions Impact",
-          description: `Current market conditions show ${
-            vixData?.status === "Low" ? "low volatility" : "elevated volatility"
-          } and ${
-            trendData?.status === "Bullish"
-              ? "positive momentum"
-              : "neutral momentum"
-          }, which ${
-            vixData?.status === "Low" ? "supports" : "requires caution in"
-          } your investment strategy.`,
-        });
-      }
     }
 
     // Goal analysis insights
     if (chartData?.goal_analysis) {
-      const successProb = chartData.goal_analysis.probability_of_success;
+      const successProb = chartData.goal_analysis.probability_of_success * 100;
       insights.push({
         icon: "Trophy",
         title: "Goal Achievement Outlook",
-        description: `Based on your inputs and current market conditions, you have a ${successProb}% probability of achieving your financial goal of £${chartData.goal_analysis.target_value?.toLocaleString()}.`,
+        description: `Based on your inputs and current market conditions, you have a ${successProb.toFixed(
+          0
+        )}% probability of achieving your financial goal of £${chartData.goal_analysis.target_value?.toLocaleString()}.`,
       });
     }
 
@@ -1208,7 +1450,7 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-2xl font-bold text-gray-800">
-                {chartData.shap_waterfall?.length || 0}
+                {chartData.shap_waterfall?.contributions?.length || 0}
               </div>
               <div className="text-sm text-gray-600">SHAP Features</div>
             </div>
