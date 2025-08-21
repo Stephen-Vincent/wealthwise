@@ -1,777 +1,684 @@
 """
-AI-powered stock recommendation service for the Portfolio Simulator.
+Main Portfolio Simulator Service - Orchestrates the complete simulation workflow.
 
-This module integrates with the WealthWise AI system to provide intelligent
-stock recommendations based on user goals, risk tolerance, and market conditions.
+This module provides the main service class that coordinates all components
+to deliver complete portfolio simulation functionality with AI recommendations,
+SHAP explanations, and visualizations.
 """
 
 import logging
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
 import asyncio
-import numpy as np   # ✅ Missing import added
+from typing import Dict, List, Optional, Any
+from sqlalchemy.orm import Session
 
-from .config import get_config, get_stock_metadata, get_risk_profiles
-from .exceptions import AIServiceError, SHAPExplanationError
+from .config import get_config, initialize_config
+from .exceptions import PortfolioSimulatorError, ValidationError
 from .validators import InputValidator
+from .data_provider import MarketDataProvider, DataQualityAnalyzer
+from .portfolio_simulator import PortfolioSimulator, PortfolioWeightCalculator
+from .ai_recommendation_service import AIRecommendationService, SHAPDataProcessor
+from .visualization_service import VisualizationService, ChartDataGenerator
+from .database_service import DatabaseService, SimulationResultsFormatter
 
 logger = logging.getLogger(__name__)
 
 
-class AIRecommendationService:
+class PortfolioSimulatorService:
     """
-    Provides AI-powered stock recommendations with explainable decisions.
+    Main service orchestrating the complete portfolio simulation workflow.
     
-    This service integrates with external AI models to provide personalized
-    investment recommendations based on user profiles and market conditions.
-    """
-    
-    def __init__(self, validator: Optional[InputValidator] = None):
-        """
-        Initialize the AI recommendation service.
-        
-        Args:
-            validator: Input validator instance
-        """
-        self.config = get_config()
-        self.validator = validator or InputValidator()
-        self.stock_metadata = get_stock_metadata()
-        self.risk_profiles = get_risk_profiles()
-        
-        # Try to initialize WealthWise AI system
-        self.wealthwise_available = False
-        self.wealthwise_components = {}
-        
-        if self.config.ai_service.enable_shap:
-            self._initialize_wealthwise()
-    
-    def _initialize_wealthwise(self) -> None:
-        """Initialize WealthWise AI components if available."""
-        try:
-            # Try to import WealthWise components
-            from ai_models.stock_model.core.recommender import EnhancedStockRecommender
-            from ai_models.stock_model.explainable_ai import SHAPExplainer
-            from ai_models.stock_model.goal_optimization import GoalCalculator, FeasibilityAssessor
-            from ai_models.stock_model.analysis import MarketRegimeDetector, FactorAnalyzer
-            from ai_models.stock_model.utils import initialize_complete_system
-            
-            # Initialize the system
-            init_result = initialize_complete_system({
-                'LOG_LEVEL': self.config.log_level.value,
-                'LOG_TO_FILE': False,
-                'ENABLE_PERFORMANCE_TRACKING': True
-            })
-            
-            if init_result.get('success'):
-                self.wealthwise_components = {
-                    'recommender': EnhancedStockRecommender(),
-                    'shap_explainer': SHAPExplainer(),
-                    'goal_calculator': GoalCalculator(),
-                    'feasibility_assessor': FeasibilityAssessor(),
-                    'market_detector': MarketRegimeDetector(),
-                    'factor_analyzer': FactorAnalyzer()
-                }
-                self.wealthwise_available = True
-                logger.info("WealthWise AI system initialized successfully")
-            else:
-                logger.warning(f"WealthWise initialization failed: {init_result.get('error')}")
-                
-        except ImportError as e:
-            logger.info(f"WealthWise not available: {e}")
-        except Exception as e:
-            logger.warning(f"Failed to initialize WealthWise: {e}")
-    
-    async def get_recommendations(
-        self,
-        target_value: float,
-        timeframe_years: int,
-        risk_score: int,
-        risk_label: str,
-        current_investment: float = 0,
-        monthly_contribution: float = 0,
-        user_preferences: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """
-        Get AI-powered stock recommendations.
-        
-        Args:
-            target_value: Investment target amount
-            timeframe_years: Investment timeframe
-            risk_score: Risk tolerance score (0-100)
-            risk_label: Risk profile label
-            current_investment: Current investment amount
-            monthly_contribution: Monthly contribution amount
-            user_preferences: Additional user preferences
-            
-        Returns:
-            Dictionary containing recommendations and explanations
-            
-        Raises:
-            AIServiceError: If recommendation generation fails
-        """
-        try:
-            logger.info(
-                f"Generating AI recommendations: target=£{target_value:,.2f}, "
-                f"timeframe={timeframe_years}y, risk={risk_score}"
-            )
-            
-            # Validate inputs
-            validated_target = self.validator.validate_target_value(target_value)
-            validated_timeframe = self.validator.validate_timeframe(timeframe_years)
-            validated_risk_score = self.validator.validate_risk_score(risk_score)
-            
-            if self.wealthwise_available:
-                return await self._get_enhanced_recommendations(
-                    validated_target, validated_timeframe, validated_risk_score,
-                    risk_label, current_investment, monthly_contribution, user_preferences
-                )
-            else:
-                return self._get_fallback_recommendations(
-                    validated_target, validated_timeframe, validated_risk_score, risk_label
-                )
-                
-        except Exception as e:
-            if isinstance(e, AIServiceError):
-                raise
-            
-            logger.error(f"AI recommendation failed: {str(e)}")
-            raise AIServiceError(
-                f"Failed to generate recommendations: {str(e)}",
-                service="ai_recommendation"
-            )
-    
-    async def _get_enhanced_recommendations(
-        self,
-        target_value: float,
-        timeframe_years: int,
-        risk_score: int,
-        risk_label: str,
-        current_investment: float,
-        monthly_contribution: float,
-        user_preferences: Optional[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """
-        Get enhanced recommendations using WealthWise AI system.
-        
-        Args:
-            target_value: Investment target
-            timeframe_years: Investment timeframe
-            risk_score: Risk score
-            risk_label: Risk label
-            current_investment: Current investment
-            monthly_contribution: Monthly contribution
-            user_preferences: User preferences
-            
-        Returns:
-            Enhanced recommendation results with SHAP explanations
-        """
-        try:
-            recommender = self.wealthwise_components['recommender']
-            goal_calculator = self.wealthwise_components['goal_calculator']
-            feasibility_assessor = self.wealthwise_components['feasibility_assessor']
-            market_detector = self.wealthwise_components['market_detector']
-            factor_analyzer = self.wealthwise_components['factor_analyzer']
-            shap_explainer = self.wealthwise_components['shap_explainer']
-            
-            # Step 1: Goal analysis
-            goal_analysis = goal_calculator.calculate_required_return(
-                target_value, current_investment, timeframe_years, monthly_contribution
-            )
-            
-            # Step 2: Feasibility assessment
-            feasibility_assessment = feasibility_assessor.assess_goal_feasibility(
-                goal_analysis.get("required_return", 0), risk_score, timeframe_years,
-                current_investment, monthly_contribution
-            )
-            
-            # Step 3: Market regime detection
-            market_regime = market_detector.detect_market_regime()
-            
-            # Step 4: Get initial stock recommendations
-            initial_stocks = recommender.recommend_stocks(
-                target_value, timeframe_years, risk_score,
-                current_investment, monthly_contribution
-            )
-            
-            # Step 5: Enhance with factor analysis
-            candidate_stocks = self._expand_candidate_pool(
-                initial_stocks, risk_score, market_regime
-            )
-            
-            try:
-                ranked_stocks = factor_analyzer.rank_stocks_by_factors(
-                    candidate_stocks,
-                    market_regime=market_regime,
-                    risk_score=risk_score,
-                    timeframe=timeframe_years
-                )
-                
-                # Select top stocks based on ranking
-                num_stocks = min(6, len(ranked_stocks))
-                final_stocks = [stock for stock, score in ranked_stocks[:num_stocks]]
-                
-            except Exception as factor_error:
-                logger.warning(f"Factor analysis failed: {factor_error}")
-                final_stocks = initial_stocks[:6]
-            
-            # Step 6: Generate SHAP explanations
-            shap_explanation = None
-            try:
-                if not shap_explainer.is_available():
-                    logger.info("Training SHAP model...")
-                    shap_explainer.train_shap_model(num_samples=1000)
-                
-                if shap_explainer.is_available():
-                    shap_explanation = shap_explainer.get_shap_explanation(
-                        target_value, timeframe_years, risk_score,
-                        current_investment, monthly_contribution,
-                        market_regime.get('current_vix', 20),
-                        market_regime.get('trend_score', 2.5)
-                    )
-                    
-            except Exception as shap_error:
-                logger.warning(f"SHAP explanation failed: {shap_error}")
-            
-            return {
-                "stocks": final_stocks,
-                "shap_explanation": shap_explanation,
-                "goal_analysis": goal_analysis,
-                "feasibility_assessment": feasibility_assessment,
-                "market_regime": market_regime,
-                "method": "wealthwise_enhanced",
-                "confidence_score": self._calculate_confidence_score(
-                    feasibility_assessment, market_regime, len(final_stocks)
-                ),
-                "explanations": self._generate_stock_explanations(
-                    final_stocks, shap_explanation, market_regime
-                )
-            }
-            
-        except Exception as e:
-            logger.error(f"Enhanced recommendation failed: {e}")
-            # Fallback to basic recommendations
-            return self._get_fallback_recommendations(
-                target_value, timeframe_years, risk_score, risk_label
-            )
-    
-    def _get_fallback_recommendations(
-        self,
-        target_value: float,
-        timeframe_years: int,
-        risk_score: int,
-        risk_label: str
-    ) -> Dict[str, Any]:
-        """
-        Get fallback recommendations using rule-based approach.
-        
-        Args:
-            target_value: Investment target
-            timeframe_years: Investment timeframe
-            risk_score: Risk score
-            risk_label: Risk label
-            
-        Returns:
-            Basic recommendation results
-        """
-        logger.info("Using fallback recommendation method")
-        
-        # Map risk score to risk profile
-        profile_key = self._map_risk_score_to_profile(risk_score)
-        profile = self.risk_profiles[profile_key]
-        
-        # Get suggested ETFs for this risk profile
-        suggested_stocks = profile.get("suggested_etfs", [])
-        
-        # Ensure we have at least some recommendations
-        if not suggested_stocks:
-            if risk_score < 35:
-                suggested_stocks = ["VTI", "BND", "VEA", "VTEB", "VYM"]
-            elif risk_score < 70:
-                suggested_stocks = ["VTI", "VEA", "VWO", "VNQ", "BND"]
-            else:
-                suggested_stocks = ["VTI", "VGT", "VUG", "ARKK", "VEA"]
-        
-        # Limit to available stocks in our metadata
-        available_stocks = [
-            stock for stock in suggested_stocks 
-            if stock in self.stock_metadata
-        ]
-        
-        if not available_stocks:
-            # Ultimate fallback
-            available_stocks = ["VTI", "BND", "VEA"]
-        
-        return {
-            "stocks": available_stocks[:6],  # Limit to 6 stocks
-            "shap_explanation": None,
-            "goal_analysis": self._calculate_basic_goal_analysis(
-                target_value, timeframe_years, risk_score
-            ),
-            "feasibility_assessment": self._assess_basic_feasibility(
-                target_value, timeframe_years, risk_score
-            ),
-            "market_regime": self._get_default_market_regime(),
-            "method": "fallback_rule_based",
-            "confidence_score": 0.6,  # Moderate confidence for rule-based
-            "explanations": self._generate_basic_explanations(available_stocks[:6])
-        }
-    
-    def _expand_candidate_pool(
-        self,
-        initial_stocks: List[str],
-        risk_score: int,
-        market_regime: Dict[str, Any]
-    ) -> List[str]:
-        """
-        Expand the candidate stock pool based on risk profile and market conditions.
-        
-        Args:
-            initial_stocks: Initial stock recommendations
-            risk_score: Risk tolerance score
-            market_regime: Current market regime data
-            
-        Returns:
-            Expanded list of candidate stocks
-        """
-        candidates = set(initial_stocks)
-        
-        # Add stocks based on risk profile
-        if risk_score < 35:  # Conservative
-            candidates.update(["VTI", "BND", "VEA", "VTEB", "VWO", "AGG", "VYM", "SCHD"])
-        elif risk_score < 70:  # Moderate
-            candidates.update(["VTI", "VEA", "VWO", "VNQ", "BND", "VUG", "VGT", "VOO"])
-        else:  # Aggressive
-            candidates.update(["VTI", "VGT", "VUG", "ARKK", "VEA", "QQQ", "TQQQ"])
-        
-        # Add stocks based on market regime
-        regime = market_regime.get('regime', 'neutral')
-        if regime == 'bear':
-            candidates.update(["VYM", "SCHD", "BND", "VTEB"])  # Defensive assets
-        elif regime == 'bull':
-            candidates.update(["VGT", "VUG", "QQQ", "ARKK"])  # Growth assets
-        
-        # Filter to only include stocks we have metadata for
-        valid_candidates = [
-            stock for stock in candidates 
-            if stock in self.stock_metadata
-        ]
-        
-        return valid_candidates
-    
-    def _calculate_confidence_score(
-        self,
-        feasibility_assessment: Dict[str, Any],
-        market_regime: Dict[str, Any],
-        num_stocks: int
-    ) -> float:
-        """
-        Calculate confidence score for recommendations.
-        
-        Args:
-            feasibility_assessment: Goal feasibility data
-            market_regime: Market regime data
-            num_stocks: Number of recommended stocks
-            
-        Returns:
-            Confidence score between 0 and 1
-        """
-        base_confidence = 0.7
-        
-        # Adjust based on feasibility
-        feasibility_score = feasibility_assessment.get('feasibility_score', 50)
-        if feasibility_score > 80:
-            base_confidence += 0.1
-        elif feasibility_score < 40:
-            base_confidence -= 0.2
-        
-        # Adjust based on market volatility
-        vix = market_regime.get('current_vix', 20)
-        if vix < 15:  # Low volatility
-            base_confidence += 0.1
-        elif vix > 30:  # High volatility
-            base_confidence -= 0.1
-        
-        # Adjust based on diversification
-        if num_stocks >= 5:
-            base_confidence += 0.05
-        elif num_stocks < 3:
-            base_confidence -= 0.1
-        
-        return max(0.1, min(1.0, base_confidence))
-    
-    def _generate_stock_explanations(
-        self,
-        stocks: List[str],
-        shap_explanation: Optional[Dict[str, Any]],
-        market_regime: Dict[str, Any]
-    ) -> Dict[str, str]:
-        """
-        Generate explanations for why each stock was recommended.
-        
-        Args:
-            stocks: List of recommended stocks
-            shap_explanation: SHAP explanation data
-            market_regime: Market regime data
-            
-        Returns:
-            Dictionary mapping stocks to explanation strings
-        """
-        explanations = {}
-        
-        for stock in stocks:
-            stock_info = self.stock_metadata.get(stock, {})
-            
-            if shap_explanation and shap_explanation.get("human_readable_explanation"):
-                # Use AI-generated explanations if available
-                ai_explanations = shap_explanation["human_readable_explanation"]
-                explanation = next(
-                    (exp for key, exp in ai_explanations.items() 
-                     if stock.lower() in exp.lower()), 
-                    None
-                )
-                
-                if explanation:
-                    explanations[stock] = explanation[:150] + "..." if len(explanation) > 150 else explanation
-                    continue
-            
-            # Fallback to rule-based explanations
-            category = stock_info.get('category', 'equity')
-            risk_score = stock_info.get('risk_score', 15)
-            description = stock_info.get('description', f'{stock} investment')
-            
-            if category == 'bond':
-                explanations[stock] = f"Selected for stability and income generation. {description}"
-            elif category == 'equity_dividend':
-                explanations[stock] = f"Chosen for dividend income and moderate growth. {description}"
-            elif risk_score > 30:
-                explanations[stock] = f"Included for growth potential despite higher volatility. {description}"
-            else:
-                explanations[stock] = f"Selected for balanced risk-return profile. {description}"
-        
-        return explanations
-    
-    def _generate_basic_explanations(self, stocks: List[str]) -> Dict[str, str]:
-        """Generate basic explanations for fallback recommendations."""
-        explanations = {}
-        
-        for stock in stocks:
-            stock_info = self.stock_metadata.get(stock, {})
-            description = stock_info.get('description', f'{stock} investment')
-            explanations[stock] = f"Selected based on risk profile matching. {description}"
-        
-        return explanations
-    
-    def _calculate_basic_goal_analysis(
-        self,
-        target_value: float,
-        timeframe_years: int,
-        risk_score: int
-    ) -> Dict[str, Any]:
-        """Calculate basic goal analysis without AI."""
-        # Simple calculation of required return
-        # Assumes some monthly contribution for calculation
-        assumed_monthly = target_value / (timeframe_years * 24)  # Rough estimate
-        total_contributions = assumed_monthly * 12 * timeframe_years
-        
-        if total_contributions > 0:
-            required_growth = target_value - total_contributions
-            required_return_pct = (required_growth / total_contributions) * 100 / timeframe_years
-        else:
-            required_return_pct = 8.0  # Default assumption
-        
-        return {
-            "required_return_percent": max(0, required_return_pct),
-            "estimated_contributions": total_contributions,
-            "required_growth": max(0, target_value - total_contributions),
-            "method": "basic_calculation"
-        }
-    
-    def _assess_basic_feasibility(
-        self,
-        target_value: float,
-        timeframe_years: int,
-        risk_score: int
-    ) -> Dict[str, Any]:
-        """Assess basic feasibility without AI."""
-        # Simple heuristic-based feasibility assessment
-        goal_analysis = self._calculate_basic_goal_analysis(target_value, timeframe_years, risk_score)
-        required_return = goal_analysis.get("required_return_percent", 8)
-        
-        # Feasibility based on required return and risk tolerance
-        if required_return <= 5:
-            feasibility_score = 90
-            risk_assessment = "low"
-        elif required_return <= 10:
-            feasibility_score = 75
-            risk_assessment = "moderate"
-        elif required_return <= 15:
-            feasibility_score = 60 if risk_score > 50 else 40
-            risk_assessment = "high"
-        else:
-            feasibility_score = 30 if risk_score > 70 else 15
-            risk_assessment = "very_high"
-        
-        # Adjust for timeframe
-        if timeframe_years < 5:
-            feasibility_score -= 15
-        elif timeframe_years > 15:
-            feasibility_score += 10
-        
-        feasibility_score = max(10, min(95, feasibility_score))
-        
-        return {
-            "feasibility_score": feasibility_score,
-            "risk_assessment": risk_assessment,
-            "recommendations": {
-                "primary": f"Goal is {'achievable' if feasibility_score > 60 else 'challenging'} with current parameters",
-                "secondary": "Consider adjusting timeframe or contributions if needed"
-            },
-            "method": "heuristic_assessment"
-        }
-    
-    def _get_default_market_regime(self) -> Dict[str, Any]:
-        """Get default market regime data when AI is not available."""
-        return {
-            "regime": "neutral",
-            "current_vix": 20.0,
-            "trend_score": 2.5,
-            "returns_3m": 0.05,
-            "confidence": 0.5,
-            "method": "default_values"
-        }
-    
-    def _map_risk_score_to_profile(self, risk_score: int) -> str:
-        """Map numerical risk score to risk profile name."""
-        if risk_score < 35:
-            return "conservative"
-        elif risk_score < 70:
-            return "moderate"
-        else:
-            return "aggressive"
-    
-    def get_stock_explanation(self, ticker: str, recommendation_result: Dict[str, Any]) -> str:
-        """
-        Get explanation for a specific stock recommendation.
-        
-        Args:
-            ticker: Stock ticker symbol
-            recommendation_result: Result from get_recommendations()
-            
-        Returns:
-            Human-readable explanation for the stock selection
-        """
-        explanations = recommendation_result.get("explanations", {})
-        
-        if ticker in explanations:
-            return explanations[ticker]
-        
-        # Fallback explanation
-        method = recommendation_result.get("method", "unknown")
-        if method == "fallback_rule_based":
-            return f"{ticker} selected based on risk profile matching"
-        else:
-            return f"{ticker} recommended by AI analysis for your goals and risk profile"
-
-
-class SHAPDataProcessor:
-    """
-    Processes and cleans SHAP explanation data for visualization and analysis.
-    
-    This class handles the complex task of converting SHAP model outputs into
-    formats suitable for visualization and human interpretation.
+    This service coordinates all components to provide:
+    1. Input validation and sanitization
+    2. AI-powered stock recommendations with SHAP explanations
+    3. Market data retrieval and processing
+    4. Portfolio simulation with multiple scenarios
+    5. Visualization generation (static and interactive)
+    6. Database storage and retrieval
+    7. Comprehensive error handling and logging
     """
     
     def __init__(self):
-        """Initialize the SHAP data processor."""
-        self.feature_name_mapping = {
-            "risk_score": "Risk Tolerance",
-            "target_value_log": "Investment Goal",
-            "timeframe": "Time Horizon",
-            "required_return": "Required Growth Rate",
-            "monthly_contribution": "Monthly Investment",
-            "market_volatility": "Market Volatility",
-            "market_trend_score": "Market Trend"
-        }
+        """Initialize the portfolio simulator service with all components."""
+        # Initialize configuration
+        self.config = get_config()
         
-        self.feature_descriptions = {
-            "risk_score": "Your comfort level with investment risk and volatility",
-            "target_value_log": "The financial goal you want to achieve",
-            "timeframe": "How long you have to invest and reach your goal",
-            "required_return": "The annual growth rate needed to reach your target",
-            "monthly_contribution": "Amount you can invest each month",
-            "market_volatility": "Current market uncertainty and volatility levels",
-            "market_trend_score": "Whether markets are trending up or down"
-        }
+        # Initialize core components
+        self.validator = InputValidator()
+        self.data_provider = MarketDataProvider(self.validator)
+        self.data_quality_analyzer = DataQualityAnalyzer()
+        self.portfolio_simulator = PortfolioSimulator(self.validator)
+        self.weight_calculator = PortfolioWeightCalculator(self.validator)
+        self.ai_service = AIRecommendationService(self.validator)
+        self.visualization_service = VisualizationService(self.validator)
+        self.chart_data_generator = ChartDataGenerator()
+        self.database_service = DatabaseService(self.validator)
+        self.results_formatter = SimulationResultsFormatter()
+        self.shap_processor = SHAPDataProcessor()
+        
+        logger.info("Portfolio Simulator Service initialized successfully")
     
-    def clean_shap_explanation(self, raw_explanation: Dict[str, Any]) -> Dict[str, Any]:
+    async def simulate_portfolio(self, simulation_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
         """
-        Clean and process raw SHAP explanation data.
+        Execute complete portfolio simulation workflow.
         
         Args:
-            raw_explanation: Raw SHAP explanation from the model
+            simulation_input: Raw input data from user
+            db: Database session
             
         Returns:
-            Cleaned and processed SHAP explanation
+            Complete simulation results with all enhancements
             
         Raises:
-            SHAPExplanationError: If processing fails
+            PortfolioSimulatorError: If simulation fails at any stage
         """
         try:
-            cleaned = {}
+            logger.info("Starting enhanced portfolio simulation workflow")
             
-            # Process feature contributions
-            if "feature_contributions" in raw_explanation:
-                cleaned["feature_contributions"] = self._clean_feature_contributions(
-                    raw_explanation["feature_contributions"]
-                )
+            # Step 1: Validate and sanitize input
+            validated_input = self.validator.validate_simulation_input(simulation_input)
+            logger.info("Input validation completed successfully")
             
-            # Process base value
-            cleaned["base_value"] = self._clean_numeric_value(
-                raw_explanation.get("base_value", 50.0)
+            # Step 2: Get AI-powered stock recommendations
+            recommendations = await self._get_stock_recommendations(validated_input)
+            logger.info(f"AI recommendations obtained: {len(recommendations['stocks'])} stocks")
+            
+            # Step 3: Download and validate market data
+            market_data = await self._get_market_data(recommendations['stocks'], validated_input)
+            logger.info(f"Market data retrieved: {market_data.shape}")
+            
+            # Step 4: Calculate optimal portfolio weights
+            portfolio_weights = self._calculate_portfolio_weights(
+                market_data, validated_input, recommendations
+            )
+            logger.info("Portfolio weights calculated")
+            
+            # Step 5: Run portfolio simulation
+            simulation_results = await self._run_simulation(
+                market_data, portfolio_weights, validated_input
+            )
+            logger.info("Portfolio simulation completed")
+            
+            # Step 6: Process SHAP explanations
+            processed_shap = self._process_shap_explanations(recommendations)
+            
+            # Step 7: Generate visualizations
+            visualization_paths = await self._generate_visualizations(
+                simulation_results, recommendations, processed_shap, validated_input
+            )
+            logger.info(f"Generated {len(visualization_paths)} visualizations")
+            
+            # Step 8: Generate AI summary
+            ai_summary = await self._generate_ai_summary(
+                simulation_results, recommendations, processed_shap, validated_input
             )
             
-            # Process portfolio quality score
-            cleaned["portfolio_quality_score"] = self._clean_numeric_value(
-                raw_explanation.get("portfolio_quality_score", 75.0)
+            # Step 9: Save to database
+            saved_simulation = self._save_simulation(
+                db, validated_input, simulation_results, recommendations,
+                ai_summary, processed_shap, visualization_paths
             )
             
-            # Generate human-readable explanations
-            cleaned["human_readable_explanation"] = self._generate_human_explanations(
-                cleaned.get("feature_contributions", {}),
-                cleaned.get("portfolio_quality_score", 75.0)
+            # Step 10: Generate chart data for frontend
+            chart_data = self._generate_chart_data(
+                simulation_results, recommendations, processed_shap
             )
             
-            # Add metadata
-            cleaned["processed_timestamp"] = datetime.now().isoformat()
-            cleaned["processor_version"] = "1.0"
+            # Step 11: Format final response
+            response = self._format_final_response(
+                saved_simulation, chart_data, visualization_paths
+            )
             
-            return cleaned
+            logger.info(f"Simulation workflow completed successfully (ID: {saved_simulation.id})")
+            return response
             
         except Exception as e:
-            logger.error(f"Failed to clean SHAP explanation: {e}")
-            raise SHAPExplanationError(
-                f"SHAP explanation processing failed: {str(e)}"
-            )
+            logger.error(f"Portfolio simulation workflow failed: {str(e)}")
+            if isinstance(e, PortfolioSimulatorError):
+                raise
+            else:
+                raise PortfolioSimulatorError(
+                    f"Simulation workflow failed: {str(e)}",
+                    details={"stage": "workflow_orchestration"}
+                )
     
-    def _clean_feature_contributions(self, contributions: Dict[str, Any]) -> Dict[str, float]:
-        """Clean feature contribution values."""
-        cleaned_contributions = {}
+    async def get_simulation_chart_data(self, simulation_id: int, db: Session) -> Dict[str, Any]:
+        """
+        Get chart data for an existing simulation.
         
-        for feature, value in contributions.items():
-            try:
-                # Handle various data types that might come from SHAP
-                if hasattr(value, '__iter__') and not isinstance(value, str):
-                    # Array-like value, take the first element
-                    numeric_value = float(list(value)[0]) if len(list(value)) > 0 else 0.0
-                else:
-                    # Scalar value
-                    numeric_value = float(value)
-                
-                # Validate the value
-                if not np.isfinite(numeric_value):
-                    numeric_value = 0.0
-                
-                cleaned_contributions[str(feature)] = round(numeric_value, 4)
-                
-            except (ValueError, TypeError, IndexError):
-                logger.warning(f"Could not process feature contribution for {feature}: {value}")
-                cleaned_contributions[str(feature)] = 0.0
-        
-        return cleaned_contributions
-    
-    def _clean_numeric_value(self, value: Any) -> float:
-        """Clean a numeric value from SHAP output."""
+        Args:
+            simulation_id: ID of the simulation
+            db: Database session
+            
+        Returns:
+            Chart data suitable for frontend visualization
+            
+        Raises:
+            PortfolioSimulatorError: If data retrieval fails
+        """
         try:
-            if hasattr(value, '__iter__') and not isinstance(value, str):
-                # Array-like value
-                numeric_value = float(list(value)[0]) if len(list(value)) > 0 else 50.0
+            # Retrieve simulation from database
+            simulation = self.database_service.get_simulation(db, simulation_id)
+            
+            if not simulation:
+                raise PortfolioSimulatorError(
+                    f"Simulation with ID {simulation_id} not found",
+                    error_code="SIMULATION_NOT_FOUND"
+                )
+            
+            # Extract data from simulation results
+            results = simulation.results or {}
+            stocks_data = results.get("stocks_picked", [])
+            shap_explanation = results.get("shap_explanation")
+            
+            # Generate chart data
+            chart_data = self.chart_data_generator.generate_chart_data(
+                results, stocks_data, shap_explanation
+            )
+            
+            return {
+                "success": True,
+                "simulation_id": simulation_id,
+                "chart_data": chart_data,
+                "metadata": {
+                    "has_shap": bool(shap_explanation),
+                    "visualization_count": results.get("visualization_count", 0),
+                    "generated_at": results.get("metadata", {}).get("created_timestamp")
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get chart data for simulation {simulation_id}: {str(e)}")
+            if isinstance(e, PortfolioSimulatorError):
+                raise
             else:
-                # Scalar value
-                numeric_value = float(value)
-            
-            # Validate and constrain
-            if not np.isfinite(numeric_value):
-                numeric_value = 50.0
-            
-            return round(numeric_value, 2)
-            
-        except (ValueError, TypeError, IndexError):
-            return 50.0
+                raise PortfolioSimulatorError(
+                    f"Failed to retrieve chart data: {str(e)}",
+                    error_code="CHART_DATA_RETRIEVAL_FAILED"
+                )
     
-    def _generate_human_explanations(
+    async def get_user_simulations(
         self, 
-        contributions: Dict[str, float], 
-        quality_score: float
+        user_id: int, 
+        db: Session, 
+        limit: int = 10, 
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Get simulations for a specific user.
+        
+        Args:
+            user_id: ID of the user
+            db: Database session
+            limit: Maximum number of simulations to return
+            offset: Number of simulations to skip
+            
+        Returns:
+            List of user simulations with summary data
+        """
+        try:
+            simulations = self.database_service.get_user_simulations(
+                db, user_id, limit, offset
+            )
+            
+            formatted_simulations = self.results_formatter.format_simulation_list(simulations)
+            
+            # Get user statistics
+            statistics = self.database_service.get_simulation_statistics(db, user_id)
+            
+            return {
+                "simulations": formatted_simulations,
+                "statistics": statistics,
+                "pagination": {
+                    "limit": limit,
+                    "offset": offset,
+                    "total": len(simulations)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get user simulations: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to retrieve user simulations: {str(e)}",
+                error_code="USER_SIMULATIONS_RETRIEVAL_FAILED"
+            )
+    
+    # Private methods for workflow steps
+    
+    async def _get_stock_recommendations(self, validated_input: Dict[str, Any]) -> Dict[str, Any]:
+        """Get AI-powered stock recommendations."""
+        try:
+            recommendations = await self.ai_service.get_recommendations(
+                target_value=validated_input["target_value"],
+                timeframe_years=validated_input["timeframe"],
+                risk_score=validated_input["risk_score"],
+                risk_label=validated_input["risk_label"],
+                current_investment=validated_input["lump_sum"],
+                monthly_contribution=validated_input["monthly"]
+            )
+            
+            if not recommendations.get("stocks"):
+                raise PortfolioSimulatorError(
+                    "No stock recommendations could be generated",
+                    error_code="NO_RECOMMENDATIONS"
+                )
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Stock recommendation failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to get stock recommendations: {str(e)}",
+                error_code="RECOMMENDATION_FAILED"
+            )
+    
+    async def _get_market_data(self, stocks: List[str], validated_input: Dict[str, Any]) -> Any:
+        """Download and validate market data."""
+        try:
+            # Download historical data
+            market_data = self.data_provider.download_stock_data(
+                stocks, validated_input["timeframe"]
+            )
+            
+            # Analyze data quality
+            quality_analysis = self.data_quality_analyzer.analyze_data_quality(market_data)
+            
+            if quality_analysis["overall_quality"] == "poor":
+                logger.warning("Poor data quality detected")
+                # Could implement fallback logic here
+            
+            return market_data
+            
+        except Exception as e:
+            logger.error(f"Market data retrieval failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to retrieve market data: {str(e)}",
+                error_code="DATA_RETRIEVAL_FAILED"
+            )
+    
+    def _calculate_portfolio_weights(
+        self, 
+        market_data: Any, 
+        validated_input: Dict[str, Any], 
+        recommendations: Dict[str, Any]
+    ) -> Any:
+        """Calculate optimal portfolio weights."""
+        try:
+            weights = self.weight_calculator.calculate_weights(
+                tickers=list(market_data.columns),
+                risk_score=validated_input["risk_score"],
+                risk_label=validated_input["risk_label"],
+                data=market_data
+            )
+            
+            return weights
+            
+        except Exception as e:
+            logger.error(f"Weight calculation failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to calculate portfolio weights: {str(e)}",
+                error_code="WEIGHT_CALCULATION_FAILED"
+            )
+    
+    async def _run_simulation(
+        self, 
+        market_data: Any, 
+        weights: Any, 
+        validated_input: Dict[str, Any]
+    ) -> Any:
+        """Run the portfolio simulation."""
+        try:
+            simulation_results = self.portfolio_simulator.simulate_growth(
+                data=market_data,
+                weights=weights,
+                lump_sum=validated_input["lump_sum"],
+                monthly_contribution=validated_input["monthly"],
+                timeframe_years=validated_input["timeframe"]
+            )
+            
+            return simulation_results
+            
+        except Exception as e:
+            logger.error(f"Portfolio simulation failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Portfolio simulation failed: {str(e)}",
+                error_code="SIMULATION_FAILED"
+            )
+    
+    def _process_shap_explanations(self, recommendations: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Process SHAP explanations if available."""
+        try:
+            shap_explanation = recommendations.get("shap_explanation")
+            
+            if shap_explanation:
+                processed_shap = self.shap_processor.clean_shap_explanation(shap_explanation)
+                return processed_shap
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"SHAP processing failed: {str(e)}")
+            return None
+    
+    async def _generate_visualizations(
+        self,
+        simulation_results: Any,
+        recommendations: Dict[str, Any],
+        processed_shap: Optional[Dict[str, Any]],
+        validated_input: Dict[str, Any]
     ) -> Dict[str, str]:
-        """Generate human-readable explanations from SHAP contributions."""
-        explanations = {}
+        """Generate visualization files."""
+        try:
+            # Prepare stocks data for visualization
+            stocks_data = self._prepare_stocks_data_for_viz(
+                recommendations["stocks"], simulation_results.asset_breakdown
+            )
+            
+            visualization_paths = await self.visualization_service.create_simulation_visualizations(
+                simulation_id=None,  # Will be updated after database save
+                stocks_data=stocks_data,
+                simulation_results=simulation_results.__dict__,
+                shap_explanation=processed_shap,
+                user_data=validated_input
+            )
+            
+            return visualization_paths
+            
+        except Exception as e:
+            logger.warning(f"Visualization generation failed: {str(e)}")
+            return {}
+    
+    async def _generate_ai_summary(
+        self,
+        simulation_results: Any,
+        recommendations: Dict[str, Any],
+        processed_shap: Optional[Dict[str, Any]],
+        validated_input: Dict[str, Any]
+    ) -> str:
+        """Generate AI-powered summary of results."""
+        try:
+            # Create a comprehensive summary using available data
+            summary_parts = []
+            
+            # Basic performance summary
+            performance = simulation_results.portfolio_metrics
+            summary_parts.append(
+                f"Your {validated_input['risk_label'].lower()} risk portfolio "
+                f"grew from £{performance.starting_value:,.2f} to £{performance.ending_value:,.2f} "
+                f"over {validated_input['timeframe']} years, achieving a "
+                f"{performance.total_return:.1f}% total return."
+            )
+            
+            # Goal achievement
+            target_achieved = performance.ending_value >= validated_input["target_value"]
+            summary_parts.append(
+                f"Your target of £{validated_input['target_value']:,.2f} was "
+                f"{'achieved' if target_achieved else 'partially achieved'}."
+            )
+            
+            # SHAP insights if available
+            if processed_shap and processed_shap.get("human_readable_explanation"):
+                explanations = processed_shap["human_readable_explanation"]
+                top_explanation = next(iter(explanations.values()), "")
+                if top_explanation:
+                    summary_parts.append(f"Key insight: {top_explanation}")
+            
+            # Risk metrics
+            if performance.volatility > 0:
+                summary_parts.append(
+                    f"Portfolio volatility was {performance.volatility:.1f}% annually "
+                    f"with a Sharpe ratio of {performance.sharpe_ratio:.2f}."
+                )
+            
+            return " ".join(summary_parts)
+            
+        except Exception as e:
+            logger.warning(f"AI summary generation failed: {str(e)}")
+            return "Portfolio simulation completed successfully with AI-enhanced recommendations."
+    
+    def _save_simulation(
+        self,
+        db: Session,
+        validated_input: Dict[str, Any],
+        simulation_results: Any,
+        recommendations: Dict[str, Any],
+        ai_summary: str,
+        processed_shap: Optional[Dict[str, Any]],
+        visualization_paths: Dict[str, str]
+    ) -> Any:
+        """Save simulation to database."""
+        try:
+            # Prepare stocks data
+            stocks_data = self._prepare_stocks_data_for_db(
+                recommendations["stocks"], simulation_results.asset_breakdown
+            )
+            
+            # Convert simulation results to dictionary format
+            results_dict = {
+                "starting_value": simulation_results.portfolio_metrics.starting_value,
+                "ending_value": simulation_results.portfolio_metrics.ending_value,
+                "total_return": simulation_results.portfolio_metrics.total_return,
+                "annualized_return": simulation_results.portfolio_metrics.annualized_return,
+                "volatility": simulation_results.portfolio_metrics.volatility,
+                "sharpe_ratio": simulation_results.portfolio_metrics.sharpe_ratio,
+                "max_drawdown": simulation_results.portfolio_metrics.max_drawdown,
+                "total_contributed": simulation_results.portfolio_metrics.total_contributed,
+                "profit_loss": simulation_results.portfolio_metrics.profit_loss,
+                "timeline_data": simulation_results.timeline_data,
+                "contribution_data": simulation_results.contribution_data,
+                "asset_breakdown": simulation_results.asset_breakdown
+            }
+            
+            saved_simulation = self.database_service.save_simulation(
+                db=db,
+                simulation_input=validated_input,
+                user_data=validated_input,
+                simulation_results=results_dict,
+                ai_summary=ai_summary,
+                stocks_data=stocks_data,
+                risk_score=validated_input["risk_score"],
+                risk_label=validated_input["risk_label"],
+                shap_explanation=processed_shap,
+                visualization_paths=visualization_paths
+            )
+            
+            return saved_simulation
+            
+        except Exception as e:
+            logger.error(f"Database save failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to save simulation: {str(e)}",
+                error_code="DATABASE_SAVE_FAILED"
+            )
+    
+    def _generate_chart_data(
+        self,
+        simulation_results: Any,
+        recommendations: Dict[str, Any],
+        processed_shap: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Generate chart data for frontend."""
+        try:
+            # Prepare stocks data
+            stocks_data = self._prepare_stocks_data_for_viz(
+                recommendations["stocks"], simulation_results.asset_breakdown
+            )
+            
+            # Convert simulation results to dictionary format
+            results_dict = {
+                "timeline": {
+                    "portfolio": simulation_results.timeline_data,
+                    "contributions": simulation_results.contribution_data
+                }
+            }
+            
+            chart_data = self.chart_data_generator.generate_chart_data(
+                results_dict, stocks_data, processed_shap
+            )
+            
+            return chart_data
+            
+        except Exception as e:
+            logger.warning(f"Chart data generation failed: {str(e)}")
+            return {}
+    
+    def _format_final_response(
+        self,
+        saved_simulation: Any,
+        chart_data: Dict[str, Any],
+        visualization_paths: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Format the final response."""
+        formatted_response = self.results_formatter.format_simulation_response(saved_simulation)
         
-        # Sort contributions by absolute impact
-        sorted_contributions = sorted(
-            contributions.items(), 
-            key=lambda x: abs(x[1]), 
-            reverse=True
+        # Add chart data and additional metadata
+        formatted_response.update({
+            "chart_data": chart_data,
+            "success": True,
+            "workflow_completed": True,
+            "enhanced_features_enabled": {
+                "ai_recommendations": True,
+                "shap_explanations": bool(saved_simulation.results.get("shap_explanation")),
+                "visualizations": bool(visualization_paths),
+                "interactive_charts": bool(chart_data)
+            }
+        })
+        
+        return formatted_response
+    
+    def _prepare_stocks_data_for_viz(self, stocks: List[str], asset_breakdown: Dict[str, float]) -> List[Dict[str, Any]]:
+        """Prepare stocks data for visualization."""
+        from .config import get_stock_metadata
+        metadata = get_stock_metadata()
+        
+        stocks_data = []
+        for stock in stocks:
+            stock_info = metadata.get(stock, {})
+            allocation = asset_breakdown.get(stock, 0)
+            
+            stocks_data.append({
+                "symbol": stock,
+                "name": stock_info.get("name", stock),
+                "allocation": allocation,
+                "category": stock_info.get("category", "equity"),
+                "risk_score": stock_info.get("risk_score", 15),
+                "expected_return": stock_info.get("expected_return", 8)
+            })
+        
+        return stocks_data
+    
+    def _prepare_stocks_data_for_db(self, stocks: List[str], asset_breakdown: Dict[str, float]) -> List[Dict[str, Any]]:
+        """Prepare stocks data for database storage."""
+        from .config import get_stock_metadata
+        metadata = get_stock_metadata()
+        
+        stocks_data = []
+        for stock in stocks:
+            stock_info = metadata.get(stock, {})
+            allocation = asset_breakdown.get(stock, 0)
+            
+            stocks_data.append({
+                "symbol": stock,
+                "name": stock_info.get("name", stock),
+                "allocation": allocation,
+                "explanation": f"Selected based on AI analysis for your risk profile and goals"
+            })
+        
+        return stocks_data
+    
+    async def cleanup_old_files(self, max_age_days: int = 7) -> Dict[str, Any]:
+        """
+        Clean up old visualization files.
+        
+        Args:
+            max_age_days: Maximum age in days for files to keep
+            
+        Returns:
+            Cleanup summary
+        """
+        try:
+            deleted_count = await self.visualization_service.cleanup_old_files(max_age_days)
+            
+            return {
+                "success": True,
+                "files_deleted": deleted_count,
+                "max_age_days": max_age_days
+            }
+            
+        except Exception as e:
+            logger.error(f"File cleanup failed: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "files_deleted": 0
+            }
+
+
+# Factory function for service initialization
+def create_portfolio_simulator_service(config_override: Optional[Dict[str, Any]] = None) -> PortfolioSimulatorService:
+    """
+    Factory function to create and initialize the portfolio simulator service.
+    
+    Args:
+        config_override: Optional configuration overrides
+        
+    Returns:
+        Initialized PortfolioSimulatorService instance
+        
+    Raises:
+        PortfolioSimulatorError: If initialization fails
+    """
+    try:
+        # Initialize configuration
+        config = initialize_config()
+        
+        # Apply any overrides
+        if config_override:
+            # This would require implementing config override logic
+            pass
+        
+        # Create and return service
+        service = PortfolioSimulatorService()
+        
+        logger.info("Portfolio Simulator Service factory initialization complete")
+        return service
+        
+    except Exception as e:
+        logger.error(f"Service initialization failed: {str(e)}")
+        raise PortfolioSimulatorError(
+            f"Failed to initialize portfolio simulator service: {str(e)}",
+            error_code="SERVICE_INITIALIZATION_FAILED"
         )
+
+
+# Convenience functions for common operations
+async def simulate_portfolio_workflow(
+    simulation_input: Dict[str, Any], 
+    db: Session
+) -> Dict[str, Any]:
+    """
+    Convenience function to run a complete portfolio simulation.
+    
+    Args:
+        simulation_input: Raw simulation input
+        db: Database session
         
-        for feature, contribution in sorted_contributions[:5]:  # Top 5 factors
-            feature_name = self.feature_name_mapping.get(feature, feature.replace("_", " ").title())
-            
-            if abs(contribution) < 0.1:  # Skip very small contributions
-                continue
-            
-            if contribution > 0:
-                impact = "increased"
-                direction = "higher"
-            else:
-                impact = "decreased"
-                direction = "lower"
-                contribution = abs(contribution)
-            
-            if feature == "risk_score":
-                explanations[feature] = (
-                    f"Your risk tolerance {impact} the AI's confidence in growth-oriented investments. "
-                    f"This led to {direction} allocation in volatile but potentially rewarding assets."
-                )
-            elif feature == "timeframe":
-                explanations[feature] = (
-                    f"Your investment timeframe {impact} the portfolio's risk level. "
-                    f"{'Longer' if contribution > 0 else 'Shorter'} time horizons allow for "
-                    f"{'more' if contribution > 0 else 'less'} aggressive strategies."
-                )
-            elif feature == "target_value_log":
-                explanations[feature] = (
-                    f"Your financial goal {impact} the required growth rate. "
-                    f"This influenced the selection toward {'higher-return' if contribution > 0 else 'safer'} investments."
-                )
-            elif feature == "required_return":
-                explanations[feature] = (
-                    f"The required return rate {impact} portfolio aggressiveness. "
-                    f"{'Higher' if contribution > 0 else 'Lower'} required returns necessitate "
-                    f"{'riskier' if contribution > 0 else 'more conservative'} asset selection."
-                )
-            elif feature == "monthly_contribution":
-                explanations[feature] = (
-                    f"Your monthly investment amount {impact} the portfolio strategy. "
-                    f"{'Regular' if contribution > 0 else 'Limited'} contributions allow for "
-                    f"{'more' if contribution > 0 else 'less'} diversified approaches."
-                )
-            else:
-                explanations[feature] = (
-                    f"{feature_name} {impact} the portfolio recommendation by {contribution:.2f} points."
-                )
+    Returns:
+        Complete simulation results
+    """
+    service = create_portfolio_simulator_service()
+    return await service.simulate_portfolio(simulation_input, db)
+
+
+async def get_simulation_charts(simulation_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Convenience function to get chart data for a simulation.
+    
+    Args:
+        simulation_id: ID of the simulation
+        db: Database session
         
-        # Add overall assessment
-        if quality_score > 80:
-            explanations["overall"] = (
-                "The AI has high confidence in this portfolio matching your goals and risk tolerance."
-            )
-        elif quality_score > 60:
-            explanations["overall"] = (
-                "The AI believes this portfolio is well-suited to your profile with some trade-offs."
-            )
-        else:
-            explanations["overall"] = (
-                "The AI found this portfolio challenging to optimize for your specific requirements."
-            )
-        
-        return explanations
+    Returns:
+        Chart data for the simulation
+    """
+    service = create_portfolio_simulator_service()
+    return await service.get_simulation_chart_data(simulation_id, db)
