@@ -9,6 +9,7 @@ import os
 import logging
 from typing import Dict, Any, Optional
 import io
+import base64
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,128 @@ async def serve_visualization_file(
         logger.error(f"Error serving visualization: {e}")
         return await create_fallback_visualization(simulation_id, chart_type, db)
 
+@router.get("/simulation/{simulation_id}/chart/{chart_type}/image")
+async def get_chart_as_base64(
+    simulation_id: int, 
+    chart_type: str, 
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Serve visualization as base64 encoded image data - works on all hosting platforms"""
+    try:
+        simulation = db.query(models.Simulation).filter(
+            models.Simulation.id == simulation_id
+        ).first()
+        
+        if not simulation:
+            raise HTTPException(status_code=404, detail="Simulation not found")
+        
+        results = simulation.results or {}
+        visualization_paths = results.get("visualization_paths", {})
+        
+        # Try to get existing file first
+        if chart_type in visualization_paths:
+            file_path = Path(visualization_paths[chart_type])
+            
+            if file_path.exists():
+                try:
+                    with open(file_path, "rb") as f:
+                        image_data = base64.b64encode(f.read()).decode()
+                    
+                    return {
+                        "success": True,
+                        "chart_type": chart_type,
+                        "image_data": f"data:image/png;base64,{image_data}",
+                        "simulation_id": simulation_id,
+                        "method": "existing_file"
+                    }
+                except Exception as file_error:
+                    logger.warning(f"Failed to read existing file: {file_error}")
+        
+        # Generate chart in memory if file doesn't exist
+        return await generate_chart_as_base64(simulation_id, chart_type, db)
+        
+    except Exception as e:
+        logger.error(f"Error serving chart as base64: {e}")
+        return await generate_chart_as_base64(simulation_id, chart_type, db)
+
+async def generate_chart_as_base64(simulation_id: int, chart_type: str, db: Session) -> Dict[str, Any]:
+    """Generate chart in memory and return as base64"""
+    try:
+        # Use the fallback visualization method that creates charts in memory
+        response = await create_fallback_visualization(simulation_id, chart_type, db)
+        
+        # Convert the response content to base64
+        if hasattr(response, 'body'):
+            image_bytes = response.body
+        else:
+            # Extract bytes from Response object
+            image_bytes = response._content if hasattr(response, '_content') else b''
+        
+        if not image_bytes:
+            raise Exception("No image data generated")
+        
+        image_data = base64.b64encode(image_bytes).decode()
+        
+        return {
+            "success": True,
+            "chart_type": chart_type,
+            "image_data": f"data:image/png;base64,{image_data}",
+            "simulation_id": simulation_id,
+            "method": "generated_in_memory"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating chart as base64: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "chart_type": chart_type,
+            "simulation_id": simulation_id
+        }
+
+@router.get("/simulation/{simulation_id}/charts/all")
+async def get_all_charts_as_base64(
+    simulation_id: int,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get all available charts as base64 data"""
+    try:
+        simulation = db.query(models.Simulation).filter(
+            models.Simulation.id == simulation_id
+        ).first()
+        
+        if not simulation:
+            raise HTTPException(status_code=404, detail="Simulation not found")
+        
+        results = simulation.results or {}
+        charts = {}
+        errors = []
+        
+        # Define available chart types
+        chart_types = ["shap_explanation", "portfolio_composition", "risk_return_analysis", "factor_importance", "market_regime"]
+        
+        for chart_type in chart_types:
+            try:
+                chart_result = await get_chart_as_base64(simulation_id, chart_type, db)
+                if chart_result.get("success"):
+                    charts[chart_type] = chart_result["image_data"]
+                else:
+                    errors.append(f"{chart_type}: {chart_result.get('error', 'Unknown error')}")
+            except Exception as e:
+                errors.append(f"{chart_type}: {str(e)}")
+        
+        return {
+            "simulation_id": simulation_id,
+            "charts": charts,
+            "chart_count": len(charts),
+            "errors": errors if errors else None,
+            "success": len(charts) > 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting all charts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/simulation/{simulation_id}/regenerate-shap")
 async def regenerate_shap_chart(
     simulation_id: int,
@@ -191,7 +314,9 @@ async def generate_specific_chart(
         # Get or initialize visualization engine
         viz_engine = get_visualization_engine()
         if not viz_engine:
-            return await create_fallback_visualization(simulation_id, chart_type, db)
+            # Return as base64 instead of failing
+            chart_result = await generate_chart_as_base64(simulation_id, chart_type, db)
+            return chart_result
 
         # Ensure directory exists
         viz_dir = Path("static/visualizations")
@@ -255,7 +380,8 @@ async def generate_specific_chart(
         raise
     except Exception as e:
         logger.error(f"Error generating {chart_type} chart: {e}")
-        return await create_fallback_visualization(simulation_id, chart_type, db)
+        # Fallback to base64 generation
+        return await generate_chart_as_base64(simulation_id, chart_type, db)
 
 @router.get("/simulation/{simulation_id}/chart-data")
 async def get_chart_data_for_frontend(
