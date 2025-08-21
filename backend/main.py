@@ -519,3 +519,23 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+@app.get("/test-static")
+async def test_static_files():
+    """Test endpoint to check if static files are being served correctly"""
+    import os
+    from pathlib import Path
+    
+    static_dir = Path("static/visualizations")
+    files = list(static_dir.glob("*.png")) if static_dir.exists() else []
+    
+    return {
+        "static_directory_exists": Path("static").exists(),
+        "visualizations_directory_exists": static_dir.exists(),
+        "file_count": len(files),
+        "sample_files": [str(f) for f in files[:5]],
+        "test_urls": [
+            f"/static/visualizations/{f.name}" for f in files[:3]
+        ] if files else [],
+        "mounted": "static files should be accessible"
+    }
