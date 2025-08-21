@@ -20,6 +20,52 @@ from database.models import User, Simulation, PasswordResetToken
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Check portfolio simulator availability
+PORTFOLIO_SIMULATOR_AVAILABLE = False
+VISUALIZATION_ENGINE_AVAILABLE = False
+
+def check_portfolio_simulator_availability():
+    """Check which portfolio simulator components are available"""
+    global PORTFOLIO_SIMULATOR_AVAILABLE, VISUALIZATION_ENGINE_AVAILABLE
+    
+    # Try new modular simulator first
+    try:
+        from services.portfolio_simulator import PortfolioSimulatorService
+        PORTFOLIO_SIMULATOR_AVAILABLE = True
+        logger.info("New modular portfolio simulator available")
+        
+        # Check for visualization service
+        try:
+            from services.portfolio_simulator import VisualizationService
+            VISUALIZATION_ENGINE_AVAILABLE = True
+            logger.info("New modular visualization service available")
+        except ImportError:
+            logger.info("New modular visualization service not available")
+            
+    except ImportError:
+        logger.info("New modular portfolio simulator not available")
+        
+        # Try legacy simulator
+        try:
+            from services.portfolio_simulator import simulate_portfolio
+            PORTFOLIO_SIMULATOR_AVAILABLE = True
+            logger.info("Legacy portfolio simulator available")
+            
+            # Check for legacy visualization engine
+            try:
+                from services.portfolio_simulator import get_visualization_engine
+                viz_engine = get_visualization_engine()
+                VISUALIZATION_ENGINE_AVAILABLE = bool(viz_engine)
+                logger.info(f"Legacy visualization engine: {'available' if VISUALIZATION_ENGINE_AVAILABLE else 'unavailable'}")
+            except ImportError:
+                logger.info("Legacy visualization engine not available")
+                
+        except ImportError:
+            logger.warning("No portfolio simulator available - some features will be disabled")
+
+# Check availability at startup
+check_portfolio_simulator_availability()
+
 # Create static directories BEFORE app initialization
 def ensure_static_directories():
     """Create static directories if they don't exist"""
@@ -60,16 +106,9 @@ async def lifespan(app: FastAPI):
     environment = os.getenv("ENVIRONMENT", "development")
     logger.info(f"Environment: {environment}")
     
-    # Check SHAP visualization availability
-    try:
-        from services.portfolio_simulator import get_visualization_engine
-        viz_engine = get_visualization_engine()
-        if viz_engine:
-            logger.info("SHAP VisualizationEngine available")
-        else:
-            logger.warning("SHAP VisualizationEngine not available - using fallbacks")
-    except ImportError:
-        logger.warning("Portfolio simulator service not available")
+    # Log portfolio simulator status
+    logger.info(f"Portfolio simulator available: {PORTFOLIO_SIMULATOR_AVAILABLE}")
+    logger.info(f"Visualization engine available: {VISUALIZATION_ENGINE_AVAILABLE}")
     
     yield
     
@@ -218,6 +257,10 @@ async def root():
         "database": database_type,
         "status": "healthy",
         "docs": "/docs",
+        "services": {
+            "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+            "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+        },
         "endpoints": {
             "health": "/api/health",
             "auth": "/auth",
@@ -249,13 +292,8 @@ async def health_check():
     groq_api_key = os.getenv("GROQ_API_KEY")
     ai_status = "configured" if groq_api_key else "missing_api_key"
     
-    # Check SHAP visualization availability
-    try:
-        from services.portfolio_simulator import get_visualization_engine
-        viz_engine = get_visualization_engine()
-        shap_status = "available" if viz_engine else "fallback_only"
-    except:
-        shap_status = "unavailable"
+    # Check SHAP visualization availability using our global variables
+    shap_status = "available" if VISUALIZATION_ENGINE_AVAILABLE else "fallback_only"
     
     # Check static file serving
     static_status = "enabled" if Path("static").exists() else "disabled"
@@ -267,6 +305,7 @@ async def health_check():
         "environment": os.getenv("ENVIRONMENT", "development"),
         "database": db_status,
         "ai_service": ai_status,
+        "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
         "shap_visualization": shap_status,
         "static_files": static_status,
         "version": settings.APP_VERSION
@@ -314,9 +353,15 @@ async def internal_server_error(request, exc):
         "status_code": 500,
         "path": str(request.url)
     }
+
 @app.get("/api/shap-visualization/test")
 async def test_shap_router():
-    return {"status": "working", "message": "SHAP router is registered correctly"}
+    return {
+        "status": "working", 
+        "message": "SHAP router is registered correctly",
+        "visualization_available": VISUALIZATION_ENGINE_AVAILABLE,
+        "portfolio_simulator_available": PORTFOLIO_SIMULATOR_AVAILABLE
+    }
 
 # Middleware to log requests in development
 if os.getenv("DEBUG", "true").lower() == "true":
@@ -373,6 +418,10 @@ async def demo_info():
             "cost": "$0/month (free tier services)",
             "performance": "Production-ready",
             "scalability": "Handles concurrent users"
+        },
+        "current_status": {
+            "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+            "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
         }
     }
 
@@ -448,7 +497,11 @@ if os.getenv("ENVIRONMENT") == "development":
                     "/api/shap-visualization/simulation/{id}/chart-data",
                     "/api/shap-visualization/simulation/{id}/regenerate-shap"
                 ],
-                "static_endpoint": "/static/visualizations/{filename}"
+                "static_endpoint": "/static/visualizations/{filename}",
+                "services_available": {
+                    "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+                    "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+                }
             }
         except Exception as e:
             return {"error": str(e), "status": "error"}
@@ -456,25 +509,46 @@ if os.getenv("ENVIRONMENT") == "development":
     @app.get("/api/dev/test-visualization/{simulation_id}")
     async def test_visualization_endpoint(simulation_id: int):
         """Test endpoint to verify visualization functionality"""
+        if not PORTFOLIO_SIMULATOR_AVAILABLE:
+            return {
+                "simulation_id": simulation_id,
+                "error": "Portfolio simulator not available",
+                "available_services": {
+                    "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+                    "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+                }
+            }
+        
         try:
             from database.db import SessionLocal
-            from services.portfolio_simulator import get_simulation_visualizations
             
-            db = SessionLocal()
-            result = await get_simulation_visualizations(simulation_id, db)
-            db.close()
+            # Try new modular simulator first
+            try:
+                from services.portfolio_simulator import get_simulation_charts
+                db = SessionLocal()
+                result = await get_simulation_charts(simulation_id, db)
+                db.close()
+                method = "modular_simulator"
+            except ImportError:
+                # Try legacy simulator
+                from services.portfolio_simulator import get_simulation_visualizations
+                db = SessionLocal()
+                result = await get_simulation_visualizations(simulation_id, db)
+                db.close()
+                method = "legacy_simulator"
             
             return {
                 "simulation_id": simulation_id,
                 "visualization_result": result,
+                "method": method,
                 "test_endpoints": {
-                    "explanation": f"/api/shap/simulation/{simulation_id}/explanation",
-                    "chart_data": f"/api/shap/simulation/{simulation_id}/chart-data",
-                    "visualizations": f"/api/shap/simulation/{simulation_id}/visualizations"
+                    "explanation": f"/api/shap-visualization/simulation/{simulation_id}/explanation",
+                    "chart_data": f"/api/shap-visualization/simulation/{simulation_id}/chart-data",
+                    "visualizations": f"/api/shap-visualization/simulation/{simulation_id}/visualizations"
                 }
             }
         except Exception as e:
-            return {"error": str(e), "test_failed": True}
+            return {"error": str(e), "test_failed": True, "simulation_id": simulation_id}
 
     @app.get("/api/dev/static-test")
     async def test_static_files():
@@ -483,9 +557,13 @@ if os.getenv("ENVIRONMENT") == "development":
         return {
             "static_directory_exists": Path("static").exists(),
             "visualizations_directory_exists": viz_dir.exists(),
-            "visualization_files": list(viz_dir.glob("*.png")) if viz_dir.exists() else [],
+            "visualization_files": [str(f) for f in viz_dir.glob("*.png")] if viz_dir.exists() else [],
             "test_url": "/static/visualizations/test.png",
-            "mount_status": "mounted" if hasattr(app, "_mount_static") else "unknown"
+            "mount_status": "mounted" if hasattr(app, "_mount_static") else "unknown",
+            "services_available": {
+                "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+                "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+            }
         }
 
 # Error handlers for SHAP-specific issues
@@ -498,7 +576,11 @@ async def not_found_handler(request, exc):
             "error": "Visualization not found",
             "message": "The requested visualization file does not exist or has not been generated yet.",
             "suggestion": "Try regenerating the visualization or check if the simulation has SHAP data.",
-            "status_code": 404
+            "status_code": 404,
+            "services_available": {
+                "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+                "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+            }
         }
     
     return {
@@ -512,7 +594,9 @@ logger.info("WealthWise API configured for university project deployment")
 logger.info("Using free tier services: Groq AI + Railway + Vercel")
 logger.info("Health check available at /health and /api/health")
 logger.info("Password reset functionality enabled")
-logger.info("SHAP explainable AI endpoints enabled at /api/shap")
+logger.info("SHAP explainable AI endpoints enabled at /api/shap-visualization")
+logger.info(f"Portfolio simulator: {'available' if PORTFOLIO_SIMULATOR_AVAILABLE else 'unavailable'}")
+logger.info(f"Visualization engine: {'available' if VISUALIZATION_ENGINE_AVAILABLE else 'unavailable'}")
 
 # Check if static files are properly mounted
 if Path("static").exists():
@@ -529,9 +613,6 @@ if __name__ == "__main__":
 @app.get("/test-static")
 async def test_static_files():
     """Test endpoint to check if static files are being served correctly"""
-    import os
-    from pathlib import Path
-    
     static_dir = Path("static/visualizations")
     files = list(static_dir.glob("*.png")) if static_dir.exists() else []
     
@@ -543,5 +624,9 @@ async def test_static_files():
         "test_urls": [
             f"/static/visualizations/{f.name}" for f in files[:3]
         ] if files else [],
-        "mounted": "static files should be accessible"
+        "mounted": "static files should be accessible",
+        "services_status": {
+            "portfolio_simulator": PORTFOLIO_SIMULATOR_AVAILABLE,
+            "visualization_engine": VISUALIZATION_ENGINE_AVAILABLE
+        }
     }

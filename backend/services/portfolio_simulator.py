@@ -132,6 +132,18 @@ def get_factor_description(factor: str) -> str:
     }
     return descriptions.get(factor, "Factor influencing portfolio recommendations")
 
+def safe_float_conversion(value, default=0.0):
+    """Safely convert value to float, handling lists and other types"""
+    try:
+        if isinstance(value, (list, tuple, np.ndarray)):
+            # If it's a list/array, take the first element
+            if len(value) > 0:
+                return float(value[0]) if not isinstance(value[0], (list, tuple)) else float(np.mean(value))
+            return default
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
 # =============================================================================
 # CORE SIMULATION FUNCTIONS
 # =============================================================================
@@ -715,14 +727,17 @@ async def get_simulation_chart_data(simulation_id: int, db: Session) -> Dict[str
                 name = stock.get("name", symbol) if isinstance(stock, dict) else symbol
                 allocation = stock.get("allocation", 0) if isinstance(stock, dict) else breakdown.get(symbol, 0)
                 
-                if allocation < 1:
-                    allocation = allocation * 100
+                # Safe conversion here
+                allocation_float = safe_float_conversion(allocation, 0.0)
+                
+                if allocation_float < 1:
+                    allocation_float = allocation_float * 100
                 
                 chart_data["portfolio_composition"].append({
                     "symbol": symbol,
                     "name": name,
-                    "value": round(float(allocation), 2),
-                    "allocation": round(float(allocation), 2)
+                    "value": round(allocation_float, 2),
+                    "allocation": round(allocation_float, 2)
                 })
                 total_allocation += allocation
             
@@ -767,7 +782,7 @@ async def get_simulation_chart_data(simulation_id: int, db: Session) -> Dict[str
             chart_data["factor_importance"] = [
                 {
                     "factor": format_factor_name(feature),
-                    "importance": round(float(value), 3),
+                    "importance": round(safe_float_conversion(value), 3),
                     "isPositive": float(value) >= 0,
                     "description": get_factor_description(feature)
                 }
@@ -816,13 +831,14 @@ async def get_simulation_chart_data(simulation_id: int, db: Session) -> Dict[str
                 
                 risk_estimate = estimate_stock_risk(symbol)
                 return_estimate = estimate_stock_return(symbol)
+                allocation_float = safe_float_conversion(allocation, 0.0)
                 
                 chart_data["risk_return_analysis"].append({
                     "symbol": symbol,
                     "name": name,
                     "risk": round(risk_estimate, 2),
                     "return": round(return_estimate, 2),
-                    "allocation": round(float(allocation) * 100 if allocation < 1 else float(allocation), 2)
+                    "allocation": round(allocation_float * 100 if allocation_float < 1 else allocation_float, 2)
                 })
         
         # 6. Goal Analysis Data
@@ -1534,8 +1550,8 @@ async def simulate_portfolio_fallback(sim_input: Dict[str, Any], db: Session) ->
             {
                 "symbol": ticker, 
                 "name": get_company_name(ticker),
-                "allocation": round(float(weight), 4),
-                "explanation": f"{ticker} selected based on {risk_label.lower()} risk profile"
+                "allocation": round(safe_float_conversion(weight), 4),
+                "explanation": get_stock_explanation(ticker, recommendation_result)
             }
             for ticker, weight in zip(tickers, weights)
         ]

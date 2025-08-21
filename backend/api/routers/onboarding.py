@@ -9,16 +9,21 @@ import asyncio
 from database import schemas
 from database.db import get_db
 from services.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
-from services.portfolio_simulator import simulate_portfolio  # Now async
-from services.ai_analysis import AIAnalysisService  # Updated import
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize AI service
-ai_service = AIAnalysisService()
+# Try to import AI analysis service
+try:
+    from services.ai_analysis import AIAnalysisService
+    ai_service = AIAnalysisService()
+    AI_ANALYSIS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"AI Analysis service not available: {e}")
+    ai_service = None
+    AI_ANALYSIS_AVAILABLE = False
 
 # Utility function to sanitize floats in the response to ensure JSON compliance
 def sanitize_floats(data):
@@ -30,37 +35,40 @@ def sanitize_floats(data):
         return 0.0 if math.isnan(data) or math.isinf(data) else data
     return data
 
-"""
-Endpoint: POST /onboarding/
-
-Expected input (schemas.OnboardingCreate):
-{
-    "years_of_experience": int,       # e.g., 4
-    "loss_tolerance": str,            # e.g., "wait_and_see" (NEW)
-    "panic_behavior": str,            # e.g., "no_never" (NEW) 
-    "financial_behavior": str,        # e.g., "invest_all" (NEW)
-    "engagement_level": str,          # e.g., "monthly" (NEW)
-    "goal": str,                      # e.g., "retirement"
-    "target_value": float,            # e.g., 50000.0
-    "lump_sum": float,                # e.g., 3000.0
-    "monthly": float,                 # e.g., 250.0
-    "timeframe": int,                 # e.g., 5
-    "income_bracket": str,           # e.g., "medium"
-    "consent": bool,                  # e.g., True
-    "name": str,                      # e.g., "Stephen Vincent"
-    "user_id": int                    # e.g., 1
-}
-
-Workflow:
-1. Accept onboarding data from frontend.
-2. Pass it to `calculate_user_risk()` to get comprehensive risk profile.
-3. Merge this risk data with the original input.
-4. Pass the merged input to `simulate_portfolio()` to generate portfolio results.
-5. Return the result to frontend in the shape of `schemas.SimulationResponse`.
-"""
+async def get_portfolio_simulation(simulation_input: dict, db: Session):
+    """
+    Get portfolio simulation using the best available simulator.
+    Tries new modular simulator first, falls back to legacy.
+    """
+    try:
+        # Try new modular portfolio simulator first
+        from services.portfolio_simulator import simulate_portfolio_workflow
+        logger.info("Using new modular portfolio simulator")
+        return await simulate_portfolio_workflow(simulation_input, db)
+        
+    except ImportError:
+        logger.info("New modular simulator not available, trying legacy simulator")
+        try:
+            # Try legacy portfolio simulator
+            from services.portfolio_simulator import simulate_portfolio
+            logger.info("Using legacy portfolio simulator")
+            return await simulate_portfolio(simulation_input, db)
+            
+        except ImportError:
+            logger.error("No portfolio simulator available")
+            raise HTTPException(
+                status_code=503,
+                detail="Portfolio simulation service is not available. Please ensure the portfolio simulator module is properly installed."
+            )
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Session = Depends(get_db)):
+    """
+    Enhanced onboarding endpoint with comprehensive risk assessment and portfolio simulation.
+    
+    Uses the best available portfolio simulator (modular or legacy) and provides
+    detailed risk profiling with allocation guidance.
+    """
     try:
         logger.info(f"Processing onboarding for user {onboarding_data.user_id}")
         
@@ -92,16 +100,27 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
         simulation_input["risk_label"] = legacy_risk_label  # Use legacy format for simulation
         simulation_input["detailed_risk_profile"] = risk_profile  # Include full profile
 
-        # Step 4: Run portfolio simulation with enhanced input (now async)
-        simulation_result = await simulate_portfolio(simulation_input, db)
+        # Step 4: Run portfolio simulation with enhanced input
+        simulation_result = await get_portfolio_simulation(simulation_input, db)
         
         logger.info(f"Portfolio simulation completed for user {onboarding_data.user_id}")
 
-        # AI summary is now generated within simulate_portfolio, no need to generate again
+        # Step 5: Extract simulation data safely (handle different response formats)
+        simulation_id = simulation_result.get("id")
+        
+        # Handle different result formats from modular vs legacy simulators
+        if "results" in simulation_result:
+            # Legacy format
+            target_reached = simulation_result["results"].get("target_reached", False)
+            simulation_data = simulation_result
+        else:
+            # New modular format
+            target_reached = simulation_result.get("target_achieved", False)
+            simulation_data = simulation_result
 
-        # Step 7: Construct enhanced response payload with new risk information
+        # Step 6: Construct enhanced response payload with new risk information
         response_payload = {
-            "id": simulation_result["id"],
+            "id": simulation_id,
             "user_id": onboarding_data.user_id,
             "name": onboarding_data.name,
             "goal": onboarding_data.goal,
@@ -109,7 +128,7 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             "lump_sum": onboarding_data.lump_sum,
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
-            "target_achieved": simulation_result["results"]["target_reached"],
+            "target_achieved": target_reached,
             "income_bracket": onboarding_data.income_bracket,
             
             # Enhanced risk information
@@ -123,15 +142,24 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             "risk_explanation": risk_profile["explanation"],
             
             # Include all simulation results
-            **simulation_result,
-            "created_at": datetime.utcnow().isoformat()
+            **simulation_data,
+            "created_at": datetime.utcnow().isoformat(),
+            
+            # Add metadata about which simulator was used
+            "simulator_type": simulation_result.get("simulator_type", "Legacy"),
+            "enhanced_features": simulation_result.get("enhanced_features_enabled", {}),
+            "has_shap_explanations": simulation_result.get("has_shap_explanations", False),
+            "has_visualizations": simulation_result.get("has_visualizations", False)
         }
 
         logger.info(f"Onboarding completed successfully for user {onboarding_data.user_id}")
 
-        # Step 8: Sanitize float values to remove NaN or Infinity, ensuring JSON compatibility
+        # Step 7: Sanitize float values to remove NaN or Infinity, ensuring JSON compatibility
         return sanitize_floats(response_payload)
 
+    except HTTPException:
+        # Re-raise HTTP exceptions without modification
+        raise
     except Exception as e:
         logger.error(f"Onboarding failed for user {onboarding_data.user_id}: {str(e)}")
         # Log the full traceback for debugging
@@ -143,8 +171,6 @@ async def create_onboarding(onboarding_data: schemas.OnboardingCreate, db: Sessi
             detail=f"Onboarding processing failed: {str(e)}"
         )
 
-
-# Simplified legacy endpoint without problematic import
 @router.post("/legacy", status_code=status.HTTP_201_CREATED)
 async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db: Session = Depends(get_db)):
     """
@@ -154,7 +180,7 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
     try:
         logger.info(f"Processing legacy onboarding for user {onboarding_data.user_id}")
         
-        # Use the legacy function that's already imported at the top
+        # Use the legacy function
         risk_score, risk_label = calculate_user_risk_legacy(onboarding_data)
 
         # Step 2: Merge risk data with onboarding input
@@ -162,16 +188,23 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
         simulation_input["risk_score"] = risk_score
         simulation_input["risk_label"] = risk_label
 
-        # Step 3: Run portfolio simulation with full input (now async)
-        simulation_result = await simulate_portfolio(simulation_input, db)
+        # Step 3: Run portfolio simulation with full input
+        simulation_result = await get_portfolio_simulation(simulation_input, db)
 
-        # Step 4: AI summary is now generated within simulate_portfolio
-
-        # Step 4.5: No need to store AI summary separately - it's already in simulation_result
+        # Step 4: Extract data safely (handle different response formats)
+        simulation_id = simulation_result.get("id")
+        
+        # Handle different result formats
+        if "results" in simulation_result:
+            # Legacy format
+            target_reached = simulation_result["results"].get("target_reached", False)
+        else:
+            # New modular format
+            target_reached = simulation_result.get("target_achieved", False)
 
         # Step 5: Construct response payload (original format)
         response_payload = {
-            "id": simulation_result["id"],
+            "id": simulation_id,
             "user_id": onboarding_data.user_id,
             "name": onboarding_data.name,
             "goal": onboarding_data.goal,
@@ -179,7 +212,7 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
             "lump_sum": onboarding_data.lump_sum,
             "monthly": onboarding_data.monthly,
             "timeframe": onboarding_data.timeframe,
-            "target_achieved": simulation_result["results"]["target_reached"],
+            "target_achieved": target_reached,
             "income_bracket": onboarding_data.income_bracket,
             "risk_score": risk_score,
             "risk_label": risk_label,
@@ -192,6 +225,9 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
         # Step 6: Sanitize float values to remove NaN or Infinity, ensuring JSON compatibility
         return sanitize_floats(response_payload)
 
+    except HTTPException:
+        # Re-raise HTTP exceptions without modification
+        raise
     except Exception as e:
         logger.error(f"Legacy onboarding failed for user {onboarding_data.user_id}: {str(e)}")
         # Log the full traceback for debugging
@@ -202,3 +238,47 @@ async def create_onboarding_legacy(onboarding_data: schemas.OnboardingCreate, db
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Legacy onboarding processing failed: {str(e)}"
         )
+
+@router.get("/health")
+async def health_check():
+    """Check the health of onboarding service dependencies"""
+    try:
+        health_status = {
+            "service": "onboarding",
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Check portfolio simulator availability
+        try:
+            from services.portfolio_simulator import simulate_portfolio_workflow
+            health_status["modular_simulator"] = "available"
+        except ImportError:
+            try:
+                from services.portfolio_simulator import simulate_portfolio
+                health_status["legacy_simulator"] = "available"
+                health_status["modular_simulator"] = "unavailable"
+            except ImportError:
+                health_status["simulators"] = "unavailable"
+                health_status["status"] = "degraded"
+        
+        # Check AI analysis service
+        health_status["ai_analysis"] = "available" if AI_ANALYSIS_AVAILABLE else "unavailable"
+        
+        # Check risk assessor
+        try:
+            from services.risk_assessor import calculate_user_risk
+            health_status["risk_assessor"] = "available"
+        except ImportError:
+            health_status["risk_assessor"] = "unavailable"
+            health_status["status"] = "degraded"
+        
+        return health_status
+        
+    except Exception as e:
+        return {
+            "service": "onboarding",
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
