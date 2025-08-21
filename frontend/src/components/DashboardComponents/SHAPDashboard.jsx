@@ -894,6 +894,20 @@ const VisualizationsTab = ({
   );
 };
 
+// 🆕 Helper to decode base64 HTML data URLs safely
+function decodeHtmlDataUrlToSrcDoc(dataUrl) {
+  try {
+    const prefix = "data:text/html;base64,";
+    if (!dataUrl.toLowerCase().startsWith(prefix)) return null;
+    const b64 = dataUrl.slice(prefix.length);
+    const html = decodeURIComponent(escape(atob(b64)));
+    return html;
+  } catch (e) {
+    console.warn("Failed to decode HTML data URL:", e);
+    return null;
+  }
+}
+
 // 🆕 Renders either <img> or sandboxed <iframe>, and can convert HTML URL → data URL when possible
 const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
   const [converted, setConverted] = useState(null);
@@ -930,7 +944,12 @@ const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
 
   // Prefer converted HTML if available
   if (converted?.kind === "html-dataurl") {
-    return <IframeBox src={converted.src} title={title} />;
+    const srcDoc = decodeHtmlDataUrlToSrcDoc(converted.src);
+    return srcDoc ? (
+      <IframeBox srcDoc={srcDoc} title={title} />
+    ) : (
+      <IframeBox src={converted.src} title={title} />
+    );
   }
 
   // Native cases
@@ -946,7 +965,12 @@ const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
   }
 
   if (payload.kind === "html-dataurl") {
-    return <IframeBox src={payload.src} title={title} />;
+    const srcDoc = decodeHtmlDataUrlToSrcDoc(payload.src);
+    return srcDoc ? (
+      <IframeBox srcDoc={srcDoc} title={title} />
+    ) : (
+      <IframeBox src={payload.src} title={title} />
+    );
   }
 
   if (payload.kind === "html-url") {
@@ -963,7 +987,12 @@ const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
   // Fallback to whatever we had before (likely an image dataURL)
   if (fallbackSrc && /^data:(image|text\/html)/i.test(fallbackSrc)) {
     if (fallbackSrc.toLowerCase().startsWith("data:text/html")) {
-      return <IframeBox src={fallbackSrc} title={title} />;
+      const srcDoc = decodeHtmlDataUrlToSrcDoc(fallbackSrc);
+      return srcDoc ? (
+        <IframeBox srcDoc={srcDoc} title={title} />
+      ) : (
+        <IframeBox src={fallbackSrc} title={title} />
+      );
     }
     return (
       <img
@@ -992,12 +1021,13 @@ const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
   );
 };
 
-// Small iframe wrapper with sandboxing
-const IframeBox = ({ src, title }) => (
+// Small iframe wrapper with sandboxing (supports src or srcDoc)
+const IframeBox = ({ src, srcDoc, title }) => (
   <iframe
     title={title}
-    src={src}
+    {...(srcDoc ? { srcDoc } : { src })}
     sandbox="allow-same-origin allow-scripts"
+    referrerPolicy="no-referrer"
     className="w-full rounded border"
     style={{ height: 480, background: "white" }}
   />
