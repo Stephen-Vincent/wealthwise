@@ -58,6 +58,8 @@ const SHAPDashboard = ({
     loading,
     error,
     apiBase: resolvedApiBase,
+    chartData,
+    enhancedData,
   });
 
   // Helper functions
@@ -184,13 +186,18 @@ const SHAPDashboard = ({
 
   // Fetch chart data when SHAP data is available
   useEffect(() => {
-    if (!derivedSimulationId || !hasShapData || chartLoading) return;
+    if (!derivedSimulationId || !hasShapData) return;
 
     let cancelled = false;
     setChartLoading(true);
 
     const loadChartData = async () => {
       try {
+        console.log(
+          "🔄 Fetching chart data for simulation:",
+          derivedSimulationId
+        );
+
         // Fetch comprehensive chart data
         const chartRes = await fetch(
           `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/chart-data`,
@@ -201,11 +208,16 @@ const SHAPDashboard = ({
           }
         );
 
+        console.log("📊 Chart data response:", chartRes.status, chartRes.ok);
+
         if (chartRes.ok && !looksLikeSpaHtmlResponse(chartRes)) {
           const chartDataResult = await safeJson(chartRes);
+          console.log("📊 Chart data received:", chartDataResult);
           if (chartDataResult.success && !cancelled) {
             setChartData(chartDataResult.chart_data);
           }
+        } else {
+          console.warn("Chart data fetch failed:", chartRes.status);
         }
 
         // Fetch enhanced portfolio data
@@ -218,14 +230,23 @@ const SHAPDashboard = ({
           }
         );
 
+        console.log(
+          "📈 Enhanced data response:",
+          enhancedRes.status,
+          enhancedRes.ok
+        );
+
         if (enhancedRes.ok && !looksLikeSpaHtmlResponse(enhancedRes)) {
           const enhancedDataResult = await safeJson(enhancedRes);
+          console.log("📈 Enhanced data received:", enhancedDataResult);
           if (enhancedDataResult.success && !cancelled) {
             setEnhancedData(enhancedDataResult.enhanced_data);
           }
+        } else {
+          console.warn("Enhanced data fetch failed:", enhancedRes.status);
         }
       } catch (error) {
-        console.warn("Failed to fetch chart data:", error);
+        console.error("Failed to fetch chart data:", error);
       } finally {
         if (!cancelled) setChartLoading(false);
       }
@@ -346,6 +367,45 @@ const SHAPDashboard = ({
           </p>
         )}
       </div>
+
+      {/* Debug Panel */}
+      <details className="bg-gray-50 border rounded-lg p-4">
+        <summary className="cursor-pointer font-medium text-gray-700">
+          Chart Data Debug
+        </summary>
+        <div className="mt-3 space-y-2 text-sm">
+          <p>
+            <strong>Chart Data Available:</strong> {!!chartData ? "✅" : "❌"}
+          </p>
+          <p>
+            <strong>Enhanced Data Available:</strong>{" "}
+            {!!enhancedData ? "✅" : "❌"}
+          </p>
+          <p>
+            <strong>Chart Loading:</strong> {chartLoading ? "🔄" : "✅"}
+          </p>
+          {chartData && (
+            <div>
+              <p>
+                <strong>Chart Data Keys:</strong>
+              </p>
+              <code className="block bg-white p-2 rounded text-xs">
+                {Object.keys(chartData).join(", ")}
+              </code>
+            </div>
+          )}
+          {enhancedData && (
+            <div>
+              <p>
+                <strong>Enhanced Data Keys:</strong>
+              </p>
+              <code className="block bg-white p-2 rounded text-xs">
+                {Object.keys(enhancedData).join(", ")}
+              </code>
+            </div>
+          )}
+        </div>
+      </details>
 
       {/* Tab Navigation */}
       <div className="bg-gray-50 rounded-xl p-2">
@@ -529,7 +589,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
   );
 };
 
-// Factors Tab
+// Factors Tab - Fixed Bar chart coloring
 const FactorsTab = ({ chartData, shapData }) => {
   // Process factor importance data
   const factorImportanceData = useMemo(() => {
@@ -547,6 +607,11 @@ const FactorsTab = ({ chartData, shapData }) => {
     }
     return chartData.factor_importance;
   }, [chartData, shapData]);
+
+  // Custom bar color function
+  const getBarColor = (entry) => {
+    return entry.importance >= 0 ? "#10B981" : "#EF4444";
+  };
 
   return (
     <div className="space-y-6">
@@ -586,11 +651,11 @@ const FactorsTab = ({ chartData, shapData }) => {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar
-                  dataKey="importance"
-                  radius={[4, 4, 0, 0]}
-                  fill={(entry) => (entry.isPositive ? "#10B981" : "#EF4444")}
-                />
+                <Bar dataKey="importance" radius={[4, 4, 0, 0]}>
+                  {factorImportanceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getBarColor(entry)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -620,10 +685,14 @@ const FactorsTab = ({ chartData, shapData }) => {
                 />
                 <YAxis />
                 <Tooltip />
-                <Bar
-                  dataKey="value"
-                  fill={(entry) => (entry.isPositive ? "#10B981" : "#EF4444")}
-                />
+                <Bar dataKey="value">
+                  {chartData.shap_waterfall.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.isPositive ? "#10B981" : "#EF4444"}
+                    />
+                  ))}
+                </Bar>
                 <Line
                   type="monotone"
                   dataKey="cumulative"
@@ -691,6 +760,21 @@ const VisualizationsTab = ({
           Loading Interactive Charts
         </h3>
         <p className="text-gray-600">Preparing your data visualizations...</p>
+      </div>
+    );
+  }
+
+  if (!chartData && !enhancedData) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+        <div className="text-4xl mb-4">⚠️</div>
+        <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+          Charts Not Available
+        </h3>
+        <p className="text-yellow-700">
+          Chart data could not be loaded. This might be due to an API issue or
+          missing data.
+        </p>
       </div>
     );
   }
@@ -827,10 +911,18 @@ const VisualizationsTab = ({
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={enhancedData.portfolio_timeline}>
+              <AreaChart data={enhancedData.portfolio_timeline.slice(-60)}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis
+                  tickFormatter={(value) => `£${(value / 1000).toFixed(0)}K`}
+                />
                 <Tooltip
                   formatter={(value, name) => [
                     name === "value"
@@ -838,6 +930,7 @@ const VisualizationsTab = ({
                       : `${value.toFixed(2)}%`,
                     name === "value" ? "Portfolio Value" : "Return %",
                   ]}
+                  labelFormatter={(label) => `Date: ${label}`}
                 />
                 <Area
                   type="monotone"
@@ -865,6 +958,7 @@ const VisualizationsTab = ({
                 <XAxis dataKey="symbol" />
                 <YAxis />
                 <Tooltip />
+                <Legend />
                 <Bar
                   dataKey="weight"
                   fill="#3B82F6"
