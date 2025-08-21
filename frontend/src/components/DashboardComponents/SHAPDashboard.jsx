@@ -77,9 +77,43 @@ const SHAPDashboard = ({
     return res.json();
   }
 
+  // 🆕 Detect payload type for rendering
+  function classifyChartPayload(value) {
+    if (!value || typeof value !== "string") return { kind: "unknown" };
+
+    const lower = value.toLowerCase();
+
+    if (lower.startsWith("data:image/"))
+      return { kind: "image-dataurl", src: value };
+    if (lower.startsWith("data:text/html"))
+      return { kind: "html-dataurl", src: value };
+
+    try {
+      const url = new URL(value, window.location.origin);
+      if (/\.(png|jpg|jpeg|webp|gif)(\?.*)?$/i.test(url.pathname)) {
+        return { kind: "image-url", src: value };
+      }
+      if (/\.(html?)(\?.*)?$/i.test(url.pathname)) {
+        return { kind: "html-url", src: value };
+      }
+      // Unknown URL: keep as unknown so we don't mis-render
+      return { kind: "unknown-url", src: value };
+    } catch {
+      return { kind: "unknown" };
+    }
+  }
+
+  // 🆕 If we fetch raw HTML text and want to display it safely in an iframe
+  function htmlTextToDataUrl(htmlText) {
+    const base64 = btoa(unescape(encodeURIComponent(htmlText)));
+    return `data:text/html;base64,${base64}`;
+  }
+
+  // NOTE: keep images as image/png, but DO NOT touch HTML data URLs
   function normalizeBase64(dataOrDataUrl) {
     if (!dataOrDataUrl || typeof dataOrDataUrl !== "string") return null;
     if (dataOrDataUrl.startsWith("data:image/")) return dataOrDataUrl;
+    if (dataOrDataUrl.startsWith("data:text/html")) return dataOrDataUrl; // 🆕 pass-through
     // Assume PNG if mime is missing
     return `data:image/png;base64,${dataOrDataUrl}`;
   }
@@ -87,7 +121,11 @@ const SHAPDashboard = ({
   function normalizeCharts(charts) {
     const out = {};
     for (const [k, v] of Object.entries(charts || {})) {
-      out[k] = normalizeBase64(v);
+      // if it's an HTML data URL already, keep it; otherwise normalize as image
+      out[k] =
+        typeof v === "string" && v.toLowerCase().startsWith("data:text/html")
+          ? v
+          : normalizeBase64(v);
     }
     return out;
   }
@@ -95,14 +133,13 @@ const SHAPDashboard = ({
   const fetchImageAsDataURL = async (url) => {
     const res = await fetch(url, {
       method: "GET",
-      // images usually don't need cookies; using same-origin by default helps with CDNs
       credentials: withCredentials ? "include" : "same-origin",
     });
     if (!res.ok) throw new Error(`Image fetch failed: ${res.status} ${url}`);
     const blob = await res.blob();
     return await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result); // data:image/...;base64,...
+      reader.onloadend = () => resolve(reader.result); // data:[mime];base64,...
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
@@ -216,7 +253,7 @@ const SHAPDashboard = ({
     return hasData;
   }, [shapData]);
 
-  // --- Final fallback: use visualization_paths → base64
+  // --- Final fallback: use visualization_paths → base64 (works for images and HTML)
   const tryVisualizationPathsAsBase64 = async () => {
     const paths = portfolioData?.visualization_paths || {};
     const keys = Object.keys(paths || {});
@@ -231,7 +268,7 @@ const SHAPDashboard = ({
     for (const key of keys) {
       try {
         const url = toAbs(paths[key]);
-        const dataUrl = await fetchImageAsDataURL(url);
+        const dataUrl = await fetchImageAsDataURL(url); // preserves MIME → image/* or text/html
         results[key] = dataUrl;
       } catch (e) {
         console.warn(`Failed to fetch path for ${key}:`, e);
@@ -330,7 +367,14 @@ const SHAPDashboard = ({
         });
 
         if (looksLikeSpaHtmlResponse(res)) {
-          throw new Error("HTML from image endpoint (API misconfig)");
+          // Keep the HTML so we can display it later if needed
+          const html = await res.text().catch(() => "");
+          if (html) {
+            newChartImages[key] = htmlTextToDataUrl(html);
+          } else {
+            throw new Error("HTML from image endpoint (API misconfig)");
+          }
+          continue;
         }
 
         const ct = res.headers.get("content-type") || "";
@@ -349,6 +393,9 @@ const SHAPDashboard = ({
             reader.readAsDataURL(blob);
           });
           newChartImages[key] = dataUrl;
+        } else if (ct.includes("text/html")) {
+          const txt = await res.text();
+          newChartImages[key] = htmlTextToDataUrl(txt);
         } else {
           const txt = await res.text().catch(() => "");
           console.warn(
@@ -594,6 +641,8 @@ const SHAPDashboard = ({
               }
             }}
             normalizeBase64={normalizeBase64}
+            classifyChartPayload={classifyChartPayload}
+            htmlTextToDataUrl={htmlTextToDataUrl}
           />
         )}
         {activeTab === "insights" && (
@@ -608,12 +657,14 @@ const SHAPDashboard = ({
   );
 };
 
-// Updated Visualizations Tab Component for Base64 Images
+// ---------- Visualizations Tab (supports HTML + images) ----------
 const VisualizationsTab = ({
   chartImages,
   chartLoading,
   onRefreshCharts,
   normalizeBase64,
+  classifyChartPayload,
+  htmlTextToDataUrl,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
 
@@ -722,50 +773,38 @@ const VisualizationsTab = ({
         </div>
       ) : (
         <div className="grid gap-6">
-          {availableCharts.map((config) => (
-            <div
-              key={config.key}
-              className="bg-white rounded-xl border border-gray-200 p-6"
-            >
-              <div className="flex items-center mb-4">
-                <span className="text-2xl mr-3">{config.icon}</span>
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800">
-                    {config.title}
-                  </h4>
-                  <p className="text-gray-600 text-sm">{config.description}</p>
-                </div>
-              </div>
+          {availableCharts.map((config) => {
+            const raw = chartImages[config.key];
+            const payload = classifyChartPayload(String(raw || ""));
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                {chartImages[config.key] ? (
-                  <img
-                    src={normalizeBase64(chartImages[config.key])}
-                    alt={config.title}
-                    className="w-full h-auto rounded border"
-                    onError={(e) => {
-                      console.error(`Failed to load chart: ${config.key}`);
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Chart data not available</p>
+            return (
+              <div
+                key={config.key}
+                className="bg-white rounded-xl border border-gray-200 p-6"
+              >
+                <div className="flex items-center mb-4">
+                  <span className="text-2xl mr-3">{config.icon}</span>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-800">
+                      {config.title}
+                    </h4>
+                    <p className="text-gray-600 text-sm">
+                      {config.description}
+                    </p>
                   </div>
-                )}
-                <div className="hidden text-center py-8 text-gray-500">
-                  <p>Chart could not be displayed</p>
-                  <button
-                    onClick={refreshCharts}
-                    className="mt-2 px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                  >
-                    Try Again
-                  </button>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <ChartRenderer
+                    payload={payload}
+                    fallbackSrc={normalizeBase64(raw)}
+                    htmlTextToDataUrl={htmlTextToDataUrl}
+                    title={config.title}
+                  />
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -824,7 +863,116 @@ const VisualizationsTab = ({
   );
 };
 
-// Summary Tab Component (unchanged)
+// 🆕 Renders either <img> or sandboxed <iframe>, and can convert HTML URL → data URL when possible
+const ChartRenderer = ({ payload, fallbackSrc, htmlTextToDataUrl, title }) => {
+  const [converted, setConverted] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function maybeConvertHtmlUrl() {
+      if (payload.kind === "html-url") {
+        try {
+          const res = await fetch(payload.src, { credentials: "same-origin" });
+          if (!res.ok) throw new Error(`HTML fetch failed: ${res.status}`);
+          const ct = res.headers.get("content-type") || "";
+          const text = await res.text();
+          const dataUrl = htmlTextToDataUrl(text);
+          if (!cancelled)
+            setConverted({ kind: "html-dataurl", src: dataUrl, ct });
+        } catch (e) {
+          console.warn("Failed to convert HTML URL to data URL:", e);
+          if (!cancelled) setFailed(true);
+        }
+      }
+    }
+
+    setConverted(null);
+    setFailed(false);
+    maybeConvertHtmlUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [payload?.kind, payload?.src, htmlTextToDataUrl]);
+
+  // Prefer converted HTML if available
+  if (converted?.kind === "html-dataurl") {
+    return <IframeBox src={converted.src} title={title} />;
+  }
+
+  // Native cases
+  if (payload.kind === "image-dataurl" || payload.kind === "image-url") {
+    return (
+      <img
+        src={payload.src}
+        alt={title}
+        className="w-full h-auto rounded border"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  if (payload.kind === "html-dataurl") {
+    return <IframeBox src={payload.src} title={title} />;
+  }
+
+  if (payload.kind === "html-url") {
+    // If conversion not done yet, try direct iframe to URL (may fail if auth/CORS)
+    return (
+      <IframeBox
+        src={payload.src}
+        title={title}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  // Fallback to whatever we had before (likely an image dataURL)
+  if (fallbackSrc && /^data:(image|text\/html)/i.test(fallbackSrc)) {
+    if (fallbackSrc.toLowerCase().startsWith("data:text/html")) {
+      return <IframeBox src={fallbackSrc} title={title} />;
+    }
+    return (
+      <img
+        src={fallbackSrc}
+        alt={title}
+        className="w-full h-auto rounded border"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
+  // Last resort message
+  return (
+    <div className="text-center py-8 text-gray-500">
+      {failed ? (
+        <>
+          <p>Chart could not be displayed</p>
+          <p className="text-xs mt-1">
+            Payload kind: {payload.kind || "unknown"}
+          </p>
+        </>
+      ) : (
+        <p>Chart data not available</p>
+      )}
+    </div>
+  );
+};
+
+// Small iframe wrapper with sandboxing
+const IframeBox = ({ src, title }) => (
+  <iframe
+    title={title}
+    src={src}
+    sandbox="allow-same-origin allow-scripts"
+    className="w-full rounded border"
+    style={{ height: 480, background: "white" }}
+  />
+);
+
+// ---------------- Summary Tab (unchanged) ----------------
 const SummaryTab = ({ shapData, portfolioData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
@@ -915,7 +1063,7 @@ const SummaryTab = ({ shapData, portfolioData }) => {
   );
 };
 
-// Factors Tab Component (unchanged)
+// ---------------- Factors Tab (unchanged) ----------------
 const FactorsTab = ({ chartData, shapData }) => {
   return (
     <div className="space-y-6">
@@ -1018,7 +1166,7 @@ const FactorsTab = ({ chartData, shapData }) => {
   );
 };
 
-// Helper Components
+// ---------------- Helper Components ----------------
 const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
   <div className={`${bgColor} rounded-xl p-6 border border-gray-200`}>
     <div className="flex items-center justify-between mb-3">
@@ -1048,7 +1196,7 @@ const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
   </div>
 );
 
-// Insights Tab Component (unchanged)
+// ---------------- Insights Tab (unchanged) ----------------
 const InsightsTab = ({ shapData, portfolioData, chartData }) => {
   const generateInsights = () => {
     const insights = [];
