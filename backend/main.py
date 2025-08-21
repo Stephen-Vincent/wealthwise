@@ -226,7 +226,7 @@ async def root():
             "simulations": "/simulations",
             "ai_analysis": "/api/ai",
             "instruments": "/api/instruments",
-            "shap": "/api/shap",
+            "shap": "/api/shap-visualization",
             "static_files": "/static"
         }
     }
@@ -305,12 +305,18 @@ include_routers()
 # Error handlers for better debugging
 @app.exception_handler(500)
 async def internal_server_error(request, exc):
-    logger.error(f"Internal server error: {exc}")
+    import traceback
+    logger.error(f"Internal server error on {request.url}: {exc}")
+    logger.error(f"Full traceback: {traceback.format_exc()}")
     return {
         "error": "Internal server error",
         "message": "Something went wrong. Please try again later.",
-        "status_code": 500
+        "status_code": 500,
+        "path": str(request.url)
     }
+@app.get("/api/shap-visualization/test")
+async def test_shap_router():
+    return {"status": "working", "message": "SHAP router is registered correctly"}
 
 # Middleware to log requests in development
 if os.getenv("DEBUG", "true").lower() == "true":
@@ -436,11 +442,11 @@ if os.getenv("ENVIRONMENT") == "development":
                 "visualization_files": len(viz_files),
                 "sample_files": [str(f) for f in viz_files[:5]],
                 "shap_endpoints": [
-                    "/api/shap/simulation/{id}/explanation",
-                    "/api/shap/simulation/{id}/visualizations",
-                    "/api/shap/simulation/{id}/chart/{chart_type}",
-                    "/api/shap/simulation/{id}/chart-data",
-                    "/api/shap/simulation/{id}/regenerate-shap"
+                    "/api/shap-visualization/simulation/{id}/explanation",
+                    "/api/shap-visualization/simulation/{id}/visualizations", 
+                    "/api/shap-visualization/simulation/{id}/chart/{chart_type}",
+                    "/api/shap-visualization/simulation/{id}/chart-data",
+                    "/api/shap-visualization/simulation/{id}/regenerate-shap"
                 ],
                 "static_endpoint": "/static/visualizations/{filename}"
             }
