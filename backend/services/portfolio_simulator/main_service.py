@@ -9,6 +9,7 @@ import logging
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 import asyncio
+import numpy as np   # ✅ Missing import added
 
 from .config import get_config, get_stock_metadata, get_risk_profiles
 from .exceptions import AIServiceError, SHAPExplanationError
