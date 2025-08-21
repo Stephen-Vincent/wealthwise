@@ -288,7 +288,7 @@ def include_routers():
         # These routers already have /api prefix in their own files
         (instruments.router, "", ["instruments"]),
         (ai_analysis.router, "", ["ai-analysis"]),
-        (shap_visualization.router, "/api/shap", ["shap-visualization"]),
+        (shap_visualization.router, "/api/shap-visualization", ["shap-visualization"]),
     ]
     
     for router, prefix, tags in routers_config:
