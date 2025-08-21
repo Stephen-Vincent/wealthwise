@@ -22,41 +22,87 @@ const SHAPDashboard = ({
   const [chartImages, setChartImages] = useState({});
   const [chartLoading, setChartLoading] = useState(false);
 
+  // --- 🧠 Resolve a dependable simulation ID from props or data ---
+  const derivedSimulationId =
+    simulationId ??
+    portfolioDataProp?.id ??
+    portfolioDataProp?.simulation_id ??
+    portfolioData?.id ??
+    portfolioData?.simulation_id ??
+    null;
+
   console.log("🔍 SHAPDashboard Debug:", {
-    simulationId,
+    propSimulationId: simulationId,
+    derivedSimulationId,
     hasPortfolioDataProp: !!portfolioDataProp,
     portfolioData: portfolioData,
     loading,
     error,
+    apiBase,
   });
+  if (!derivedSimulationId) {
+    console.warn("⚠️ No simulation ID available. Skipping SHAP chart fetches.");
+  }
+
+  // ---------- Helpers ----------
+  async function safeJson(res) {
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(
+        `Expected JSON but got "${ct}". First bytes: ${txt.slice(0, 80)}`
+      );
+    }
+    return res.json();
+  }
+
+  function normalizeBase64(dataOrDataUrl) {
+    if (!dataOrDataUrl || typeof dataOrDataUrl !== "string") return null;
+    if (dataOrDataUrl.startsWith("data:image/")) return dataOrDataUrl;
+    // Assume PNG if mime is missing
+    return `data:image/png;base64,${dataOrDataUrl}`;
+  }
+
+  function normalizeCharts(charts) {
+    const out = {};
+    for (const [k, v] of Object.entries(charts || {})) {
+      out[k] = normalizeBase64(v);
+    }
+    return out;
+  }
+  // -----------------------------
 
   // 1) Fetch the simulation
   useEffect(() => {
     let alive = true;
-    if (!simulationId || portfolioDataProp) return;
+    if (!derivedSimulationId || portfolioDataProp) return;
 
     (async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${apiBase}/simulations/${simulationId}`, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          credentials: withCredentials ? "include" : "same-origin",
-        });
+        const res = await fetch(
+          `${apiBase}/simulations/${derivedSimulationId}`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            credentials: withCredentials ? "include" : "same-origin",
+          }
+        );
         if (!res.ok)
           throw new Error(
-            `Failed to load simulation ${simulationId}: ${res.status}`
+            `Failed to load simulation ${derivedSimulationId}: ${res.status}`
           );
-        const sim = await res.json();
+
+        const sim = await safeJson(res);
 
         // 2) If SHAP missing, fetch SHAP explanation and merge
         const hasShap = !!sim?.results?.shap_explanation;
         if (!hasShap) {
           try {
             const shapRes = await fetch(
-              `${apiBase}/shap/simulation/${simulationId}/explanation`,
+              `${apiBase}/shap/simulation/${derivedSimulationId}/explanation`,
               {
                 method: "GET",
                 headers: { Accept: "application/json" },
@@ -64,7 +110,7 @@ const SHAPDashboard = ({
               }
             );
             if (shapRes.ok) {
-              const shapJson = await shapRes.json();
+              const shapJson = await safeJson(shapRes);
               // Merge into results
               const merged = {
                 ...sim,
@@ -79,7 +125,6 @@ const SHAPDashboard = ({
               };
               if (alive) setPortfolioData(merged);
             } else {
-              // Keep the original sim if SHAP endpoint 404s
               if (alive) setPortfolioData(sim);
             }
           } catch {
@@ -98,7 +143,7 @@ const SHAPDashboard = ({
     return () => {
       alive = false;
     };
-  }, [simulationId, apiBase, withCredentials, portfolioDataProp]);
+  }, [derivedSimulationId, apiBase, withCredentials, portfolioDataProp]);
 
   // Prefer prop if provided
   useEffect(() => {
@@ -132,37 +177,42 @@ const SHAPDashboard = ({
 
   // Fetch visualization charts as base64 data when SHAP data is available
   useEffect(() => {
-    if (simulationId && hasShapData && !chartLoading) {
-      setChartLoading(true);
+    if (!derivedSimulationId || !hasShapData || chartLoading) return;
 
-      // Fetch all charts as base64 data
-      fetch(`${apiBase}/shap/simulation/${simulationId}/charts/all`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        credentials: withCredentials ? "include" : "same-origin",
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("📊 Base64 charts fetched:", data);
-          if (data.success && data.charts) {
-            setChartImages(data.charts);
-          }
-          if (data.errors) {
-            console.warn("Chart generation errors:", data.errors);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to fetch base64 charts:", err);
+    setChartLoading(true);
+
+    // Fetch all charts as base64 data
+    fetch(`${apiBase}/shap/simulation/${derivedSimulationId}/charts/all`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      credentials: withCredentials ? "include" : "same-origin",
+    })
+      .then(safeJson)
+      .then((data) => {
+        console.log("📊 Base64 charts fetched:", data);
+        if (data?.success && data?.charts) {
+          setChartImages(normalizeCharts(data.charts));
+        } else {
           // Try individual chart endpoints as fallback
           fetchIndividualChartsAsBase64();
-        })
-        .finally(() => {
-          setChartLoading(false);
-        });
-    }
-  }, [simulationId, hasShapData, apiBase, withCredentials]);
+        }
+        if (data?.errors) {
+          console.warn("Chart generation errors:", data.errors);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch base64 charts:", err);
+        // Try individual chart endpoints as fallback
+        fetchIndividualChartsAsBase64();
+      })
+      .finally(() => {
+        setChartLoading(false);
+      });
+  }, [derivedSimulationId, hasShapData, apiBase, withCredentials]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchIndividualChartsAsBase64 = async () => {
+    if (!derivedSimulationId) return;
+
     const chartEndpoints = [
       { key: "shap_explanation", type: "shap_explanation" },
       { key: "portfolio_composition", type: "portfolio_composition" },
@@ -175,20 +225,39 @@ const SHAPDashboard = ({
 
     for (const { key, type } of chartEndpoints) {
       try {
-        const res = await fetch(
-          `${apiBase}/shap/simulation/${simulationId}/chart/${type}/image`,
-          {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            credentials: withCredentials ? "include" : "same-origin",
-          }
-        );
+        const url = `${apiBase}/shap/simulation/${derivedSimulationId}/chart/${type}/image`;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: withCredentials ? "include" : "same-origin",
+        });
 
-        if (res.ok) {
+        const ct = res.headers.get("content-type") || "";
+
+        if (ct.includes("application/json")) {
           const data = await res.json();
-          if (data.success && data.image_data) {
-            newChartImages[key] = data.image_data;
+          const base64 = data?.image_data || data?.data || null;
+          if (data?.success && base64) {
+            newChartImages[key] = normalizeBase64(base64);
           }
+        } else if (ct.startsWith("image/")) {
+          // Binary image → convert to data URL
+          const blob = await res.blob();
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          newChartImages[key] = dataUrl;
+        } else {
+          // Likely HTML (e.g., index.html fallback)
+          const txt = await res.text().catch(() => "");
+          console.warn(
+            `Unexpected response for ${key}: ${ct}. First bytes: ${txt.slice(
+              0,
+              80
+            )}`
+          );
         }
       } catch (err) {
         console.warn(`Failed to fetch ${key} chart:`, err);
@@ -196,7 +265,7 @@ const SHAPDashboard = ({
     }
 
     if (Object.keys(newChartImages).length > 0) {
-      setChartImages(newChartImages);
+      setChartImages((prev) => ({ ...prev, ...newChartImages }));
     }
   };
 
@@ -399,10 +468,9 @@ const SHAPDashboard = ({
           <VisualizationsTab
             chartImages={chartImages}
             chartLoading={chartLoading}
-            simulationId={simulationId}
-            apiBase={apiBase}
-            withCredentials={withCredentials}
+            // simulationId is not used inside VisualizationsTab; keeping props minimal
             onRefreshCharts={fetchIndividualChartsAsBase64}
+            normalizeBase64={normalizeBase64}
           />
         )}
         {activeTab === "insights" && (
@@ -421,17 +489,14 @@ const SHAPDashboard = ({
 const VisualizationsTab = ({
   chartImages,
   chartLoading,
-  simulationId,
-  apiBase,
-  withCredentials,
   onRefreshCharts,
+  normalizeBase64,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const refreshCharts = async () => {
     setRefreshing(true);
     try {
-      // Call the parent's refresh function
       await onRefreshCharts();
     } catch (err) {
       console.error("Failed to refresh charts:", err);
@@ -552,7 +617,7 @@ const VisualizationsTab = ({
               <div className="bg-gray-50 rounded-lg p-4">
                 {chartImages[config.key] ? (
                   <img
-                    src={chartImages[config.key]}
+                    src={normalizeBase64(chartImages[config.key])}
                     alt={config.title}
                     className="w-full h-auto rounded border"
                     onError={(e) => {
@@ -626,7 +691,7 @@ const VisualizationsTab = ({
             <div key={key} className="mt-2">
               <p>
                 <strong>{key}:</strong>{" "}
-                {value ? `${value.substring(0, 50)}...` : "No data"}
+                {value ? `${String(value).substring(0, 50)}...` : "No data"}
               </p>
             </div>
           ))}
