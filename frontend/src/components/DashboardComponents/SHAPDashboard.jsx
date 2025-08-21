@@ -21,6 +21,21 @@ const SHAPDashboard = ({
   const [error, setError] = useState(null);
   const [chartImages, setChartImages] = useState({});
   const [chartLoading, setChartLoading] = useState(false);
+  const [apiMisconfiguredMsg, setApiMisconfiguredMsg] = useState("");
+
+  // --- Resolve dependable API + image bases ---
+  const resolvedApiBase = useMemo(() => {
+    const env = (import.meta.env.VITE_API_BASE_URL || apiBase || "").trim();
+    if (!env) return "/api";
+    return env.replace(/\/+$/, "");
+  }, [apiBase]);
+
+  const imageBase = useMemo(() => {
+    const env = (import.meta.env.VITE_IMAGE_BASE_URL || "").trim();
+    if (env) return env.replace(/\/+$/, "");
+    // If API base ends with /api, strip it to get the origin for static files
+    return resolvedApiBase.replace(/\/api$/i, "");
+  }, [resolvedApiBase]);
 
   // --- 🧠 Resolve a dependable simulation ID from props or data ---
   const derivedSimulationId =
@@ -35,16 +50,22 @@ const SHAPDashboard = ({
     propSimulationId: simulationId,
     derivedSimulationId,
     hasPortfolioDataProp: !!portfolioDataProp,
-    portfolioData: portfolioData,
+    portfolioData,
     loading,
     error,
-    apiBase,
+    apiBase: resolvedApiBase,
+    imageBase,
   });
   if (!derivedSimulationId) {
     console.warn("⚠️ No simulation ID available. Skipping SHAP chart fetches.");
   }
 
   // ---------- Helpers ----------
+  const looksLikeSpaHtmlResponse = (res) => {
+    const ct = res.headers.get("content-type") || "";
+    return res.ok && ct.includes("text/html");
+  };
+
   async function safeJson(res) {
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
@@ -70,6 +91,22 @@ const SHAPDashboard = ({
     }
     return out;
   }
+
+  const fetchImageAsDataURL = async (url) => {
+    const res = await fetch(url, {
+      method: "GET",
+      // images usually don't need cookies; using same-origin by default helps with CDNs
+      credentials: withCredentials ? "include" : "same-origin",
+    });
+    if (!res.ok) throw new Error(`Image fetch failed: ${res.status} ${url}`);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result); // data:image/...;base64,...
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
   // -----------------------------
 
   // 1) Fetch the simulation
@@ -83,7 +120,7 @@ const SHAPDashboard = ({
         setError(null);
 
         const res = await fetch(
-          `${apiBase}/simulations/${derivedSimulationId}`,
+          `${resolvedApiBase}/simulations/${derivedSimulationId}`,
           {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -102,7 +139,7 @@ const SHAPDashboard = ({
         if (!hasShap) {
           try {
             const shapRes = await fetch(
-              `${apiBase}/shap/simulation/${derivedSimulationId}/explanation`,
+              `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/explanation`,
               {
                 method: "GET",
                 headers: { Accept: "application/json" },
@@ -111,7 +148,6 @@ const SHAPDashboard = ({
             );
             if (shapRes.ok) {
               const shapJson = await safeJson(shapRes);
-              // Merge into results
               const merged = {
                 ...sim,
                 results: {
@@ -143,7 +179,12 @@ const SHAPDashboard = ({
     return () => {
       alive = false;
     };
-  }, [derivedSimulationId, apiBase, withCredentials, portfolioDataProp]);
+  }, [
+    derivedSimulationId,
+    resolvedApiBase,
+    withCredentials,
+    portfolioDataProp,
+  ]);
 
   // Prefer prop if provided
   useEffect(() => {
@@ -175,26 +216,74 @@ const SHAPDashboard = ({
     return hasData;
   }, [shapData]);
 
+  // --- Final fallback: use visualization_paths → base64
+  const tryVisualizationPathsAsBase64 = async () => {
+    const paths = portfolioData?.visualization_paths || {};
+    const keys = Object.keys(paths || {});
+    if (!keys.length) {
+      console.warn("No visualization_paths available to fall back to.");
+      return false;
+    }
+
+    const toAbs = (p) => `${imageBase}/${String(p || "").replace(/^\/+/, "")}`;
+
+    const results = {};
+    for (const key of keys) {
+      try {
+        const url = toAbs(paths[key]);
+        const dataUrl = await fetchImageAsDataURL(url);
+        results[key] = dataUrl;
+      } catch (e) {
+        console.warn(`Failed to fetch path for ${key}:`, e);
+      }
+    }
+
+    if (Object.keys(results).length) {
+      setChartImages((prev) => ({ ...prev, ...results }));
+      console.log(
+        "🖼️ Loaded charts from visualization_paths (base64).",
+        results
+      );
+      return true;
+    }
+    console.warn("Could not load any charts from visualization_paths.");
+    return false;
+  };
+
   // Fetch visualization charts as base64 data when SHAP data is available
   useEffect(() => {
     if (!derivedSimulationId || !hasShapData || chartLoading) return;
 
     setChartLoading(true);
+    setApiMisconfiguredMsg("");
 
-    // Fetch all charts as base64 data
-    fetch(`${apiBase}/shap/simulation/${derivedSimulationId}/charts/all`, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-      credentials: withCredentials ? "include" : "same-origin",
-    })
-      .then(safeJson)
+    // Try "all charts" JSON endpoint first
+    fetch(
+      `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/charts/all`,
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: withCredentials ? "include" : "same-origin",
+      }
+    )
+      .then(async (res) => {
+        if (looksLikeSpaHtmlResponse(res)) {
+          const url = res.url;
+          const msg = `API misconfiguration: received HTML from ${url}. Check API base (${resolvedApiBase}) or hosting rewrites for /api.`;
+          setApiMisconfiguredMsg(msg);
+          throw new Error(msg);
+        }
+        return safeJson(res);
+      })
       .then((data) => {
         console.log("📊 Base64 charts fetched:", data);
         if (data?.success && data?.charts) {
           setChartImages(normalizeCharts(data.charts));
         } else {
-          // Try individual chart endpoints as fallback
-          fetchIndividualChartsAsBase64();
+          // Try individual chart endpoints; if that fails, paths
+          fetchIndividualChartsAsBase64().catch(() =>
+            tryVisualizationPathsAsBase64()
+          );
         }
         if (data?.errors) {
           console.warn("Chart generation errors:", data.errors);
@@ -202,13 +291,21 @@ const SHAPDashboard = ({
       })
       .catch((err) => {
         console.error("Failed to fetch base64 charts:", err);
-        // Try individual chart endpoints as fallback
-        fetchIndividualChartsAsBase64();
+        // Try individual chart endpoints; if that fails, paths
+        fetchIndividualChartsAsBase64().catch(() =>
+          tryVisualizationPathsAsBase64()
+        );
       })
       .finally(() => {
         setChartLoading(false);
       });
-  }, [derivedSimulationId, hasShapData, apiBase, withCredentials]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    derivedSimulationId,
+    hasShapData,
+    resolvedApiBase,
+    imageBase,
+    withCredentials,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchIndividualChartsAsBase64 = async () => {
     if (!derivedSimulationId) return;
@@ -225,12 +322,16 @@ const SHAPDashboard = ({
 
     for (const { key, type } of chartEndpoints) {
       try {
-        const url = `${apiBase}/shap/simulation/${derivedSimulationId}/chart/${type}/image`;
+        const url = `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/chart/${type}/image`;
         const res = await fetch(url, {
           method: "GET",
           headers: { Accept: "application/json" },
           credentials: withCredentials ? "include" : "same-origin",
         });
+
+        if (looksLikeSpaHtmlResponse(res)) {
+          throw new Error("HTML from image endpoint (API misconfig)");
+        }
 
         const ct = res.headers.get("content-type") || "";
 
@@ -241,7 +342,6 @@ const SHAPDashboard = ({
             newChartImages[key] = normalizeBase64(base64);
           }
         } else if (ct.startsWith("image/")) {
-          // Binary image → convert to data URL
           const blob = await res.blob();
           const dataUrl = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -250,7 +350,6 @@ const SHAPDashboard = ({
           });
           newChartImages[key] = dataUrl;
         } else {
-          // Likely HTML (e.g., index.html fallback)
           const txt = await res.text().catch(() => "");
           console.warn(
             `Unexpected response for ${key}: ${ct}. First bytes: ${txt.slice(
@@ -260,13 +359,15 @@ const SHAPDashboard = ({
           );
         }
       } catch (err) {
-        console.warn(`Failed to fetch ${key} chart:`, err);
+        console.warn(`Failed to fetch ${key} chart via API:`, err);
       }
     }
 
     if (Object.keys(newChartImages).length > 0) {
       setChartImages((prev) => ({ ...prev, ...newChartImages }));
+      return true;
     }
+    throw new Error("No charts from per-chart endpoints");
   };
 
   const [activeTab, setActiveTab] = useState("summary");
@@ -431,6 +532,22 @@ const SHAPDashboard = ({
         )}
       </div>
 
+      {/* API misconfiguration banner */}
+      {apiMisconfiguredMsg && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="font-semibold text-amber-800 mb-1">
+            API configuration issue
+          </div>
+          <div className="text-amber-800 text-sm">{apiMisconfiguredMsg}</div>
+          <div className="text-amber-700 text-xs mt-1">
+            Using <code>visualization_paths</code> fallback for charts. Set{" "}
+            <code>VITE_API_BASE_URL</code> (and optionally{" "}
+            <code>VITE_IMAGE_BASE_URL</code>) or add a rewrite for{" "}
+            <code>/api</code>.
+          </div>
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="bg-gray-50 rounded-xl p-2">
         <div className="flex space-x-2">
@@ -468,8 +585,14 @@ const SHAPDashboard = ({
           <VisualizationsTab
             chartImages={chartImages}
             chartLoading={chartLoading}
-            // simulationId is not used inside VisualizationsTab; keeping props minimal
-            onRefreshCharts={fetchIndividualChartsAsBase64}
+            onRefreshCharts={async () => {
+              // Try API per-chart first, then static paths
+              try {
+                await fetchIndividualChartsAsBase64();
+              } catch {
+                await tryVisualizationPathsAsBase64();
+              }
+            }}
             normalizeBase64={normalizeBase64}
           />
         )}
@@ -821,8 +944,8 @@ const FactorsTab = ({ chartData, shapData }) => {
                 />
                 <YAxis tick={{ fill: "#374151" }} />
                 <Tooltip
-                  formatter={(value, name) => [
-                    value.toFixed(3),
+                  formatter={(value) => [
+                    Number(value).toFixed(3),
                     "Impact Score",
                   ]}
                   labelFormatter={(label) => `Factor: ${label}`}
@@ -895,13 +1018,40 @@ const FactorsTab = ({ chartData, shapData }) => {
   );
 };
 
+// Helper Components
+const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
+  <div className={`${bgColor} rounded-xl p-6 border border-gray-200`}>
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-2xl">{icon}</span>
+      <span className="text-sm font-medium text-gray-600">{title}</span>
+    </div>
+    <div className={`text-2xl font-bold ${color} mb-2`}>
+      {typeof value === "number" ? value.toFixed(1) : value}
+      {unit}
+    </div>
+    {maxValue && (
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all duration-500 ${
+            color.includes("green")
+              ? "bg-green-500"
+              : color.includes("blue")
+              ? "bg-blue-500"
+              : color.includes("orange")
+              ? "bg-orange-500"
+              : "bg-purple-500"
+          }`}
+          style={{ width: `${Math.min((value / maxValue) * 100, 100)}%` }}
+        />
+      </div>
+    )}
+  </div>
+);
+
 // Insights Tab Component (unchanged)
 const InsightsTab = ({ shapData, portfolioData, chartData }) => {
-  // Generate user-friendly insights
   const generateInsights = () => {
     const insights = [];
-
-    // Portfolio Strategy Insight
     const confidence = shapData?.confidence_score || shapData?.confidence || 75;
     const portfolioQuality = shapData?.portfolio_quality_score || 85;
 
@@ -931,7 +1081,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       }.`,
     });
 
-    // Top factors insights
     if (chartData && chartData.length > 0) {
       const topFactor = chartData[0];
       const isPositive = topFactor.importance >= 0;
@@ -944,7 +1093,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
         } impact on your portfolio design. ${topFactor.simpleExplanation}`,
       });
 
-      // Risk vs Timeline insight
       const riskFactor = chartData.find((f) =>
         f.factor.toLowerCase().includes("risk")
       );
@@ -968,7 +1116,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       }
     }
 
-    // Market conditions insight
     const marketVolatility = chartData?.find((f) =>
       f.factor.toLowerCase().includes("volatility")
     );
@@ -990,7 +1137,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       });
     }
 
-    // Goal achievement insight
     const goalAnalysis =
       shapData?.goal_analysis || portfolioData?.results?.goal_analysis;
     if (goalAnalysis) {
@@ -1074,36 +1220,6 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
     </div>
   );
 };
-
-// Helper Components
-const MetricCard = ({ title, value, maxValue, unit, color, bgColor, icon }) => (
-  <div className={`${bgColor} rounded-xl p-6 border border-gray-200`}>
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-2xl">{icon}</span>
-      <span className="text-sm font-medium text-gray-600">{title}</span>
-    </div>
-    <div className={`text-2xl font-bold ${color} mb-2`}>
-      {typeof value === "number" ? value.toFixed(1) : value}
-      {unit}
-    </div>
-    {maxValue && (
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full transition-all duration-500 ${
-            color.includes("green")
-              ? "bg-green-500"
-              : color.includes("blue")
-              ? "bg-blue-500"
-              : color.includes("orange")
-              ? "bg-orange-500"
-              : "bg-purple-500"
-          }`}
-          style={{ width: `${Math.min((value / maxValue) * 100, 100)}%` }}
-        />
-      </div>
-    )}
-  </div>
-);
 
 // Helper Functions
 const formatFactorName = (factor) => {
