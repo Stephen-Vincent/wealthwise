@@ -21,7 +21,9 @@ try:
         get_visualization_engine,
         get_simulation_visualizations,
         regenerate_shap_visualization,
-        create_custom_visualization
+        create_custom_visualization,
+        get_simulation_chart_data,
+        get_enhanced_portfolio_data
     )
     PORTFOLIO_SIMULATOR_AVAILABLE = True
     logger.info("Portfolio simulator visualization functions loaded successfully")
@@ -85,6 +87,46 @@ async def get_shap_explanation_data(
     except Exception as e:
         logger.error(f"Error getting SHAP explanation: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get SHAP explanation: {str(e)}")
+
+@router.get("/simulation/{simulation_id}/chart-data")
+async def get_chart_data(
+    simulation_id: int, 
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get raw chart data for React components"""
+    try:
+        if not PORTFOLIO_SIMULATOR_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Portfolio simulator service not available")
+        
+        result = await get_simulation_chart_data(simulation_id, db)
+        if "error" in result:
+            raise HTTPException(status_code=404, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting chart data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/simulation/{simulation_id}/enhanced-data")
+async def get_enhanced_data(
+    simulation_id: int, 
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get enhanced portfolio data with historical performance"""
+    try:
+        if not PORTFOLIO_SIMULATOR_AVAILABLE:
+            raise HTTPException(status_code=503, detail="Portfolio simulator service not available")
+        
+        result = await get_enhanced_portfolio_data(simulation_id, db)
+        if "error" in result:
+            raise HTTPException(status_code=404, detail=result["error"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting enhanced data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/simulation/{simulation_id}/visualizations")
 async def get_all_simulation_visualizations(
@@ -383,12 +425,12 @@ async def generate_specific_chart(
         # Fallback to base64 generation
         return await generate_chart_as_base64(simulation_id, chart_type, db)
 
-@router.get("/simulation/{simulation_id}/chart-data")
+@router.get("/simulation/{simulation_id}/chart-data-legacy")
 async def get_chart_data_for_frontend(
     simulation_id: int,
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get structured chart data for frontend rendering"""
+    """Get structured chart data for frontend rendering (legacy format)"""
     try:
         simulation = db.query(models.Simulation).filter(
             models.Simulation.id == simulation_id
