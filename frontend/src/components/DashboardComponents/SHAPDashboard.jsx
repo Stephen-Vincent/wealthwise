@@ -894,14 +894,24 @@ const VisualizationsTab = ({
   );
 };
 
-// 🆕 Helper to decode base64 HTML data URLs safely
+// 🆕 Helper to decode base64 HTML data URLs safely and inject <base target="_self"> for iframe sandboxing
 function decodeHtmlDataUrlToSrcDoc(dataUrl) {
   try {
     const prefix = "data:text/html;base64,";
     if (!dataUrl.toLowerCase().startsWith(prefix)) return null;
     const b64 = dataUrl.slice(prefix.length);
     const html = decodeURIComponent(escape(atob(b64)));
-    return html;
+
+    // Ensure links stay inside the iframe (avoid navigating parent app to /srcdoc)
+    const injectBase = (h) => {
+      if (/<head[^>]*>/i.test(h)) {
+        return h.replace(/<head([^>]*)>/i, '<head$1><base target="_self">');
+      }
+      // No <head> tag — prepend one
+      return '<head><base target="_self"></head>' + h;
+    };
+
+    return injectBase(html);
   } catch (e) {
     console.warn("Failed to decode HTML data URL:", e);
     return null;
@@ -1026,7 +1036,8 @@ const IframeBox = ({ src, srcDoc, title }) => (
   <iframe
     title={title}
     {...(srcDoc ? { srcDoc } : { src })}
-    sandbox="allow-same-origin allow-scripts"
+    // Important: do NOT combine allow-scripts and allow-same-origin (can escape sandbox)
+    sandbox="allow-scripts"
     referrerPolicy="no-referrer"
     className="w-full rounded border"
     style={{ height: 480, background: "white" }}
