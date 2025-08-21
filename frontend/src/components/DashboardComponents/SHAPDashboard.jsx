@@ -15,6 +15,7 @@ const SHAPDashboard = ({
   portfolioData: portfolioDataProp,
   apiBase = import.meta.env.VITE_API_BASE_URL || "/api",
   withCredentials = true,
+  preferPathsForCharts = true,
 }) => {
   const [portfolioData, setPortfolioData] = useState(portfolioDataProp || null);
   const [loading, setLoading] = useState(!!simulationId && !portfolioDataProp);
@@ -287,62 +288,90 @@ const SHAPDashboard = ({
     return false;
   };
 
-  // Fetch visualization charts as base64 data when SHAP data is available
+  // Fetch visualization charts when SHAP data is available
   useEffect(() => {
     if (!derivedSimulationId || !hasShapData || chartLoading) return;
 
+    let cancelled = false;
     setChartLoading(true);
     setApiMisconfiguredMsg("");
 
-    // Try "all charts" JSON endpoint first
-    fetch(
-      `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/charts/all`,
-      {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        credentials: withCredentials ? "include" : "same-origin",
+    const loadCharts = async () => {
+      // 1) Try visualization_paths first (quiet & resilient)
+      let gotFromPaths = false;
+      if (preferPathsForCharts) {
+        try {
+          gotFromPaths = await tryVisualizationPathsAsBase64();
+        } catch {
+          // ignore
+        }
       }
-    )
-      .then(async (res) => {
+
+      if (gotFromPaths) {
+        if (!cancelled) setChartLoading(false);
+        return;
+      }
+
+      // 2) If no paths (or pref disabled), try the "all charts" API
+      try {
+        const res = await fetch(
+          `${resolvedApiBase}/shap/simulation/${derivedSimulationId}/charts/all`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            credentials: withCredentials ? "include" : "same-origin",
+          }
+        );
+
         if (looksLikeSpaHtmlResponse(res)) {
           const url = res.url;
-          const msg = `API misconfiguration: received HTML from ${url}. Check API base (${resolvedApiBase}) or hosting rewrites for /api.`;
-          setApiMisconfiguredMsg(msg);
-          throw new Error(msg);
+          console.warn(
+            `API misconfiguration: received HTML from ${url}. Using visualization_paths fallback.`
+          );
+          setApiMisconfiguredMsg(
+            "API misconfiguration detected. Using visualization_paths fallback."
+          );
+
+          // Final fallback to paths
+          await tryVisualizationPathsAsBase64();
+          return;
         }
-        return safeJson(res);
-      })
-      .then((data) => {
-        console.log("📊 Base64 charts fetched:", data);
+
+        const data = await safeJson(res);
         if (data?.success && data?.charts) {
           setChartImages(normalizeCharts(data.charts));
         } else {
-          // Try individual chart endpoints; if that fails, paths
-          fetchIndividualChartsAsBase64().catch(() =>
-            tryVisualizationPathsAsBase64()
-          );
+          // Try per-chart endpoints; if that fails, paths
+          try {
+            await fetchIndividualChartsAsBase64();
+          } catch {
+            await tryVisualizationPathsAsBase64();
+          }
         }
-        if (data?.errors) {
-          console.warn("Chart generation errors:", data.errors);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch base64 charts:", err);
-        // Try individual chart endpoints; if that fails, paths
-        fetchIndividualChartsAsBase64().catch(() =>
-          tryVisualizationPathsAsBase64()
-        );
-      })
-      .finally(() => {
-        setChartLoading(false);
-      });
+        if (data?.errors) console.warn("Chart generation errors:", data.errors);
+      } catch {
+        // Quiet fallback to paths
+        await tryVisualizationPathsAsBase64();
+      } finally {
+        if (!cancelled) setChartLoading(false);
+      }
+    };
+
+    loadCharts();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     derivedSimulationId,
     hasShapData,
     resolvedApiBase,
     imageBase,
     withCredentials,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+    chartLoading,
+    preferPathsForCharts,
+    portfolioData?.visualization_paths,
+  ]);
 
   const fetchIndividualChartsAsBase64 = async () => {
     if (!derivedSimulationId) return;
@@ -633,11 +662,14 @@ const SHAPDashboard = ({
             chartImages={chartImages}
             chartLoading={chartLoading}
             onRefreshCharts={async () => {
-              // Try API per-chart first, then static paths
-              try {
-                await fetchIndividualChartsAsBase64();
-              } catch {
-                await tryVisualizationPathsAsBase64();
+              // Prefer static paths first, then try API per-chart as an upgrade
+              const got = await tryVisualizationPathsAsBase64();
+              if (!got) {
+                try {
+                  await fetchIndividualChartsAsBase64();
+                } catch {
+                  /* still nothing — leave UI as-is */
+                }
               }
             }}
             normalizeBase64={normalizeBase64}
