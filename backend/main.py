@@ -4,6 +4,7 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse, Response, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
@@ -243,7 +244,20 @@ async def add_cors_to_errors(request, call_next):
     
     return response
 
-# Health check endpoints (important for Railway deployment)
+
+
+# serve an empty 204 
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)  # or FileResponse("path/to/favicon.ico")
+
+# if you have a global error handler, make sure it returns a Response
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.exception("Internal server error on %s: %s", request.url, exc)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
+# Health check endpoints 
 @app.get("/")
 async def root():
     """Root endpoint with API information"""

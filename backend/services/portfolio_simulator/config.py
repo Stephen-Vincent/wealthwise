@@ -6,10 +6,14 @@ type-safe access to environment variables and application settings.
 """
 
 import os
+import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+
+
+logger = logging.getLogger(__name__)
 
 
 class LogLevel(Enum):
@@ -24,7 +28,7 @@ class LogLevel(Enum):
 @dataclass
 class DatabaseConfig:
     """Database configuration settings."""
-    url: str
+    url: Optional[str] = None
     pool_size: int = 10
     max_overflow: int = 20
     pool_timeout: int = 30
@@ -42,7 +46,7 @@ class VisualizationConfig:
 @dataclass
 class AIServiceConfig:
     """AI service configuration settings."""
-    groq_api_key: str
+    groq_api_key: Optional[str] = None
     model_name: str = "mixtral-8x7b-32768"
     max_tokens: int = 1000
     temperature: float = 0.3
@@ -88,23 +92,17 @@ class AppConfig:
     def from_environment(cls) -> 'AppConfig':
         """
         Create configuration from environment variables.
-        
-        Returns:
-            AppConfig: Fully configured application settings
-            
-        Raises:
-            ValueError: If required environment variables are missing
+        Falls back gracefully if some variables are missing.
         """
-        # Required environment variables
+        # Optional environment variables
         database_url = os.getenv('DATABASE_URL')
         if not database_url:
-            raise ValueError("DATABASE_URL environment variable is required")
+            logger.warning("DATABASE_URL environment variable not set. Running in degraded mode.")
             
         groq_api_key = os.getenv('GROQ_API_KEY')
         if not groq_api_key:
-            raise ValueError("GROQ_API_KEY environment variable is required")
+            logger.warning("GROQ_API_KEY environment variable not set. AI analysis will be disabled.")
         
-        # Optional environment variables with defaults
         viz_dir = Path(os.getenv('VISUALIZATION_DIR', 'static/visualizations'))
         viz_dir.mkdir(parents=True, exist_ok=True)
         
@@ -147,39 +145,22 @@ class AppConfig:
 
 
 # Global configuration instance
-# This will be initialized when the application starts
-_config: AppConfig = None
+_config: Optional[AppConfig] = None
 
 
 def get_config() -> AppConfig:
-    """
-    Get the global application configuration.
-    
-    Returns:
-        AppConfig: The application configuration instance
-        
-    Raises:
-        RuntimeError: If configuration hasn't been initialized
-    """
+    """Get the global application configuration."""
     global _config
     if _config is None:
-        raise RuntimeError(
-            "Configuration not initialized. Call initialize_config() first."
-        )
+        raise RuntimeError("Configuration not initialized. Call initialize_config() first.")
     return _config
 
 
 def initialize_config() -> AppConfig:
-    """
-    Initialize the global application configuration from environment.
-    
-    Returns:
-        AppConfig: The initialized configuration
-    """
+    """Initialize the global application configuration from environment."""
     global _config
     _config = AppConfig.from_environment()
     return _config
-
 
 def get_stock_metadata() -> Dict[str, Dict[str, Any]]:
     """
