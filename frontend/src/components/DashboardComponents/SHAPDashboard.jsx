@@ -188,11 +188,7 @@ const SHAPDashboard = () => {
           {[
             { id: "summary", label: "Overview", icon: <BarChart3 size={16} /> },
             { id: "factors", label: "Key Factors", icon: <Search size={16} /> },
-            {
-              id: "visualizations",
-              label: "Charts",
-              icon: <Activity size={16} />,
-            },
+
             {
               id: "insights",
               label: "AI Insights",
@@ -225,13 +221,6 @@ const SHAPDashboard = () => {
         )}
         {activeTab === "factors" && (
           <FactorsTab chartData={chartData} shapData={shapData} />
-        )}
-        {activeTab === "visualizations" && (
-          <VisualizationsTab
-            chartData={chartData}
-            enhancedData={enhancedData}
-            portfolioData={portfolioData}
-          />
         )}
         {activeTab === "insights" && (
           <InsightsTab
