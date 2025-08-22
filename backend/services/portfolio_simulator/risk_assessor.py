@@ -72,15 +72,16 @@ def calculate_user_risk(sim_input: Union[Dict[str, Any], object]) -> Dict[str, A
             raise RiskAssessmentError(f"Missing required fields: {missing_fields}")
 
         # Load the enhanced trained model with better path resolution
+        
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(current_dir, "..", "ai_models", "risk_model", "enhanced_model.pkl")
-        model_path = os.path.normpath(model_path)  # Normalize the path
-        
+        model_path = os.path.join(current_dir, "..", "..", "ai_models", "risk_model", "enhanced_model.pkl")
+        model_path = os.path.normpath(model_path)
+
         logger.info(f"Attempting to load model from: {model_path}")
-        
+
         if not os.path.exists(model_path):
             # Fallback to old model path if enhanced model doesn't exist
-            fallback_path = os.path.join(current_dir, "..", "ai_models", "risk_model", "model.pkl")
+            fallback_path = os.path.join(current_dir, "..", "..", "ai_models", "risk_model", "model.pkl")
             fallback_path = os.path.normpath(fallback_path)
             logger.warning(f"Enhanced model not found at {model_path}")
             logger.warning(f"Trying fallback path: {fallback_path}")
@@ -395,8 +396,8 @@ def test_model_loading():
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         model_paths = [
-            os.path.normpath(os.path.join(current_dir, "..", "ai_models", "risk_model", "enhanced_model.pkl")),
-            os.path.normpath(os.path.join(current_dir, "..", "ai_models", "risk_model", "model.pkl"))
+            os.path.normpath(os.path.join(current_dir, "..", "..", "ai_models", "risk_model", "enhanced_model.pkl")),
+            os.path.normpath(os.path.join(current_dir, "..", "..", "ai_models", "risk_model", "model.pkl"))
         ]
         
         print("Testing model loading...")
