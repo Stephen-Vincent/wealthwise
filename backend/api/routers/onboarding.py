@@ -7,7 +7,7 @@ import logging
 
 from database import schemas
 from database.db import get_db
-from backend.services.portfolio_simulator.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
+from services.portfolio_simulator.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
