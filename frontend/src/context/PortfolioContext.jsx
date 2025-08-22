@@ -1,6 +1,5 @@
-// PortfolioContext is responsible for managing and providing portfolio-related data
-// including simulation results, user info, and token to all components within the dashboard.
-import React, { createContext, useEffect, useState } from "react";
+// Enhanced PortfolioContext - Centralized data management for all portfolio-related data
+import React, { createContext, useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 const PortfolioContext = createContext();
@@ -10,6 +9,11 @@ export const PortfolioProvider = ({ children }) => {
   const [selectedSimulationId, setSelectedSimulationId] = useState(null);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // API base URL
+  const apiBase = import.meta.env.VITE_API_URL || "/api";
 
   // Load token and user information from local storage on initial render
   useEffect(() => {
@@ -27,9 +31,134 @@ export const PortfolioProvider = ({ children }) => {
     }
   }, []);
 
-  // Set the portfolio data and compute a simplified breakdown of portfolio value
-  const setPortfolioData = (data) => {
-    console.log("📦 Full portfolioData received:", data);
+  // Centralized API call function
+  const apiCall = useCallback(
+    async (endpoint, options = {}) => {
+      const url = `${apiBase.replace(/\/+$/, "")}${endpoint}`;
+      const defaultOptions = {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        credentials: "include",
+        ...options,
+      };
+
+      console.log(`API Call: ${options.method || "GET"} ${url}`);
+
+      try {
+        const response = await fetch(url, defaultOptions);
+
+        if (!response.ok) {
+          throw new Error(
+            `API call failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        console.log(`API Response (${endpoint}):`, data);
+        return data;
+      } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        throw error;
+      }
+    },
+    [apiBase, token]
+  );
+
+  // Fetch complete simulation data with all related information
+  const fetchSimulationData = useCallback(
+    async (simulationId) => {
+      if (!simulationId) return null;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log(`Fetching complete data for simulation ${simulationId}`);
+
+        // Fetch main simulation data
+        const simulationData = await apiCall(`/simulations/${simulationId}`);
+
+        // Check if we already have chart_data in the simulation response
+        if (simulationData.chart_data) {
+          console.log("Chart data found in simulation response");
+          return simulationData;
+        }
+
+        // If no chart_data, try to fetch it separately
+        let chartData = null;
+        let enhancedData = null;
+
+        try {
+          console.log("Fetching additional chart data...");
+          const chartResponse = await apiCall(
+            `/shap-visualization/simulation/${simulationId}/chart-data`
+          );
+          if (chartResponse.success && chartResponse.chart_data) {
+            chartData = chartResponse.chart_data;
+          }
+        } catch (chartError) {
+          console.warn("Chart data fetch failed:", chartError.message);
+        }
+
+        try {
+          console.log("Fetching enhanced data...");
+          const enhancedResponse = await apiCall(
+            `/shap-visualization/simulation/${simulationId}/enhanced-data`
+          );
+          if (enhancedResponse.success && enhancedResponse.enhanced_data) {
+            enhancedData = enhancedResponse.enhanced_data;
+          }
+        } catch (enhancedError) {
+          console.warn("Enhanced data fetch failed:", enhancedError.message);
+        }
+
+        // Merge all data together
+        const completeData = {
+          ...simulationData,
+          ...(chartData && { chart_data: chartData }),
+          ...(enhancedData && { enhanced_data: enhancedData }),
+        };
+
+        console.log("Complete simulation data assembled:", {
+          hasSimulation: true,
+          hasChartData: !!completeData.chart_data,
+          hasEnhancedData: !!completeData.enhanced_data,
+          chartDataKeys: completeData.chart_data
+            ? Object.keys(completeData.chart_data)
+            : "None",
+        });
+
+        return completeData;
+      } catch (error) {
+        console.error("Failed to fetch simulation data:", error);
+        setError(error.message);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [apiCall]
+  );
+
+  // Enhanced setPortfolioData that preserves all data structures
+  const setPortfolioData = useCallback((data) => {
+    console.log("Setting portfolio data:", data);
+
+    if (!data) {
+      _setPortfolioData(null);
+      return;
+    }
+
+    // Add explicit logging for chart_data preservation
+    console.log("Chart data check:", {
+      hasChartData: !!data?.chart_data,
+      chartDataKeys: data?.chart_data ? Object.keys(data.chart_data) : "None",
+      hasResults: !!data?.results,
+      hasEnhancedData: !!data?.enhanced_data,
+    });
 
     // Fallback logic: try nested, then results, then top-level data
     const Results = data?.results || data;
@@ -37,112 +166,82 @@ export const PortfolioProvider = ({ children }) => {
     const portfolioArray = timeline.portfolio || [];
     const stocksPicked = Results?.stocks_picked || data?.stocks_picked || [];
 
-    console.log("🔍 Context debug:", {
-      hasResults: !!Results,
-      hasTimeline: !!timeline,
-      portfolioArrayLength: portfolioArray.length,
-      stocksPickedLength: stocksPicked.length,
-      sampleTimelineEntry: portfolioArray[0],
-      lastTimelineEntry: portfolioArray[portfolioArray.length - 1],
-    });
-
     let breakdown = null;
 
-    // FIXED: Create breakdown from stocks_picked using allocation field
+    // Create breakdown from stocks_picked using allocation field
     if (stocksPicked.length > 0) {
-      console.log("📊 Creating breakdown from stocks_picked:", stocksPicked);
+      console.log("Creating breakdown from stocks_picked:", stocksPicked);
 
       breakdown = Object.fromEntries(
-        stocksPicked.map((stock) => [
-          stock.symbol,
-          stock.allocation || 0, // Use the allocation field that actually exists
-        ])
+        stocksPicked.map((stock) => [stock.symbol, stock.allocation || 0])
       );
 
-      console.log("📈 Generated breakdown:", breakdown);
-    } else if (portfolioArray.length > 0) {
-      // If we have timeline data but no stocks_picked, try to extract from timeline
-      const latestPortfolio = portfolioArray[portfolioArray.length - 1];
-      console.log("📅 Latest portfolio entry:", latestPortfolio);
-
-      // Check if timeline entry has stock data (some formats might have this)
-      if (
-        latestPortfolio &&
-        typeof latestPortfolio === "object" &&
-        !latestPortfolio.date
-      ) {
-        // This might be a stock breakdown object
-        breakdown = Object.fromEntries(
-          Object.entries(latestPortfolio)
-            .filter(([key]) => key !== "date" && key !== "value")
-            .map(([symbol, details]) => [
-              symbol,
-              details?.allocation ?? details?.value ?? 0,
-            ])
-        );
-      } else {
-        // Timeline only has date/value pairs, so create a simple breakdown
-        // Use the total value and distribute among stocks if we know them
-        const totalValue = latestPortfolio?.value || 0;
-        if (totalValue > 0 && (data?.stocks_picked || Results?.stocks_picked)) {
-          const stocks = data?.stocks_picked || Results?.stocks_picked || [];
-          if (stocks.length > 0) {
-            breakdown = Object.fromEntries(
-              stocks.map((stock) => [
-                stock.symbol,
-                stock.allocation || 0, // Use allocation directly (it's already a decimal)
-              ])
-            );
-          }
-        }
-      }
+      console.log("Generated breakdown:", breakdown);
     }
 
-    // FIXED: Use backend breakdown if available, otherwise use computed breakdown
+    // Use backend breakdown if available, otherwise use computed breakdown
     const finalBreakdown = data?.breakdown || breakdown;
 
-    // Enhanced data object with proper structure
+    // Enhanced data object with proper structure - PRESERVE ALL ORIGINAL DATA
     const enhancedData = {
-      ...data,
+      ...data, // Keep all original fields including chart_data
       results: Results,
       ai_summary: data?.ai_summary || null,
       breakdown: finalBreakdown,
       stocks_picked: stocksPicked,
-
-      // Ensure timeline is accessible at top level for calculations
       timeline: timeline,
-
-      // FIXED: Use backend final_balance, don't override it
       final_balance:
         data?.final_balance ||
         data?.performance_metrics?.ending_value ||
         Results?.portfolio_metrics?.ending_value ||
         0,
+
+      // Explicitly ensure these are preserved
+      chart_data: data?.chart_data || null,
+      enhanced_data: data?.enhanced_data || null,
     };
 
-    console.log("💾 Stored simulation data:", {
-      simulationId: data?.id,
-      userId: data?.user_id,
-      fullData: "stored in portfolioData key",
-      contextUpdated: true,
+    console.log("Enhanced data structure:", {
+      simulationId: enhancedData?.id,
+      hasChartData: !!enhancedData.chart_data,
+      hasEnhancedData: !!enhancedData.enhanced_data,
+      chartDataKeys: enhancedData.chart_data
+        ? Object.keys(enhancedData.chart_data)
+        : "None",
       finalBalance: enhancedData.final_balance,
       hasBreakdown: !!finalBreakdown,
-      breakdownTotal: finalBreakdown
-        ? Object.values(finalBreakdown).reduce(
-            (sum, val) => sum + (val || 0),
-            0
-          )
-        : 0,
     });
 
     _setPortfolioData(enhancedData);
-  };
+  }, []);
+
+  // Load simulation data when selectedSimulationId changes
+  useEffect(() => {
+    if (selectedSimulationId && token) {
+      console.log(`Loading data for simulation ${selectedSimulationId}`);
+      fetchSimulationData(selectedSimulationId).then((data) => {
+        if (data) {
+          setPortfolioData(data);
+        }
+      });
+    }
+  }, [selectedSimulationId, token, fetchSimulationData, setPortfolioData]);
 
   // Update the selected simulation ID and store it in local storage
-  const updateSelectedSimulation = (id) => {
+  const updateSelectedSimulation = useCallback((id) => {
     localStorage.setItem("selectedSimulationId", id);
     setSelectedSimulationId(id);
-  };
+  }, []);
+
+  // Refresh current simulation data
+  const refreshPortfolioData = useCallback(async () => {
+    if (selectedSimulationId) {
+      const data = await fetchSimulationData(selectedSimulationId);
+      if (data) {
+        setPortfolioData(data);
+      }
+    }
+  }, [selectedSimulationId, fetchSimulationData, setPortfolioData]);
 
   const location = useLocation();
 
@@ -154,21 +253,50 @@ export const PortfolioProvider = ({ children }) => {
         ? pathParts[2]
         : null;
 
-    if (routeSimulationId) {
+    if (routeSimulationId && routeSimulationId !== selectedSimulationId) {
       setSelectedSimulationId(routeSimulationId);
       localStorage.setItem("selectedSimulationId", routeSimulationId);
     }
-  }, [location]);
+  }, [location, selectedSimulationId]);
+
+  // Derived data selectors - components can use these instead of parsing portfolioData themselves
+  const shapData =
+    portfolioData?.chart_data ||
+    portfolioData?.results?.shap_explanation ||
+    null;
+  const hasShapData = shapData && Object.keys(shapData).length > 0;
+  const chartData = portfolioData?.chart_data || null;
+  const enhancedData = portfolioData?.enhanced_data || null;
 
   return (
     <PortfolioContext.Provider
       value={{
+        // Core data
         portfolioData,
         setPortfolioData,
-        updateSelectedSimulation,
+
+        // Selection management
         selectedSimulationId,
+        updateSelectedSimulation,
+
+        // Authentication
         token,
         user,
+
+        // Loading states
+        loading,
+        error,
+
+        // Data fetching functions
+        fetchSimulationData,
+        refreshPortfolioData,
+        apiCall,
+
+        // Derived data selectors
+        shapData,
+        hasShapData,
+        chartData,
+        enhancedData,
       }}
     >
       {children}
