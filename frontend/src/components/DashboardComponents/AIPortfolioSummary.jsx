@@ -16,10 +16,17 @@ export default function AIPortfolioSummary() {
 
   if (isLoading) return <p>Loading portfolio summary...</p>;
   if (error) return <p>Error loading portfolio data: {error}</p>;
-  if (!portfolioData || !portfolioData.ai_summary)
-    return <p>No AI summary available yet.</p>;
 
-  let rawSummary = portfolioData.ai_summary;
+  // FIXED: Updated data path to match the actual structure
+  const aiSummary =
+    portfolioData?.ai_analysis?.summary ||
+    portfolioData?.results?.ai_analysis?.summary;
+
+  if (!portfolioData || !aiSummary) {
+    return <p>No AI summary available yet.</p>;
+  }
+
+  let rawSummary = aiSummary;
 
   if (Array.isArray(rawSummary)) {
     rawSummary = rawSummary.join("\n\n");
