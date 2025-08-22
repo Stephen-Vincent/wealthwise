@@ -285,16 +285,19 @@ const SHAPDashboard = ({
     }
   }, [portfolioDataProp]);
 
-  // SHAP data detection
+  // SHAP data detection - FIXED to check multiple locations
   const shapData = useMemo(() => {
+    // Check multiple possible locations for SHAP data
     const data =
       portfolioData?.shap_explanation ||
       portfolioData?.results?.shap_explanation ||
+      portfolioData?.chart_data || // ADD THIS - this is where your data actually is!
       null;
 
     console.log("SHAP Data Detection:", {
       topLevel: !!portfolioData?.shap_explanation,
       resultsLevel: !!portfolioData?.results?.shap_explanation,
+      chartDataLevel: !!portfolioData?.chart_data, // Add this check
       finalData: data,
       dataKeys: data ? Object.keys(data) : [],
       dataPreview: data ? JSON.stringify(data).substring(0, 200) : null,
@@ -309,11 +312,24 @@ const SHAPDashboard = ({
     return hasData;
   }, [shapData]);
 
+  // Set chart data from existing portfolio data
+  useEffect(() => {
+    if (portfolioData?.chart_data && !chartData) {
+      console.log(
+        "Setting chart data from portfolio data:",
+        portfolioData.chart_data
+      );
+      setChartData(portfolioData.chart_data);
+    }
+  }, [portfolioData, chartData]);
+
   // Enhanced chart data fetching with better error handling
   useEffect(() => {
-    if (!derivedSimulationId || !hasShapData) {
+    // Skip if we already have chart data or no simulation ID
+    if (!derivedSimulationId || chartData || !hasShapData) {
       console.log(`Skipping chart data fetch:`, {
         hasSimId: !!derivedSimulationId,
+        hasChartData: !!chartData,
         hasShapData,
       });
       return;
@@ -481,6 +497,7 @@ const SHAPDashboard = ({
     withCredentials,
     safeJson,
     looksLikeSpaHtmlResponse,
+    chartData, // Add this dependency
   ]);
 
   const [activeTab, setActiveTab] = useState("summary");
@@ -496,7 +513,7 @@ const SHAPDashboard = ({
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-        <div className="text-6xl mb-4">🚧</div>
+        <div className="text-6xl mb-4">!</div>
         <h3 className="text-xl font-bold text-red-800 mb-3">
           Couldn't load portfolio
         </h3>
@@ -509,7 +526,7 @@ const SHAPDashboard = ({
     return (
       <div className="space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
-          <div className="text-6xl mb-4">🤖</div>
+          <div className="text-6xl mb-4">?</div>
           <h3 className="text-xl font-bold text-blue-800 mb-3">
             AI Explanation Not Available
           </h3>
@@ -530,19 +547,23 @@ const SHAPDashboard = ({
           <div className="mt-3 space-y-2 text-sm">
             <p>
               <strong>Portfolio Data Available:</strong>{" "}
-              {!!portfolioData ? "✅" : "❌"}
+              {!!portfolioData ? "Yes" : "No"}
             </p>
             <p>
               <strong>Top-level SHAP:</strong>{" "}
-              {!!portfolioData?.shap_explanation ? "✅" : "❌"}
+              {!!portfolioData?.shap_explanation ? "Yes" : "No"}
             </p>
             <p>
               <strong>Results SHAP:</strong>{" "}
-              {!!portfolioData?.results?.shap_explanation ? "✅" : "❌"}
+              {!!portfolioData?.results?.shap_explanation ? "Yes" : "No"}
+            </p>
+            <p>
+              <strong>Chart Data Available:</strong>{" "}
+              {!!portfolioData?.chart_data ? "Yes" : "No"}
             </p>
             <p>
               <strong>WealthWise Enhanced:</strong>{" "}
-              {portfolioData?.wealthwise_enhanced ? "✅" : "❌"}
+              {portfolioData?.wealthwise_enhanced ? "Yes" : "No"}
             </p>
 
             {portfolioData && (
@@ -563,6 +584,17 @@ const SHAPDashboard = ({
                 </p>
                 <code className="block bg-white p-2 rounded text-xs">
                   {Object.keys(portfolioData.results).join(", ")}
+                </code>
+              </div>
+            )}
+
+            {portfolioData?.chart_data && (
+              <div className="mt-3">
+                <p>
+                  <strong>Chart Data Keys:</strong>
+                </p>
+                <code className="block bg-white p-2 rounded text-xs">
+                  {Object.keys(portfolioData.chart_data).join(", ")}
                 </code>
               </div>
             )}
@@ -600,7 +632,7 @@ const SHAPDashboard = ({
     <div className="w-full space-y-6">
       {/* Success message */}
       <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-        <div className="text-2xl mb-2">🎉</div>
+        <div className="text-2xl mb-2">!</div>
         <h3 className="text-lg font-bold text-green-800 mb-2">
           SHAP AI Explanation Available!
         </h3>
@@ -622,14 +654,14 @@ const SHAPDashboard = ({
         </summary>
         <div className="mt-3 space-y-2 text-sm">
           <p>
-            <strong>Chart Data Available:</strong> {!!chartData ? "✅" : "❌"}
+            <strong>Chart Data Available:</strong> {!!chartData ? "Yes" : "No"}
           </p>
           <p>
             <strong>Enhanced Data Available:</strong>{" "}
-            {!!enhancedData ? "✅" : "❌"}
+            {!!enhancedData ? "Yes" : "No"}
           </p>
           <p>
-            <strong>Chart Loading:</strong> {chartLoading ? "🔄" : "✅"}
+            <strong>Chart Loading:</strong> {chartLoading ? "Loading" : "Ready"}
           </p>
 
           {chartData && (
@@ -679,10 +711,10 @@ const SHAPDashboard = ({
       <div className="bg-gray-50 rounded-xl p-2">
         <div className="flex space-x-2">
           {[
-            { id: "summary", label: "Overview", icon: "📊" },
-            { id: "factors", label: "Key Factors", icon: "🔍" },
-            { id: "visualizations", label: "Charts", icon: "📈" },
-            { id: "insights", label: "AI Insights", icon: "💡" },
+            { id: "summary", label: "Overview", icon: "Chart" },
+            { id: "factors", label: "Key Factors", icon: "Search" },
+            { id: "visualizations", label: "Charts", icon: "Graph" },
+            { id: "insights", label: "AI Insights", icon: "Light" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -746,7 +778,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
       unit: "%",
       color: "text-green-600",
       bgColor: "bg-green-50",
-      icon: "🎯",
+      icon: "Target",
     },
     {
       title: "Portfolio Quality",
@@ -755,7 +787,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
       unit: "/100",
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      icon: "🧠",
+      icon: "Brain",
     },
     {
       title: "Risk Score",
@@ -764,7 +796,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
       unit: "/100",
       color: "text-orange-600",
       bgColor: "bg-orange-50",
-      icon: "📊",
+      icon: "Chart",
     },
     {
       title: "Target Progress",
@@ -773,7 +805,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
       unit: "%",
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-      icon: "🎯",
+      icon: "Target",
     },
   ];
 
@@ -825,7 +857,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
       {/* AI Decision Summary */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">🧠</span>
+          <span className="mr-2">Brain</span>
           AI Decision Summary
         </h3>
 
@@ -863,7 +895,7 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
 const FactorsTab = ({ chartData, shapData }) => {
   // Process factor importance data
   const factorImportanceData = useMemo(() => {
-    if (!chartData?.factor_importance) {
+    if (!chartData?.feature_importance) {
       // Fallback to processing SHAP data directly
       const rawImportance = shapData?.feature_contributions || {};
       return Object.entries(rawImportance)
@@ -877,7 +909,7 @@ const FactorsTab = ({ chartData, shapData }) => {
     }
 
     // Ensure the chart data has the right structure
-    return chartData.factor_importance.map((item) => ({
+    return chartData.feature_importance.map((item) => ({
       ...item,
       importance: Number(item.importance) || 0,
     }));
@@ -948,7 +980,7 @@ const FactorsTab = ({ chartData, shapData }) => {
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData.shap_waterfall.contributions}>
+              <ComposedChart data={chartData.shap_waterfall}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="feature"
@@ -959,14 +991,12 @@ const FactorsTab = ({ chartData, shapData }) => {
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="contribution">
-                  {chartData.shap_waterfall.contributions.map(
-                    (entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.contribution >= 0 ? "#10B981" : "#EF4444"}
-                      />
-                    )
-                  )}
+                  {chartData.shap_waterfall.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.contribution >= 0 ? "#10B981" : "#EF4444"}
+                    />
+                  ))}
                 </Bar>
                 <Line
                   type="monotone"
@@ -1065,12 +1095,7 @@ const VisualizationsTab = ({
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart
-                data={[
-                  chartData.risk_return_analysis.portfolio,
-                  ...(chartData.risk_return_analysis.benchmark || []),
-                ]}
-              >
+              <ScatterChart data={chartData.risk_return_analysis}>
                 <CartesianGrid />
                 <XAxis
                   type="number"
@@ -1104,59 +1129,10 @@ const VisualizationsTab = ({
                 />
                 <Scatter
                   name="Assets"
-                  data={[
-                    chartData.risk_return_analysis.portfolio,
-                    ...(chartData.risk_return_analysis.benchmark || []),
-                  ]}
+                  data={chartData.risk_return_analysis}
                   fill="#3B82F6"
                 />
               </ScatterChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Market Regime Analysis */}
-      {chartData?.market_regime && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Market Conditions
-          </h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={Object.entries(
-                  chartData.market_regime.regime_probabilities || {}
-                ).map(([name, value]) => ({
-                  name,
-                  probability: value,
-                  isCurrent: name === chartData.market_regime.current_regime,
-                }))}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [
-                    `${(value * 100).toFixed(1)}%`,
-                    "Probability",
-                  ]}
-                />
-                <Bar dataKey="probability" radius={[4, 4, 0, 0]}>
-                  {Object.entries(
-                    chartData.market_regime.regime_probabilities || {}
-                  ).map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={
-                        entry[0] === chartData.market_regime.current_regime
-                          ? "#3B82F6"
-                          : "#9CA3AF"
-                      }
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -1177,24 +1153,21 @@ const VisualizationsTab = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                £{chartData.goal_analysis.current_value?.toLocaleString()}
+                £{chartData.goal_analysis.projected_value?.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-600">Current Value</div>
+              <div className="text-sm text-gray-600">Projected Value</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {(chartData.goal_analysis.probability_of_success * 100).toFixed(
-                  0
-                )}
-                %
+                {(chartData.goal_analysis.progress_percentage || 0).toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600">Success Probability</div>
+              <div className="text-sm text-gray-600">Progress</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {chartData.goal_analysis.time_horizon} years
+                {chartData.goal_analysis.target_achieved ? "Yes" : "No"}
               </div>
-              <div className="text-sm text-gray-600">Time Horizon</div>
+              <div className="text-sm text-gray-600">Target Achieved</div>
             </div>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-4">
@@ -1202,28 +1175,26 @@ const VisualizationsTab = ({
               className="bg-blue-600 h-4 rounded-full transition-all duration-500"
               style={{
                 width: `${Math.min(
-                  chartData.goal_analysis.progress_percentage,
+                  chartData.goal_analysis.progress_percentage || 0,
                   100
                 )}%`,
               }}
             />
           </div>
-          <div className="text-center mt-2 text-sm text-gray-600">
-            {chartData.goal_analysis.progress_percentage.toFixed(1)}% progress
-            toward goal
-          </div>
         </div>
       )}
 
       {/* Performance Timeline */}
-      {enhancedData?.portfolio_timeline && (
+      {chartData?.performance_timeline?.portfolio && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4">
             Portfolio Performance Over Time
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={enhancedData.portfolio_timeline.slice(-60)}>
+              <AreaChart
+                data={chartData.performance_timeline.portfolio.slice(-60)}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
@@ -1252,36 +1223,6 @@ const VisualizationsTab = ({
                   fillOpacity={0.3}
                 />
               </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Individual Stock Performance */}
-      {enhancedData?.individual_stock_performance && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Individual Stock Analysis
-          </h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={enhancedData.individual_stock_performance}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="symbol" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="allocation"
-                  fill="#3B82F6"
-                  name="Portfolio Weight %"
-                />
-                <Bar
-                  dataKey="risk_metrics.volatility"
-                  fill="#10B981"
-                  name="Volatility"
-                />
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -1352,16 +1293,16 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
 
     // Factor-based insights
     if (
-      chartData?.factor_importance &&
-      chartData.factor_importance.length > 0
+      chartData?.feature_importance &&
+      chartData.feature_importance.length > 0
     ) {
-      const topFactor = chartData.factor_importance[0];
+      const topFactor = chartData.feature_importance[0];
       const isPositive = topFactor.importance >= 0;
 
       insights.push({
         icon: "TrendingUp",
         title: "Primary Decision Factor",
-        description: `${topFactor.factor} had the ${
+        description: `${topFactor.feature} had the ${
           isPositive ? "most positive" : "most challenging"
         } impact on your portfolio design with an impact score of ${topFactor.importance.toFixed(
           3
@@ -1371,13 +1312,15 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
 
     // Goal analysis insights
     if (chartData?.goal_analysis) {
-      const successProb = chartData.goal_analysis.probability_of_success * 100;
+      const targetAchieved = chartData.goal_analysis.target_achieved;
       insights.push({
         icon: "Trophy",
         title: "Goal Achievement Outlook",
-        description: `Based on your inputs and current market conditions, you have a ${successProb.toFixed(
-          0
-        )}% probability of achieving your financial goal of £${chartData.goal_analysis.target_value?.toLocaleString()}.`,
+        description: `Based on your inputs and current market conditions, ${
+          targetAchieved
+            ? "you are on track to achieve your financial goal"
+            : "you may need to adjust your strategy to reach your financial goal"
+        }.`,
       });
     }
 
@@ -1464,13 +1407,13 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-2xl font-bold text-gray-800">
-                {chartData.factor_importance?.length || 0}
+                {chartData.feature_importance?.length || 0}
               </div>
               <div className="text-sm text-gray-600">Factors Analyzed</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-2xl font-bold text-gray-800">
-                {chartData.shap_waterfall?.contributions?.length || 0}
+                {chartData.shap_waterfall?.length || 0}
               </div>
               <div className="text-sm text-gray-600">SHAP Features</div>
             </div>
@@ -1521,6 +1464,13 @@ const formatFactorName = (factor) => {
     monthly_contribution: "Your Monthly Savings",
     market_volatility: "Current Market Stability",
     market_trend_score: "Market Momentum",
+    "Required Growth Rate": "Growth You Need",
+    "Market Trend": "Market Momentum",
+    "Time Horizon": "Your Timeline",
+    "Monthly Investment": "Your Monthly Savings",
+    "Risk Tolerance": "Your Risk Comfort Level",
+    "Investment Goal": "Your Goal Amount",
+    "Market Volatility": "Current Market Stability",
   };
   return (
     formatMap[factor] ||
@@ -1544,6 +1494,17 @@ const getFactorDescription = (factor) => {
       "Current market conditions influence the timing and types of investments we select",
     market_trend_score:
       "Whether markets are going up or down affects our investment choices",
+    "Required Growth Rate":
+      "The annual growth rate needed to reach your target influences portfolio aggressiveness",
+    "Market Trend":
+      "Whether markets are trending up or down affects investment timing",
+    "Time Horizon":
+      "How long you have to invest affects the types of investments we can choose",
+    "Monthly Investment":
+      "Amount you can invest each month affects your overall strategy",
+    "Risk Tolerance": "Your comfort level with investment risk and volatility",
+    "Investment Goal": "The financial goal you want to achieve",
+    "Market Volatility": "Current market uncertainty and volatility levels",
   };
   return (
     descriptions[factor] ||
