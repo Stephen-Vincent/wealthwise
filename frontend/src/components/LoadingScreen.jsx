@@ -31,6 +31,10 @@ export default function LoadingScreen() {
   const [readyToNavigate, setReadyToNavigate] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
+  // NEW: Add loop breakers
+  const [debugCount, setDebugCount] = useState(0);
+  const [hasNavigationAttempted, setHasNavigationAttempted] = useState(false);
+
   // Monitor and clear the isCreatingPortfolio flag
   useEffect(() => {
     const checkAndClearFlag = () => {
@@ -61,7 +65,7 @@ export default function LoadingScreen() {
     checkAndClearFlag();
   }, [portfolioData]);
 
-  // Enhanced progress calculation with better debugging
+  // FIXED: Enhanced progress calculation with limited debugging and exit conditions
   useEffect(() => {
     if (!hasStarted) {
       setHasStarted(true);
@@ -70,6 +74,7 @@ export default function LoadingScreen() {
     let animationFrame;
     let startTime = Date.now();
     const minLoadingDuration = 4000; // 4 seconds minimum
+    let debugLogCount = 0; // LIMIT DEBUG LOGS
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
@@ -89,19 +94,18 @@ export default function LoadingScreen() {
         progressReason = "data-received";
       }
 
-      // Complete when all conditions are met - SIMPLIFIED CONDITIONS
-      const hasRequiredData = portfolioData && portfolioData.id;
-      const hasRequiredIds = userId && simulationId;
-      const timeComplete = minTimeElapsed;
+      // FIXED: Force boolean values - never null
+      const hasRequiredData = !!(portfolioData && portfolioData.id);
+      const hasRequiredIds = !!(userId && simulationId);
+      const timeComplete = !!minTimeElapsed;
 
       if (hasRequiredData && hasRequiredIds && timeComplete) {
         targetProgress = 100;
         progressReason = "all-conditions-met";
       }
 
-      // Debug progress blocking factors
-      if (targetProgress < 100 && elapsed > 5000) {
-        // After 5 seconds, start debugging
+      // FIXED: Limited debug logging - only first 3 logs after 5 seconds
+      if (targetProgress < 100 && elapsed > 5000 && debugLogCount < 3) {
         console.log("🔍 Progress Debug:", {
           targetProgress,
           progressReason,
@@ -111,6 +115,7 @@ export default function LoadingScreen() {
           isCreatingPortfolio,
           elapsed: Math.round(elapsed / 1000) + "s",
         });
+        debugLogCount++;
       }
 
       // Smooth progress animation using easing - ONLY MOVE FORWARD
@@ -127,9 +132,12 @@ export default function LoadingScreen() {
         return Math.min(prev + increment, 100);
       });
 
-      // Continue animation if not complete
-      if (targetProgress < 100) {
+      // FIXED: Add exit condition - stop after 15 seconds max
+      if (targetProgress < 100 && elapsed < 15000) {
         animationFrame = requestAnimationFrame(animate);
+      } else if (elapsed >= 15000) {
+        console.log("🛑 Animation stopped - 15 second timeout");
+        setProgress(100); // Force completion
       }
     };
 
@@ -177,39 +185,63 @@ export default function LoadingScreen() {
     return () => clearTimeout(minLoadingTime);
   }, []);
 
-  // Check if ready to navigate - ENHANCED WITH BETTER VALIDATION
+  // FIXED: Check if ready to navigate with limited logging and exit conditions
   useEffect(() => {
+    // STOP INFINITE LOGGING: Limit debug attempts
+    if (debugCount > 10) {
+      console.log("🛑 Debug limit reached, stopping navigation checks");
+      return;
+    }
+
     const checkReadyToNavigate = () => {
-      const isDataReady =
+      // FORCE BOOLEAN VALUES - never null
+      const isDataReady = !!(
         portfolioData &&
         portfolioData.id &&
         (portfolioData.stocks_picked ||
           portfolioData.breakdown ||
-          portfolioData.results);
+          portfolioData.results)
+      );
 
-      const canNavigate =
-        isDataReady && minTimeElapsed && userId && simulationId;
+      const canNavigate = !!(
+        isDataReady &&
+        minTimeElapsed &&
+        userId &&
+        simulationId
+      );
 
       setReadyToNavigate(canNavigate);
 
-      // Enhanced logging with more details
-      console.log("🔍 Navigation check:", {
-        hasPortfolioData: !!portfolioData,
-        hasId: !!portfolioData?.id,
-        hasStocks: !!portfolioData?.stocks_picked?.length,
-        hasBreakdown: !!portfolioData?.breakdown,
-        hasResults: !!portfolioData?.results,
-        minTimeElapsed,
-        userId: !!userId,
-        simulationId: !!simulationId,
-        isCreatingPortfolio,
-        canNavigate,
-        progress: Math.round(progress),
-      });
+      // CONTROLLED LOGGING - only log first few attempts
+      if (debugCount < 5) {
+        console.log("🔍 Navigation check:", {
+          hasPortfolioData: !!portfolioData,
+          hasId: !!portfolioData?.id,
+          hasStocks: !!portfolioData?.stocks_picked?.length,
+          hasBreakdown: !!portfolioData?.breakdown,
+          hasResults: !!portfolioData?.results,
+          minTimeElapsed,
+          userId: !!userId,
+          simulationId: !!simulationId,
+          isCreatingPortfolio,
+          canNavigate,
+          progress: Math.round(progress),
+          debugCount,
+        });
+        setDebugCount((prev) => prev + 1);
+      }
     };
 
-    const interval = setInterval(checkReadyToNavigate, 1000);
-    checkReadyToNavigate();
+    // STOP THE INTERVAL: Only check a few times, not forever
+    const interval = setInterval(() => {
+      if (debugCount < 10 && !hasNavigationAttempted) {
+        checkReadyToNavigate();
+      } else {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    checkReadyToNavigate(); // Initial check
 
     return () => clearInterval(interval);
   }, [
@@ -219,11 +251,13 @@ export default function LoadingScreen() {
     simulationId,
     isCreatingPortfolio,
     progress,
+    debugCount,
+    hasNavigationAttempted,
   ]);
 
-  // Navigate when progress reaches 100% and ready - ENHANCED
+  // FIXED: Navigate when progress reaches 100% and ready - prevent multiple attempts
   useEffect(() => {
-    if (readyToNavigate && progress >= 99) {
+    if (readyToNavigate && progress >= 99 && !hasNavigationAttempted) {
       // Lowered threshold to 99%
       console.log("✅ Navigation conditions met, redirecting to dashboard");
       console.log("📊 Final navigation data:", {
@@ -233,6 +267,8 @@ export default function LoadingScreen() {
         progress: Math.round(progress),
         hasShap: !!portfolioData?.shap_explanation,
       });
+
+      setHasNavigationAttempted(true); // PREVENT MULTIPLE ATTEMPTS
 
       // Clear the creating portfolio flag
       localStorage.setItem("isCreatingPortfolio", "false");
@@ -249,12 +285,19 @@ export default function LoadingScreen() {
     userId,
     simulationId,
     portfolioData,
+    hasNavigationAttempted,
   ]);
 
-  // Enhanced fallback navigation with better conditions
+  // FIXED: Enhanced fallback navigation with better conditions and navigation guard
   useEffect(() => {
     const fallbackTimeout = setTimeout(() => {
-      if (portfolioData && portfolioData.id && userId && simulationId) {
+      if (
+        portfolioData &&
+        portfolioData.id &&
+        userId &&
+        simulationId &&
+        !hasNavigationAttempted
+      ) {
         console.log("⏰ Fallback navigation triggered");
         console.log("🔍 Fallback triggered because:", {
           progress: Math.round(progress),
@@ -264,6 +307,7 @@ export default function LoadingScreen() {
           portfolioDataKeys: Object.keys(portfolioData || {}),
         });
 
+        setHasNavigationAttempted(true); // PREVENT MULTIPLE ATTEMPTS
         localStorage.setItem("isCreatingPortfolio", "false");
         setIsCreatingPortfolio(false);
         navigate(`/dashboard/${userId}/${simulationId}`);
@@ -280,9 +324,10 @@ export default function LoadingScreen() {
     readyToNavigate,
     isCreatingPortfolio,
     minTimeElapsed,
+    hasNavigationAttempted,
   ]);
 
-  // Emergency navigation for stuck states
+  // FIXED: Emergency navigation for stuck states with navigation guard
   useEffect(() => {
     const emergencyTimeout = setTimeout(() => {
       if (
@@ -290,12 +335,14 @@ export default function LoadingScreen() {
         portfolioData.id &&
         userId &&
         simulationId &&
-        progress < 99
+        progress < 99 &&
+        !hasNavigationAttempted
       ) {
         console.log(
           "🚨 Emergency navigation - progress stuck at",
           Math.round(progress)
         );
+        setHasNavigationAttempted(true); // PREVENT MULTIPLE ATTEMPTS
         localStorage.setItem("isCreatingPortfolio", "false");
         setIsCreatingPortfolio(false);
         navigate(`/dashboard/${userId}/${simulationId}`);
@@ -303,7 +350,14 @@ export default function LoadingScreen() {
     }, 15000); // 15 second emergency backup
 
     return () => clearTimeout(emergencyTimeout);
-  }, [portfolioData, userId, simulationId, navigate, progress]);
+  }, [
+    portfolioData,
+    userId,
+    simulationId,
+    navigate,
+    progress,
+    hasNavigationAttempted,
+  ]);
 
   // Progress circle component with smooth animations
   const ProgressCircle = ({ percentage }) => {
@@ -415,6 +469,8 @@ export default function LoadingScreen() {
           <div>Creating: {isCreatingPortfolio ? "Yes" : "No"}</div>
           <div>Min Time: {minTimeElapsed ? "Yes" : "No"}</div>
           <div>Data: {portfolioData?.id ? "Yes" : "No"}</div>
+          <div>Debug Count: {debugCount}</div>
+          <div>Nav Attempted: {hasNavigationAttempted ? "Yes" : "No"}</div>
         </div>
       )}
     </div>
