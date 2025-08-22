@@ -15,7 +15,7 @@ import {
   AreaChart,
   Legend,
 } from "recharts";
-import { usePortfolio } from "../context/PortfolioContext";
+import { usePortfolio } from "../../context/PortfolioContext";
 
 const SHAPDashboard = () => {
   const {
