@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import logging
 import aiohttp
 import os
-from services.news_analysis import NewsAnalysisService
+from .news_analysis import NewsAnalysisService
 import calendar
 
 # Set up logging
