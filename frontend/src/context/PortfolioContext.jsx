@@ -48,17 +48,14 @@ export const PortfolioProvider = ({ children }) => {
 
     let breakdown = null;
 
-    // Create breakdown from stocks_picked instead of timeline
+    // FIXED: Create breakdown from stocks_picked using allocation field
     if (stocksPicked.length > 0) {
       console.log("📊 Creating breakdown from stocks_picked:", stocksPicked);
 
       breakdown = Object.fromEntries(
         stocksPicked.map((stock) => [
           stock.symbol,
-          stock.final_value ||
-            stock.current_value ||
-            stock.shares * (stock.current_price || 0) ||
-            0,
+          stock.allocation || 0, // Use the allocation field that actually exists
         ])
       );
 
@@ -80,7 +77,7 @@ export const PortfolioProvider = ({ children }) => {
             .filter(([key]) => key !== "date" && key !== "value")
             .map(([symbol, details]) => [
               symbol,
-              details?.final_value ?? details?.value ?? 0,
+              details?.allocation ?? details?.value ?? 0,
             ])
         );
       } else {
@@ -93,7 +90,7 @@ export const PortfolioProvider = ({ children }) => {
             breakdown = Object.fromEntries(
               stocks.map((stock) => [
                 stock.symbol,
-                totalValue * (stock.allocation / 100),
+                stock.allocation || 0, // Use allocation directly (it's already a decimal)
               ])
             );
           }
@@ -101,41 +98,26 @@ export const PortfolioProvider = ({ children }) => {
       }
     }
 
+    // FIXED: Use backend breakdown if available, otherwise use computed breakdown
+    const finalBreakdown = data?.breakdown || breakdown;
+
     // Enhanced data object with proper structure
     const enhancedData = {
       ...data,
       results: Results,
       ai_summary: data?.ai_summary || null,
-      breakdown,
+      breakdown: finalBreakdown,
       stocks_picked: stocksPicked,
 
       // Ensure timeline is accessible at top level for calculations
       timeline: timeline,
 
-      // Store final balance for easy access
-      final_balance: (() => {
-        // Try multiple sources for final balance
-        if (Results?.end_value && Results.end_value > 0) {
-          return Results.end_value;
-        }
-        if (portfolioArray.length > 0) {
-          const lastEntry = portfolioArray[portfolioArray.length - 1];
-          if (lastEntry?.value && lastEntry.value > 0) {
-            return lastEntry.value;
-          }
-        }
-        // Calculate from breakdown if available
-        if (breakdown) {
-          const totalFromBreakdown = Object.values(breakdown).reduce(
-            (sum, val) => sum + (val || 0),
-            0
-          );
-          if (totalFromBreakdown > 0) {
-            return totalFromBreakdown;
-          }
-        }
-        return 0;
-      })(),
+      // FIXED: Use backend final_balance, don't override it
+      final_balance:
+        data?.final_balance ||
+        data?.performance_metrics?.ending_value ||
+        Results?.portfolio_metrics?.ending_value ||
+        0,
     };
 
     console.log("💾 Stored simulation data:", {
@@ -144,9 +126,12 @@ export const PortfolioProvider = ({ children }) => {
       fullData: "stored in portfolioData key",
       contextUpdated: true,
       finalBalance: enhancedData.final_balance,
-      hasBreakdown: !!breakdown,
-      breakdownTotal: breakdown
-        ? Object.values(breakdown).reduce((sum, val) => sum + (val || 0), 0)
+      hasBreakdown: !!finalBreakdown,
+      breakdownTotal: finalBreakdown
+        ? Object.values(finalBreakdown).reduce(
+            (sum, val) => sum + (val || 0),
+            0
+          )
         : 0,
     });
 
