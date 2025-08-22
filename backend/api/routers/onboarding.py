@@ -7,14 +7,14 @@ import logging
 
 from database import schemas
 from database.db import get_db
-from services.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
+from backend.services.portfolio_simulator.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Try to import AI analysis service (optional)
 try:
-    from services.ai_analysis import AIAnalysisService
+    from backend.services.portfolio_simulator.ai_analysis import AIAnalysisService
     ai_service = AIAnalysisService()
     AI_ANALYSIS_AVAILABLE = True
 except Exception as e:
@@ -267,7 +267,7 @@ async def health_check():
             health_status["status"] = "degraded"
 
         try:
-            from services.risk_assessor import calculate_user_risk  # noqa: F401
+            from backend.services.portfolio_simulator.risk_assessor import calculate_user_risk  # noqa: F401
             health_status["risk_assessor"] = "available"
         except Exception as e:
             health_status["risk_assessor"] = f"unavailable: {e}"
