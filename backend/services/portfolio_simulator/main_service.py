@@ -468,28 +468,31 @@ class PortfolioSimulatorService:
                 "asset_breakdown": simulation_results.asset_breakdown
             }
             
+            # FIXED: Use correct variable names and structure
             saved_simulation = self.database_service.save_simulation(
                 db=db,
-                simulation_input=validated_input,
-                user_data=validated_input,
-                simulation_results=results_dict,
-                ai_summary=ai_summary,
-                stocks_data=stocks_data,
-                risk_score=validated_input["risk_score"],
-                risk_label=validated_input["risk_label"],
-                shap_explanation=processed_shap,
-                visualization_paths=visualization_paths
+                user_id=validated_input["user_id"],  # Fixed: use dict access
+                name=validated_input.get("goal", "Investment Simulation"),  # Fixed: use dict access
+                input_payload=validated_input,  # Fixed: use validated_input instead of simulation_input
+                result_payload={
+                    "stocks_picked": stocks_data,
+                    "portfolio_metrics": results_dict,  # Fixed: use results_dict instead of simulation_results
+                    "ai_summary": ai_summary,
+                    "shap_explanation": processed_shap,  # Fixed: use processed_shap instead of shap_explanation
+                    "visualization_paths": visualization_paths,
+                    "target_achieved": simulation_results.portfolio_metrics.ending_value >= validated_input["target_value"]  # Fixed: access ending_value correctly
+                }
             )
             
             return saved_simulation
-            
+        
         except Exception as e:
             logger.error(f"Database save failed: {str(e)}")
             raise PortfolioSimulatorError(
                 f"Failed to save simulation: {str(e)}",
                 error_code="DATABASE_SAVE_FAILED"
             )
-    
+
     def _generate_chart_data(
         self,
         simulation_results: Any,
