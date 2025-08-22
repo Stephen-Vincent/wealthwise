@@ -1,5 +1,5 @@
 // frontend/src/components/DashboardComponents/SHAPDashboard.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -24,7 +24,7 @@ import {
 const SHAPDashboard = ({
   simulationId,
   portfolioData: portfolioDataProp,
-  apiBase = import.meta.env.VITE_API_BASE_URL || "/api",
+  apiBase = import.meta.env.VITE_API_URL || "/api",
   withCredentials = true,
 }) => {
   const [portfolioData, setPortfolioData] = useState(portfolioDataProp || null);
@@ -33,7 +33,7 @@ const SHAPDashboard = ({
   const [loading, setLoading] = useState(!!simulationId && !portfolioDataProp);
   const [error, setError] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({}); // Add debug state
+  const [debugInfo, setDebugInfo] = useState({});
 
   // Resolve API base
   const resolvedApiBase = useMemo(() => {
@@ -43,13 +43,16 @@ const SHAPDashboard = ({
   }, [apiBase]);
 
   // Derive simulation ID
-  const derivedSimulationId =
-    simulationId ??
-    portfolioDataProp?.id ??
-    portfolioDataProp?.simulation_id ??
-    portfolioData?.id ??
-    portfolioData?.simulation_id ??
-    null;
+  const derivedSimulationId = useMemo(() => {
+    return (
+      simulationId ??
+      portfolioDataProp?.id ??
+      portfolioDataProp?.simulation_id ??
+      portfolioData?.id ??
+      portfolioData?.simulation_id ??
+      null
+    );
+  }, [simulationId, portfolioDataProp, portfolioData]);
 
   console.log("SHAPDashboard Debug:", {
     propSimulationId: simulationId,
@@ -64,111 +67,122 @@ const SHAPDashboard = ({
   });
 
   // Enhanced debugging helper function
-  const debugApiResponse = async (url, response, responseText, parsedData) => {
-    const debug = {
-      url,
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries()),
-      responseTextLength: responseText?.length || 0,
-      responseTextPreview: responseText?.substring(0, 200) || "",
-      isValidJson: false,
-      parsedDataKeys: [],
-      parsedDataStructure: null,
-      expectedKeys: ["success", "chart_data", "enhanced_data"],
-    };
+  const debugApiResponse = useCallback(
+    async (url, response, responseText, parsedData) => {
+      const debug = {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries()),
+        responseTextLength: responseText?.length || 0,
+        responseTextPreview: responseText?.substring(0, 200) || "",
+        isValidJson: false,
+        parsedDataKeys: [],
+        parsedDataStructure: null,
+        expectedKeys: ["success", "chart_data", "enhanced_data"],
+      };
 
-    try {
-      if (parsedData) {
-        debug.isValidJson = true;
-        debug.parsedDataKeys = Object.keys(parsedData);
-        debug.parsedDataStructure = {
-          hasSuccess: "success" in parsedData,
-          successValue: parsedData.success,
-          hasChartData: "chart_data" in parsedData,
-          hasEnhancedData: "enhanced_data" in parsedData,
-          hasError: "error" in parsedData,
-          errorValue: parsedData.error,
-          topLevelKeys: Object.keys(parsedData),
-        };
+      try {
+        if (parsedData) {
+          debug.isValidJson = true;
+          debug.parsedDataKeys = Object.keys(parsedData);
+          debug.parsedDataStructure = {
+            hasSuccess: "success" in parsedData,
+            successValue: parsedData.success,
+            hasChartData: "chart_data" in parsedData,
+            hasEnhancedData: "enhanced_data" in parsedData,
+            hasError: "error" in parsedData,
+            errorValue: parsedData.error,
+            topLevelKeys: Object.keys(parsedData),
+          };
 
-        if (parsedData.chart_data) {
-          debug.chartDataKeys = Object.keys(parsedData.chart_data);
+          if (parsedData.chart_data) {
+            debug.chartDataKeys = Object.keys(parsedData.chart_data);
+          }
+          if (parsedData.enhanced_data) {
+            debug.enhancedDataKeys = Object.keys(parsedData.enhanced_data);
+          }
         }
-        if (parsedData.enhanced_data) {
-          debug.enhancedDataKeys = Object.keys(parsedData.enhanced_data);
-        }
+      } catch (e) {
+        debug.parseError = e.message;
       }
-    } catch (e) {
-      debug.parseError = e.message;
-    }
 
-    console.group(`🔍 API Debug: ${url}`);
-    console.log("📊 Response Status:", debug.status, debug.ok ? "✅" : "❌");
-    console.log("📋 Headers:", debug.headers);
-    console.log("📄 Response Preview:", debug.responseTextPreview);
-    console.log("🔧 Parsed Data Structure:", debug.parsedDataStructure);
-    console.log("🎯 Expected vs Received Keys:", {
-      expected: debug.expectedKeys,
-      received: debug.parsedDataKeys,
-      missing: debug.expectedKeys.filter(
-        (key) => !debug.parsedDataKeys.includes(key)
-      ),
-    });
-    console.groupEnd();
+      console.group(`API Debug: ${url}`);
+      console.log(
+        "Response Status:",
+        debug.status,
+        debug.ok ? "Success" : "Failed"
+      );
+      console.log("Headers:", debug.headers);
+      console.log("Response Preview:", debug.responseTextPreview);
+      console.log("Parsed Data Structure:", debug.parsedDataStructure);
+      console.log("Expected vs Received Keys:", {
+        expected: debug.expectedKeys,
+        received: debug.parsedDataKeys,
+        missing: debug.expectedKeys.filter(
+          (key) => !debug.parsedDataKeys.includes(key)
+        ),
+      });
+      console.groupEnd();
 
-    setDebugInfo((prev) => ({ ...prev, [url]: debug }));
-    return debug;
-  };
+      setDebugInfo((prev) => ({ ...prev, [url]: debug }));
+      return debug;
+    },
+    []
+  );
 
   // Helper functions
-  const looksLikeSpaHtmlResponse = (res) => {
+  const looksLikeSpaHtmlResponse = useCallback((res) => {
     const ct = res.headers.get("content-type") || "";
     return res.ok && ct.includes("text/html");
-  };
+  }, []);
 
-  async function safeJson(res) {
-    const ct = res.headers.get("content-type") || "";
-    const responseText = await res.text();
+  const safeJson = useCallback(
+    async (res) => {
+      const ct = res.headers.get("content-type") || "";
+      const responseText = await res.text();
 
-    console.log(`🔍 Raw response for ${res.url}:`, {
-      contentType: ct,
-      textLength: responseText.length,
-      textPreview: responseText.substring(0, 300),
-      startsWithBrace: responseText.startsWith("{"),
-      endsWithBrace: responseText.endsWith("}"),
-    });
+      console.log(`Raw response for ${res.url}:`, {
+        contentType: ct,
+        textLength: responseText.length,
+        textPreview: responseText.substring(0, 300),
+        startsWithBrace: responseText.startsWith("{"),
+        endsWithBrace: responseText.endsWith("}"),
+      });
 
-    if (!ct.includes("application/json") && !responseText.startsWith("{")) {
-      console.error(
-        `❌ Expected JSON but got "${ct}". Response:`,
-        responseText.slice(0, 200)
-      );
-      throw new Error(
-        `Expected JSON but got "${ct}". First bytes: ${responseText.slice(
-          0,
-          80
-        )}`
-      );
-    }
+      if (!ct.includes("application/json") && !responseText.startsWith("{")) {
+        console.error(
+          `Expected JSON but got "${ct}". Response:`,
+          responseText.slice(0, 200)
+        );
+        throw new Error(
+          `Expected JSON but got "${ct}". First bytes: ${responseText.slice(
+            0,
+            80
+          )}`
+        );
+      }
 
-    try {
-      const parsed = JSON.parse(responseText);
-      console.log(`✅ Successfully parsed JSON:`, parsed);
-      await debugApiResponse(res.url, res, responseText, parsed);
-      return parsed;
-    } catch (parseError) {
-      console.error(`❌ JSON parse failed:`, parseError);
-      console.log(`📄 Full response text:`, responseText);
-      await debugApiResponse(res.url, res, responseText, null);
-      throw new Error(`Invalid JSON response: ${parseError.message}`);
-    }
-  }
+      try {
+        const parsed = JSON.parse(responseText);
+        console.log(`Successfully parsed JSON:`, parsed);
+        await debugApiResponse(res.url, res, responseText, parsed);
+        return parsed;
+      } catch (parseError) {
+        console.error(`JSON parse failed:`, parseError);
+        console.log(`Full response text:`, responseText);
+        await debugApiResponse(res.url, res, responseText, null);
+        throw new Error(`Invalid JSON response: ${parseError.message}`);
+      }
+    },
+    [debugApiResponse]
+  );
 
   // Fetch simulation data
   useEffect(() => {
-    let alive = true;
+    let cancelled = false;
+
     if (!derivedSimulationId || portfolioDataProp) return;
 
     (async () => {
@@ -185,7 +199,7 @@ const SHAPDashboard = ({
           }
         );
 
-        console.log(`🔍 Simulation fetch response:`, res.status, res.ok);
+        console.log(`Simulation fetch response:`, res.status, res.ok);
 
         if (!res.ok)
           throw new Error(
@@ -193,16 +207,18 @@ const SHAPDashboard = ({
           );
 
         const sim = await safeJson(res);
-        console.log(`📊 Simulation data received:`, sim);
+        if (cancelled) return;
+
+        console.log(`Simulation data received:`, sim);
 
         // If SHAP missing, fetch SHAP explanation and merge
         const hasShap = !!sim?.results?.shap_explanation;
-        console.log(`🔍 Has SHAP in simulation:`, hasShap);
+        console.log(`Has SHAP in simulation:`, hasShap);
 
         if (!hasShap) {
           try {
             const shapUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/explanation`;
-            console.log(`🔍 Fetching SHAP from:`, shapUrl);
+            console.log(`Fetching SHAP from:`, shapUrl);
 
             const shapRes = await fetch(shapUrl, {
               method: "GET",
@@ -210,11 +226,13 @@ const SHAPDashboard = ({
               credentials: withCredentials ? "include" : "same-origin",
             });
 
-            console.log(`🔍 SHAP fetch response:`, shapRes.status, shapRes.ok);
+            console.log(`SHAP fetch response:`, shapRes.status, shapRes.ok);
 
             if (shapRes.ok) {
               const shapJson = await safeJson(shapRes);
-              console.log(`📊 SHAP data received:`, shapJson);
+              if (cancelled) return;
+
+              console.log(`SHAP data received:`, shapJson);
 
               const merged = {
                 ...sim,
@@ -227,41 +245,42 @@ const SHAPDashboard = ({
                     shapJson?.market_regime ?? sim?.results?.market_regime,
                 },
               };
-              console.log(`🔄 Merged simulation data:`, merged);
-              if (alive) setPortfolioData(merged);
+              console.log(`Merged simulation data:`, merged);
+              setPortfolioData(merged);
             } else {
-              console.warn(`⚠️ SHAP fetch failed, using original sim data`);
-              if (alive) setPortfolioData(sim);
+              console.warn(`SHAP fetch failed, using original sim data`);
+              setPortfolioData(sim);
             }
           } catch (shapError) {
-            console.error(`❌ SHAP fetch error:`, shapError);
-            if (alive) setPortfolioData(sim);
+            console.error(`SHAP fetch error:`, shapError);
+            if (!cancelled) setPortfolioData(sim);
           }
         } else {
-          if (alive) setPortfolioData(sim);
+          setPortfolioData(sim);
         }
       } catch (e) {
-        console.error(`❌ Simulation fetch failed:`, e);
-        if (alive) setError(e?.message || "Failed to fetch simulation");
+        console.error(`Simulation fetch failed:`, e);
+        if (!cancelled) setError(e?.message || "Failed to fetch simulation");
       } finally {
-        if (alive) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
 
     return () => {
-      alive = false;
+      cancelled = true;
     };
   }, [
     derivedSimulationId,
     resolvedApiBase,
     withCredentials,
     portfolioDataProp,
+    safeJson,
   ]);
 
   // Prefer prop if provided
   useEffect(() => {
     if (portfolioDataProp) {
-      console.log(`🔄 Using portfolio data from props:`, portfolioDataProp);
+      console.log(`Using portfolio data from props:`, portfolioDataProp);
       setPortfolioData(portfolioDataProp);
     }
   }, [portfolioDataProp]);
@@ -273,7 +292,7 @@ const SHAPDashboard = ({
       portfolioData?.results?.shap_explanation ||
       null;
 
-    console.log("🔍 SHAP Data Detection:", {
+    console.log("SHAP Data Detection:", {
       topLevel: !!portfolioData?.shap_explanation,
       resultsLevel: !!portfolioData?.results?.shap_explanation,
       finalData: data,
@@ -286,14 +305,14 @@ const SHAPDashboard = ({
 
   const hasShapData = useMemo(() => {
     const hasData = shapData && Object.keys(shapData || {}).length > 0;
-    console.log("🎯 Has SHAP Data:", hasData, shapData);
+    console.log("Has SHAP Data:", hasData, shapData);
     return hasData;
   }, [shapData]);
 
   // Enhanced chart data fetching with better error handling
   useEffect(() => {
     if (!derivedSimulationId || !hasShapData) {
-      console.log(`⏭️ Skipping chart data fetch:`, {
+      console.log(`Skipping chart data fetch:`, {
         hasSimId: !!derivedSimulationId,
         hasShapData,
       });
@@ -305,14 +324,11 @@ const SHAPDashboard = ({
 
     const loadChartData = async () => {
       try {
-        console.log(
-          `🔄 Fetching chart data for simulation:`,
-          derivedSimulationId
-        );
+        console.log(`Fetching chart data for simulation:`, derivedSimulationId);
 
         // Fetch comprehensive chart data
         const chartUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/chart-data`;
-        console.log(`🔍 Chart data URL:`, chartUrl);
+        console.log(`Chart data URL:`, chartUrl);
 
         const chartRes = await fetch(chartUrl, {
           method: "GET",
@@ -320,7 +336,7 @@ const SHAPDashboard = ({
           credentials: withCredentials ? "include" : "same-origin",
         });
 
-        console.log("📊 Chart data response:", {
+        console.log("Chart data response:", {
           status: chartRes.status,
           ok: chartRes.ok,
           statusText: chartRes.statusText,
@@ -329,16 +345,16 @@ const SHAPDashboard = ({
 
         // Check if response looks like SPA HTML
         if (looksLikeSpaHtmlResponse(chartRes)) {
-          console.warn(
-            "⚠️ Received HTML response instead of JSON for chart data"
-          );
+          console.warn("Received HTML response instead of JSON for chart data");
           throw new Error("Received HTML response instead of JSON");
         }
 
         if (chartRes.ok) {
           try {
             const chartDataResult = await safeJson(chartRes);
-            console.log("📊 Chart data received:", chartDataResult);
+            if (cancelled) return;
+
+            console.log("Chart data received:", chartDataResult);
 
             // Check expected structure
             if (chartDataResult && typeof chartDataResult === "object") {
@@ -346,13 +362,11 @@ const SHAPDashboard = ({
                 chartDataResult.success === true &&
                 chartDataResult.chart_data
               ) {
-                console.log("✅ Chart data has expected structure");
-                if (!cancelled) {
-                  setChartData(chartDataResult.chart_data);
-                }
+                console.log("Chart data has expected structure");
+                setChartData(chartDataResult.chart_data);
               } else if (chartDataResult.success === false) {
                 console.error(
-                  "❌ Chart data API returned success: false",
+                  "Chart data API returned success: false",
                   chartDataResult
                 );
                 throw new Error(
@@ -360,34 +374,31 @@ const SHAPDashboard = ({
                 );
               } else {
                 console.warn(
-                  "⚠️ Unexpected chart data structure:",
+                  "Unexpected chart data structure:",
                   chartDataResult
                 );
                 // Try to use the data anyway if it looks valid
-                if (chartDataResult.chart_data && !cancelled) {
+                if (chartDataResult.chart_data) {
                   setChartData(chartDataResult.chart_data);
-                } else if (
-                  Object.keys(chartDataResult).length > 0 &&
-                  !cancelled
-                ) {
+                } else if (Object.keys(chartDataResult).length > 0) {
                   // Maybe the whole response is the chart data
                   setChartData(chartDataResult);
                 }
               }
             } else {
               console.error(
-                "❌ Chart data is not an object:",
+                "Chart data is not an object:",
                 typeof chartDataResult,
                 chartDataResult
               );
             }
           } catch (jsonError) {
-            console.error("❌ Chart data JSON parse failed:", jsonError);
+            console.error("Chart data JSON parse failed:", jsonError);
             throw jsonError;
           }
         } else {
           console.error(
-            "❌ Chart data fetch failed:",
+            "Chart data fetch failed:",
             chartRes.status,
             chartRes.statusText
           );
@@ -398,7 +409,7 @@ const SHAPDashboard = ({
 
         // Fetch enhanced portfolio data
         const enhancedUrl = `${resolvedApiBase}/shap-visualization/simulation/${derivedSimulationId}/enhanced-data`;
-        console.log(`🔍 Enhanced data URL:`, enhancedUrl);
+        console.log(`Enhanced data URL:`, enhancedUrl);
 
         const enhancedRes = await fetch(enhancedUrl, {
           method: "GET",
@@ -406,7 +417,7 @@ const SHAPDashboard = ({
           credentials: withCredentials ? "include" : "same-origin",
         });
 
-        console.log("📈 Enhanced data response:", {
+        console.log("Enhanced data response:", {
           status: enhancedRes.status,
           ok: enhancedRes.ok,
           statusText: enhancedRes.statusText,
@@ -415,37 +426,42 @@ const SHAPDashboard = ({
         if (enhancedRes.ok && !looksLikeSpaHtmlResponse(enhancedRes)) {
           try {
             const enhancedDataResult = await safeJson(enhancedRes);
-            console.log("📈 Enhanced data received:", enhancedDataResult);
+            if (cancelled) return;
+
+            console.log("Enhanced data received:", enhancedDataResult);
 
             if (
               enhancedDataResult &&
               enhancedDataResult.success &&
-              enhancedDataResult.enhanced_data &&
-              !cancelled
+              enhancedDataResult.enhanced_data
             ) {
               setEnhancedData(enhancedDataResult.enhanced_data);
             } else if (enhancedDataResult && !enhancedDataResult.success) {
               console.warn(
-                "⚠️ Enhanced data API returned success: false",
+                "Enhanced data API returned success: false",
                 enhancedDataResult
               );
             }
           } catch (jsonError) {
-            console.error("❌ Enhanced data JSON parse failed:", jsonError);
+            if (!cancelled) {
+              console.error("Enhanced data JSON parse failed:", jsonError);
+            }
           }
         } else {
           console.warn(
-            "⚠️ Enhanced data fetch failed or returned HTML:",
+            "Enhanced data fetch failed or returned HTML:",
             enhancedRes.status
           );
         }
       } catch (error) {
-        console.error("❌ Failed to fetch chart data:", error);
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-        });
+        if (!cancelled) {
+          console.error("Failed to fetch chart data:", error);
+          console.error("Error details:", {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          });
+        }
       } finally {
         if (!cancelled) {
           setChartLoading(false);
@@ -458,14 +474,21 @@ const SHAPDashboard = ({
     return () => {
       cancelled = true;
     };
-  }, [derivedSimulationId, hasShapData, resolvedApiBase, withCredentials]);
+  }, [
+    derivedSimulationId,
+    hasShapData,
+    resolvedApiBase,
+    withCredentials,
+    safeJson,
+    looksLikeSpaHtmlResponse,
+  ]);
 
   const [activeTab, setActiveTab] = useState("summary");
 
   if (loading) {
     return (
       <div className="bg-white border rounded-xl p-8 text-center">
-        <div className="text-lg text-gray-700">Loading your portfolio…</div>
+        <div className="text-lg text-gray-700">Loading your portfolio...</div>
       </div>
     );
   }
@@ -709,9 +732,6 @@ const SHAPDashboard = ({
   );
 };
 
-// Rest of your component code remains the same...
-// [Include all the other components: SummaryTab, FactorsTab, etc.]
-
 // Summary Tab
 const SummaryTab = ({ shapData, portfolioData, chartData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
@@ -855,7 +875,12 @@ const FactorsTab = ({ chartData, shapData }) => {
         }))
         .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance));
     }
-    return chartData.factor_importance;
+
+    // Ensure the chart data has the right structure
+    return chartData.factor_importance.map((item) => ({
+      ...item,
+      importance: Number(item.importance) || 0,
+    }));
   }, [chartData, shapData]);
 
   // Custom bar color function
@@ -868,8 +893,7 @@ const FactorsTab = ({ chartData, shapData }) => {
       {/* Feature Importance Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">📊</span>
-          Feature Importance Analysis
+          <span className="mr-2">Feature Importance Analysis</span>
         </h3>
 
         {factorImportanceData.length > 0 ? (
@@ -920,8 +944,7 @@ const FactorsTab = ({ chartData, shapData }) => {
       {chartData?.shap_waterfall && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <span className="mr-2">🌊</span>
-            SHAP Decision Waterfall
+            <span className="mr-2">SHAP Decision Waterfall</span>
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -961,8 +984,7 @@ const FactorsTab = ({ chartData, shapData }) => {
       {factorImportanceData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <span className="mr-2">💡</span>
-            Factor Impact Analysis
+            <span className="mr-2">Factor Impact Analysis</span>
           </h3>
           <div className="space-y-4">
             {factorImportanceData.map((factor, index) => (
@@ -987,7 +1009,9 @@ const FactorsTab = ({ chartData, shapData }) => {
                     {factor.importance.toFixed(3)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{factor.description}</p>
+                <p className="text-sm text-gray-600">
+                  {factor.description || getFactorDescription(factor.factor)}
+                </p>
               </div>
             ))}
           </div>
@@ -1007,7 +1031,7 @@ const VisualizationsTab = ({
   if (chartLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-        <div className="animate-spin text-4xl mb-4">⚙️</div>
+        <div className="animate-spin text-4xl mb-4">Loading...</div>
         <h3 className="text-lg font-semibold text-gray-700 mb-2">
           Loading Interactive Charts
         </h3>
@@ -1019,7 +1043,7 @@ const VisualizationsTab = ({
   if (!chartData && !enhancedData) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-        <div className="text-4xl mb-4">⚠️</div>
+        <div className="text-4xl mb-4">Warning</div>
         <h3 className="text-lg font-semibold text-yellow-800 mb-2">
           Charts Not Available
         </h3>
@@ -1044,7 +1068,7 @@ const VisualizationsTab = ({
               <ScatterChart
                 data={[
                   chartData.risk_return_analysis.portfolio,
-                  ...chartData.risk_return_analysis.benchmark,
+                  ...(chartData.risk_return_analysis.benchmark || []),
                 ]}
               >
                 <CartesianGrid />
@@ -1082,7 +1106,7 @@ const VisualizationsTab = ({
                   name="Assets"
                   data={[
                     chartData.risk_return_analysis.portfolio,
-                    ...chartData.risk_return_analysis.benchmark,
+                    ...(chartData.risk_return_analysis.benchmark || []),
                   ]}
                   fill="#3B82F6"
                 />
@@ -1367,8 +1391,7 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       {/* Key AI Insights */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-          <span className="mr-2">💡</span>
-          Key AI Insights
+          <span className="mr-2">Key AI Insights</span>
         </h3>
 
         <div className="space-y-6">
@@ -1396,15 +1419,13 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       {/* Next Steps */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">🚀</span>
-          What This Means for You
+          <span className="mr-2">What This Means for You</span>
         </h3>
 
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
             <div className="flex items-center mb-2">
-              <span className="text-xl mr-2">✅</span>
-              <h4 className="font-semibold text-green-800">Strengths</h4>
+              <span className="text-xl mr-2">Strengths</span>
             </div>
             <ul className="text-sm text-green-700 space-y-1">
               <li>• Portfolio matches your risk comfort level</li>
@@ -1416,8 +1437,7 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
 
           <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
             <div className="flex items-center mb-2">
-              <span className="text-xl mr-2">📈</span>
-              <h4 className="font-semibold text-amber-800">Opportunities</h4>
+              <span className="text-xl mr-2">Opportunities</span>
             </div>
             <ul className="text-sm text-amber-700 space-y-1">
               <li>• Regular monitoring recommended</li>
@@ -1533,14 +1553,14 @@ const getFactorDescription = (factor) => {
 
 const getIconForInsight = (iconName) => {
   const icons = {
-    Target: "🎯",
-    Star: "⭐",
-    TrendingUp: "📈",
-    Scale: "⚖️",
-    Waves: "🌊",
-    Trophy: "🏆",
+    Target: "Target",
+    Star: "Star",
+    TrendingUp: "Trending Up",
+    Scale: "Scale",
+    Waves: "Waves",
+    Trophy: "Trophy",
   };
-  return icons[iconName] || "💡";
+  return icons[iconName] || "Insight";
 };
 
 // Chart color constants

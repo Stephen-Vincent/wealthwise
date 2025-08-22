@@ -56,7 +56,7 @@ const PortfolioGraph = () => {
   // Memoized processing of timeline data for chart and metrics
   const processedData = useMemo(() => {
     // Extract timeline arrays from portfolio data
-    const portfolio = portfolioData?.results?.timeline?.portfolio ?? [];
+    const portfolio = portfolioData?.timeline ?? [];
     const contributions = portfolioData?.results?.timeline?.contributions ?? [];
 
     // Handle case where there is no data
