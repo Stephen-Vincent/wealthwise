@@ -10,8 +10,10 @@ import os
 logger = logging.getLogger(__name__)
 
 class NewsAnalysisService:
-    def __init__(self, finnhub_api_key: str):
+    def __init__(self, finnhub_api_key: Optional[str] = None):
         self.finnhub_api_key = os.getenv("FINNHUB_API_KEY", finnhub_api_key)
+        if not self.finnhub_api_key:
+            logger.warning("FINNHUB_API_KEY not set - news analysis will be disabled")
         self.base_url = "https://finnhub.io/api/v1"
         self.session = None
     
@@ -34,6 +36,10 @@ class NewsAnalysisService:
         Returns:
             Dictionary with symbol as key and list of news articles as value
         """
+        if not self.finnhub_api_key:
+            logger.warning("No API key available - returning empty news data")
+            return {symbol: [] for symbol in symbols}
+            
         from_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d')
         to_date = datetime.now().strftime('%Y-%m-%d')
         
@@ -64,6 +70,10 @@ class NewsAnalysisService:
     
     async def _fetch_company_news(self, symbol: str, from_date: str, to_date: str) -> List[Dict]:
         """Fetch company news for a single symbol"""
+        if not self.finnhub_api_key:
+            logger.warning(f"No API key available for news fetching {symbol}")
+            return []
+            
         url = f"{self.base_url}/company-news"
         params = {
             'symbol': symbol,
@@ -99,6 +109,10 @@ class NewsAnalysisService:
         Returns:
             List of news articles
         """
+        if not self.finnhub_api_key:
+            logger.warning("No API key available for general news")
+            return []
+            
         url = f"{self.base_url}/news"
         params = {
             'category': category,
@@ -256,7 +270,8 @@ class NewsAnalysisService:
             
             detected_events = []
             for event_type, keywords in event_keywords.items():
-                if Any(keyword.lower() in text for keyword in keywords):
+                # FIXED: Changed Any to any (built-in Python function)
+                if any(keyword.lower() in text for keyword in keywords):
                     detected_events.append(event_type)
             
             if detected_events:
@@ -277,43 +292,3 @@ class NewsAnalysisService:
             await self.session.close()
 
 
-# Example usage and testing
-async def main():
-    """Example usage of the NewsAnalysisService"""
-    
-    # Initialize with your Finnhub API key
-    finnhub_key = "your_finnhub_api_key_here"  # Get from https://finnhub.io/
-    
-    async with NewsAnalysisService(finnhub_key) as news_service:
-        # Test symbols
-        symbols = ['AAPL', 'GOOGL', 'TSLA']
-        
-        print("Fetching market news...")
-        news_data = await news_service.get_market_news(symbols, days_back=7)
-        
-        for symbol, articles in news_data.items():
-            print(f"\n=== {symbol} ===")
-            print(f"Found {len(articles)} articles")
-            
-            if articles:
-                # Analyze sentiment
-                sentiment_analysis = await news_service.analyze_sentiment(articles)
-                print(f"Average Sentiment: {sentiment_analysis['average_sentiment']}")
-                print(f"Sentiment Category: {sentiment_analysis['sentiment_category']}")
-                print(f"Articles Distribution: {sentiment_analysis['sentiment_distribution']}")
-                
-                # Detect events
-                events = await news_service.get_market_events(articles)
-                if events:
-                    print(f"Market Events Detected: {len(events)}")
-                    for event in events[:3]:  # Show first 3 events
-                        print(f"  - {event['headline'][:80]}...")
-                        print(f"    Event Types: {', '.join(event['event_types'])}")
-        
-        # Get general market news
-        print("\n=== General Market News ===")
-        general_news = await news_service.get_general_market_news(category='general', limit=10)
-        print(f"Found {len(general_news)} general market articles")
-
-if __name__ == "__main__":
-    asyncio.run(main())
