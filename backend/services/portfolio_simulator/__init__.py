@@ -15,7 +15,9 @@ This package provides both high-level convenience functions and detailed
 component access for advanced use cases.
 """
 
-
+__version__ = "2.1.0"
+__author__ = "Stephen Vincent"
+__email__ = ""
 
 import logging
 from typing import Dict, Any, Optional
