@@ -188,7 +188,6 @@ const SHAPDashboard = () => {
           {[
             { id: "summary", label: "Overview", icon: <BarChart3 size={16} /> },
             { id: "factors", label: "Key Factors", icon: <Search size={16} /> },
-
             {
               id: "insights",
               label: "AI Insights",
@@ -462,71 +461,6 @@ const FactorsTab = ({ chartData, shapData }) => {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Visualizations Tab - Removed goal achievement progress section
-const VisualizationsTab = ({ chartData, enhancedData, portfolioData }) => {
-  if (!chartData && !enhancedData) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-        <div className="text-4xl mb-4">⚠️</div>
-        <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-          Charts Not Available
-        </h3>
-        <p className="text-yellow-700">
-          Chart data could not be loaded. This might be due to an API issue or
-          missing data.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {chartData?.performance_timeline?.portfolio && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">
-            Portfolio Performance Over Time
-          </h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={chartData.performance_timeline.portfolio.slice(-60)}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis
-                  tickFormatter={(value) => `£${(value / 1000).toFixed(0)}K`}
-                />
-                <Tooltip
-                  formatter={(value, name) => [
-                    name === "value"
-                      ? `£${value.toLocaleString()}`
-                      : `${value.toFixed(2)}%`,
-                    name === "value" ? "Portfolio Value" : "Return %",
-                  ]}
-                  labelFormatter={(label) => `Date: ${label}`}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#3B82F6"
-                  fill="#3B82F6"
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
           </div>
         </div>
       )}
