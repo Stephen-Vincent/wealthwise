@@ -17,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the modules we want to test
 try:
-    from services.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
+    from backend.services.portfolio_simulator.risk_assessor import calculate_user_risk, calculate_user_risk_legacy
     from database.schemas import OnboardingCreate
 except ImportError as e:
     print(f"Warning: Could not import risk assessment modules: {e}")

@@ -84,7 +84,7 @@ class WealthWiseVerifier:
         try:
             # Test core imports
             from services.portfolio_simulator import simulate_portfolio
-            from services.ai_analysis import AIAnalysisService
+            from backend.services.portfolio_simulator.ai_analysis import AIAnalysisService
             print("✅ Core services imported successfully")
             
             # Test WealthWise imports

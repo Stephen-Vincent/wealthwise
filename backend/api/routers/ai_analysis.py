@@ -17,7 +17,7 @@ router = APIRouter(tags=["ai-analysis"])
 
 # Import the AI analysis service (this should remain the same)
 try:
-    from services.ai_analysis import AIAnalysisService
+    from backend.services.portfolio_simulator.ai_analysis import AIAnalysisService
     ai_service = AIAnalysisService()
     AI_ANALYSIS_AVAILABLE = True
 except ImportError as e:

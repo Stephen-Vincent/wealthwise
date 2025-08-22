@@ -83,7 +83,7 @@ def run_integration_tests():
         }
         
         # Test risk assessment
-        from services.risk_assessor import calculate_user_risk
+        from backend.services.portfolio_simulator.risk_assessor import calculate_user_risk
         risk_profile = calculate_user_risk(sample_input)
         assert "risk_score" in risk_profile
         print(f"   ✅ Risk assessment: {risk_profile['risk_score']} ({risk_profile['risk_level']})")

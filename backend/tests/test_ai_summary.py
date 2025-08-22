@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the modules we want to test
 try:
-    from services.ai_analysis import AIAnalysisService
+    from backend.services.portfolio_simulator.ai_analysis import AIAnalysisService
     from services.portfolio_simulator import generate_ai_enhanced_summary, generate_simple_summary
 except ImportError as e:
     print(f"Warning: Could not import AI summary modules: {e}")

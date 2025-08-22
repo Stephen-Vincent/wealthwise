@@ -8,6 +8,7 @@ SHAP explanations, and visualizations.
 
 import logging
 import asyncio
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,8 @@ from .portfolio_simulator import PortfolioSimulator, PortfolioWeightCalculator
 from .ai_recommendation_service import AIRecommendationService, SHAPDataProcessor
 from .visualization_service import VisualizationService, ChartDataGenerator
 from .database_service import DatabaseService, SimulationResultsFormatter
+from .ai_analysis import AIAnalysisService  # NEW: Import AI analysis service
+from .news_analysis import NewsAnalysisService  # NEW: Import news analysis service
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +37,12 @@ class PortfolioSimulatorService:
     4. Portfolio simulation with multiple scenarios
     5. Visualization generation (static and interactive)
     6. Database storage and retrieval
-    7. Comprehensive error handling and logging
+    7. Comprehensive AI analysis with news sentiment
+    8. Comprehensive error handling and logging
     """
     
     def __init__(self):
-        """Initialize the portfolio simulator service with all components."""
+        """Initialize the portfolio simulator service with all components including AI analysis."""
         # Initialize configuration
         self.config = get_config()
         
@@ -55,11 +59,14 @@ class PortfolioSimulatorService:
         self.results_formatter = SimulationResultsFormatter()
         self.shap_processor = SHAPDataProcessor()
         
-        logger.info("Portfolio Simulator Service initialized successfully")
+        # NEW: Initialize AI analysis services
+        self.ai_analysis_service = AIAnalysisService()
+        
+        logger.info("Portfolio Simulator Service initialized successfully with AI analysis")
     
     async def simulate_portfolio(self, simulation_input: Dict[str, Any], db: Session) -> Dict[str, Any]:
         """
-        Execute complete portfolio simulation workflow.
+        Execute complete portfolio simulation workflow with enhanced AI analysis.
         
         Args:
             simulation_input: Raw input data from user
@@ -72,7 +79,7 @@ class PortfolioSimulatorService:
             PortfolioSimulatorError: If simulation fails at any stage
         """
         try:
-            logger.info("Starting enhanced portfolio simulation workflow")
+            logger.info("Starting enhanced portfolio simulation workflow with AI analysis")
             
             # Step 1: Validate and sanitize input
             validated_input = self.validator.validate_simulation_input(simulation_input)
@@ -101,21 +108,22 @@ class PortfolioSimulatorService:
             # Step 6: Process SHAP explanations
             processed_shap = self._process_shap_explanations(recommendations)
             
-            # Step 7: Generate visualizations
+            # NEW Step 7: Generate comprehensive AI analysis with news sentiment
+            ai_analysis_results = await self._generate_comprehensive_ai_analysis(
+                recommendations, validated_input, simulation_results, processed_shap
+            )
+            logger.info("AI analysis and news sentiment analysis completed")
+            
+            # Step 8: Generate visualizations
             visualization_paths = await self._generate_visualizations(
                 simulation_results, recommendations, processed_shap, validated_input
             )
             logger.info(f"Generated {len(visualization_paths)} visualizations")
             
-            # Step 8: Generate AI summary
-            ai_summary = await self._generate_ai_summary(
-                simulation_results, recommendations, processed_shap, validated_input
-            )
-            
-            # Step 9: Save to database
+            # Step 9: Save to database with enhanced AI analysis
             saved_simulation = self._save_simulation(
                 db, validated_input, simulation_results, recommendations,
-                ai_summary, processed_shap, visualization_paths
+                ai_analysis_results, processed_shap, visualization_paths
             )
             
             # Step 10: Generate chart data for frontend
@@ -125,10 +133,10 @@ class PortfolioSimulatorService:
             
             # Step 11: Format final response
             response = self._format_final_response(
-                saved_simulation, chart_data, visualization_paths
+                saved_simulation, chart_data, visualization_paths, ai_analysis_results
             )
             
-            logger.info(f"Simulation workflow completed successfully (ID: {saved_simulation.id})")
+            logger.info(f"Enhanced simulation workflow completed successfully (ID: {saved_simulation.id})")
             return response
             
         except Exception as e:
@@ -139,6 +147,306 @@ class PortfolioSimulatorService:
                 raise PortfolioSimulatorError(
                     f"Simulation workflow failed: {str(e)}",
                     details={"stage": "workflow_orchestration"}
+                )
+    
+    async def _generate_comprehensive_ai_analysis(
+        self,
+        recommendations: Dict[str, Any],
+        validated_input: Dict[str, Any],
+        simulation_results: Any,
+        processed_shap: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Generate comprehensive AI analysis including news sentiment and market context.
+        
+        Returns:
+            Dictionary containing all AI analysis results
+        """
+        try:
+            logger.info("Starting comprehensive AI analysis")
+            
+            # Prepare stocks data for analysis
+            stocks_picked = self._prepare_stocks_data_for_analysis(
+                recommendations["stocks"], simulation_results.asset_breakdown
+            )
+            
+            # Convert simulation results to dictionary format for AI analysis
+            simulation_dict = {
+                "end_value": simulation_results.portfolio_metrics.ending_value,
+                "starting_value": simulation_results.portfolio_metrics.starting_value,
+                "total_return": simulation_results.portfolio_metrics.total_return,
+                "timeline": {
+                    "portfolio": simulation_results.timeline_data
+                }
+            }
+            
+            # Extract risk information
+            risk_score = validated_input.get("risk_score", 50)
+            risk_label = validated_input.get("risk_label", "moderate")
+            
+            # Generate comprehensive portfolio summary with news analysis
+            ai_summary = await self.ai_analysis_service.generate_portfolio_summary(
+                stocks_picked=stocks_picked,
+                user_data=validated_input,
+                risk_score=risk_score,
+                risk_label=risk_label,
+                simulation_results=simulation_dict
+            )
+            
+            # Get portfolio news analysis for recent market context
+            portfolio_news_analysis = await self.ai_analysis_service.analyze_portfolio_with_context(
+                portfolio_data={"stocks_picked": stocks_picked},
+                days_back=30  # Last 30 days of news
+            )
+            
+            # Analyze portfolio performance with news context
+            performance_analysis = await self.ai_analysis_service.analyze_portfolio_performance(
+                {"stocks_picked": stocks_picked}
+            )
+            
+            # Analyze risk allocation with market sentiment
+            risk_analysis = await self.ai_analysis_service.analyze_risk_allocation(
+                {"stocks_picked": stocks_picked}
+            )
+            
+            logger.info("AI analysis components completed successfully")
+            
+            return {
+                "ai_summary": ai_summary,
+                "portfolio_news_analysis": portfolio_news_analysis,
+                "performance_analysis": performance_analysis,
+                "risk_analysis": risk_analysis,
+                "analysis_metadata": {
+                    "generated_at": datetime.now().isoformat(),
+                    "analysis_version": "enhanced_v1.0",
+                    "includes_news_sentiment": True,
+                    "includes_market_context": True,
+                    "stocks_analyzed": len(stocks_picked)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Comprehensive AI analysis failed: {str(e)}")
+            # Return fallback analysis if AI analysis fails
+            return {
+                "ai_summary": self._generate_fallback_summary(validated_input, simulation_results),
+                "portfolio_news_analysis": {"error": "News analysis unavailable"},
+                "performance_analysis": {"error": "Performance analysis unavailable"},
+                "risk_analysis": {"error": "Risk analysis unavailable"},
+                "analysis_metadata": {
+                    "generated_at": datetime.now().isoformat(),
+                    "analysis_version": "fallback_v1.0",
+                    "includes_news_sentiment": False,
+                    "includes_market_context": False,
+                    "error": str(e)
+                }
+            }
+    
+    def _prepare_stocks_data_for_analysis(self, stocks: List[str], asset_breakdown: Dict[str, float]) -> List[Dict[str, Any]]:
+        """
+        Prepare stocks data in the format expected by AI analysis services.
+        """
+        from .config import get_stock_metadata
+        metadata = get_stock_metadata()
+        
+        stocks_data = []
+        for stock in stocks:
+            stock_info = metadata.get(stock, {})
+            allocation = asset_breakdown.get(stock, 0)
+            
+            stocks_data.append({
+                "symbol": stock,
+                "ticker": stock,  # Some services expect 'ticker'
+                "name": stock_info.get("name", stock),
+                "allocation": allocation,
+                "weight": allocation / 100.0,  # Convert percentage to decimal
+                "category": stock_info.get("category", "equity"),
+                "risk_score": stock_info.get("risk_score", 15),
+                "expected_return": stock_info.get("expected_return", 8)
+            })
+        
+        return stocks_data
+    
+    def _generate_fallback_summary(self, validated_input: Dict[str, Any], simulation_results: Any) -> str:
+        """
+        Generate a basic fallback summary when AI analysis fails.
+        """
+        try:
+            performance = simulation_results.portfolio_metrics
+            target_achieved = performance.ending_value >= validated_input["target_value"]
+            
+            return f"""
+## Investment Journey Summary
+
+Your {validated_input['risk_label'].lower()} risk portfolio achieved {performance.total_return:.1f}% total returns over {validated_input['timeframe']} years.
+
+**Key Results:**
+- Starting Value: £{performance.starting_value:,.2f}
+- Final Value: £{performance.ending_value:,.2f}
+- Target: £{validated_input['target_value']:,.2f} ({'✅ Achieved' if target_achieved else '📈 In Progress'})
+- Total Return: {performance.total_return:.1f}%
+- Annual Return: {performance.annualized_return:.1f}%
+
+**Risk Metrics:**
+- Portfolio Volatility: {performance.volatility:.1f}%
+- Sharpe Ratio: {performance.sharpe_ratio:.2f}
+- Maximum Drawdown: {performance.max_drawdown:.1f}%
+
+Your investment strategy demonstrated the power of long-term, diversified investing with AI-optimized portfolio allocation.
+"""
+        except Exception:
+            return "Portfolio simulation completed successfully with positive returns over the investment period."
+    
+    def _save_simulation(
+        self,
+        db: Session,
+        validated_input: Dict[str, Any],
+        simulation_results: Any,
+        recommendations: Dict[str, Any],
+        ai_analysis_results: Dict[str, Any],  # UPDATED: Use comprehensive AI analysis
+        processed_shap: Optional[Dict[str, Any]],
+        visualization_paths: Dict[str, str]
+    ) -> Any:
+        """Save simulation to database with enhanced AI analysis."""
+        try:
+            # Prepare stocks data
+            stocks_data = self._prepare_stocks_data_for_db(
+                recommendations["stocks"], simulation_results.asset_breakdown
+            )
+            
+            # Convert simulation results to dictionary format
+            results_dict = {
+                "starting_value": simulation_results.portfolio_metrics.starting_value,
+                "ending_value": simulation_results.portfolio_metrics.ending_value,
+                "total_return": simulation_results.portfolio_metrics.total_return,
+                "annualized_return": simulation_results.portfolio_metrics.annualized_return,
+                "volatility": simulation_results.portfolio_metrics.volatility,
+                "sharpe_ratio": simulation_results.portfolio_metrics.sharpe_ratio,
+                "max_drawdown": simulation_results.portfolio_metrics.max_drawdown,
+                "total_contributed": simulation_results.portfolio_metrics.total_contributed,
+                "profit_loss": simulation_results.portfolio_metrics.profit_loss,
+                "timeline_data": simulation_results.timeline_data,
+                "contribution_data": simulation_results.contribution_data,
+                "asset_breakdown": simulation_results.asset_breakdown
+            }
+            
+            # UPDATED: Save with comprehensive AI analysis
+            saved_simulation = self.database_service.save_simulation(
+                db=db,
+                user_id=validated_input["user_id"],
+                name=validated_input.get("goal", "Investment Simulation"),
+                input_payload=validated_input,
+                result_payload={
+                    "stocks_picked": stocks_data,
+                    "portfolio_metrics": results_dict,
+                    "ai_analysis": ai_analysis_results,  # UPDATED: Store full AI analysis
+                    "shap_explanation": processed_shap,
+                    "visualization_paths": visualization_paths,
+                    "target_achieved": simulation_results.portfolio_metrics.ending_value >= validated_input["target_value"],
+                    "enhanced_features": {
+                        "news_sentiment_analysis": True,
+                        "market_context_analysis": True,
+                        "comprehensive_ai_summary": True,
+                        "portfolio_news_tracking": True
+                    }
+                }
+            )
+            
+            return saved_simulation
+        
+        except Exception as e:
+            logger.error(f"Database save failed: {str(e)}")
+            raise PortfolioSimulatorError(
+                f"Failed to save simulation: {str(e)}",
+                error_code="DATABASE_SAVE_FAILED"
+            )
+    
+    def _format_final_response(
+        self,
+        saved_simulation: Any,
+        chart_data: Dict[str, Any],
+        visualization_paths: Dict[str, str],
+        ai_analysis_results: Dict[str, Any]  # NEW: Include AI analysis in response
+    ) -> Dict[str, Any]:
+        """Format the final response with enhanced AI analysis."""
+        formatted_response = self.results_formatter.format_simulation_response(saved_simulation)
+        
+        # Add chart data and enhanced AI analysis
+        formatted_response.update({
+            "chart_data": chart_data,
+            "ai_analysis": {
+                "summary": ai_analysis_results.get("ai_summary", ""),
+                "news_sentiment": ai_analysis_results.get("portfolio_news_analysis", {}),
+                "performance_insights": ai_analysis_results.get("performance_analysis", {}),
+                "risk_insights": ai_analysis_results.get("risk_analysis", {}),
+                "metadata": ai_analysis_results.get("analysis_metadata", {})
+            },
+            "success": True,
+            "workflow_completed": True,
+            "enhanced_features_enabled": {
+                "ai_recommendations": True,
+                "shap_explanations": bool(saved_simulation.results.get("shap_explanation")),
+                "visualizations": bool(visualization_paths),
+                "interactive_charts": bool(chart_data),
+                "news_sentiment_analysis": ai_analysis_results.get("analysis_metadata", {}).get("includes_news_sentiment", False),
+                "market_context_analysis": ai_analysis_results.get("analysis_metadata", {}).get("includes_market_context", False),
+                "comprehensive_ai_summary": True
+            }
+        })
+        
+        return formatted_response
+    
+    async def get_simulation_with_ai_analysis(self, simulation_id: int, db: Session) -> Dict[str, Any]:
+        """
+        Get simulation with full AI analysis data.
+        
+        Args:
+            simulation_id: ID of the simulation
+            db: Database session
+            
+        Returns:
+            Complete simulation data including AI analysis
+        """
+        try:
+            # Retrieve simulation from database
+            simulation = self.database_service.get_simulation(db, simulation_id)
+            
+            if not simulation:
+                raise PortfolioSimulatorError(
+                    f"Simulation with ID {simulation_id} not found",
+                    error_code="SIMULATION_NOT_FOUND"
+                )
+            
+            # Format response with AI analysis
+            formatted_response = self.results_formatter.format_simulation_response(simulation)
+            
+            # Extract AI analysis from stored results
+            ai_analysis = simulation.results.get("ai_analysis", {})
+            
+            # Generate chart data
+            chart_data = self.chart_data_generator.generate_chart_data(
+                simulation.results, 
+                simulation.results.get("stocks_picked", []),
+                simulation.results.get("shap_explanation")
+            )
+            
+            formatted_response.update({
+                "chart_data": chart_data,
+                "ai_analysis": ai_analysis,
+                "enhanced_features": simulation.results.get("enhanced_features", {}),
+                "retrieved_at": datetime.now().isoformat()
+            })
+            
+            return formatted_response
+            
+        except Exception as e:
+            logger.error(f"Failed to get simulation with AI analysis {simulation_id}: {str(e)}")
+            if isinstance(e, PortfolioSimulatorError):
+                raise
+            else:
+                raise PortfolioSimulatorError(
+                    f"Failed to retrieve simulation: {str(e)}",
+                    error_code="SIMULATION_RETRIEVAL_FAILED"
                 )
     
     async def get_simulation_chart_data(self, simulation_id: int, db: Session) -> Dict[str, Any]:
@@ -181,6 +489,7 @@ class PortfolioSimulatorService:
                 "chart_data": chart_data,
                 "metadata": {
                     "has_shap": bool(shap_explanation),
+                    "has_ai_analysis": bool(results.get("ai_analysis")),
                     "visualization_count": results.get("visualization_count", 0),
                     "generated_at": results.get("metadata", {}).get("created_timestamp")
                 }
@@ -387,112 +696,6 @@ class PortfolioSimulatorService:
             logger.warning(f"Visualization generation failed: {str(e)}")
             return {}
     
-    async def _generate_ai_summary(
-        self,
-        simulation_results: Any,
-        recommendations: Dict[str, Any],
-        processed_shap: Optional[Dict[str, Any]],
-        validated_input: Dict[str, Any]
-    ) -> str:
-        """Generate AI-powered summary of results."""
-        try:
-            # Create a comprehensive summary using available data
-            summary_parts = []
-            
-            # Basic performance summary
-            performance = simulation_results.portfolio_metrics
-            summary_parts.append(
-                f"Your {validated_input['risk_label'].lower()} risk portfolio "
-                f"grew from £{performance.starting_value:,.2f} to £{performance.ending_value:,.2f} "
-                f"over {validated_input['timeframe']} years, achieving a "
-                f"{performance.total_return:.1f}% total return."
-            )
-            
-            # Goal achievement
-            target_achieved = performance.ending_value >= validated_input["target_value"]
-            summary_parts.append(
-                f"Your target of £{validated_input['target_value']:,.2f} was "
-                f"{'achieved' if target_achieved else 'partially achieved'}."
-            )
-            
-            # SHAP insights if available
-            if processed_shap and processed_shap.get("human_readable_explanation"):
-                explanations = processed_shap["human_readable_explanation"]
-                top_explanation = next(iter(explanations.values()), "")
-                if top_explanation:
-                    summary_parts.append(f"Key insight: {top_explanation}")
-            
-            # Risk metrics
-            if performance.volatility > 0:
-                summary_parts.append(
-                    f"Portfolio volatility was {performance.volatility:.1f}% annually "
-                    f"with a Sharpe ratio of {performance.sharpe_ratio:.2f}."
-                )
-            
-            return " ".join(summary_parts)
-            
-        except Exception as e:
-            logger.warning(f"AI summary generation failed: {str(e)}")
-            return "Portfolio simulation completed successfully with AI-enhanced recommendations."
-    
-    def _save_simulation(
-        self,
-        db: Session,
-        validated_input: Dict[str, Any],
-        simulation_results: Any,
-        recommendations: Dict[str, Any],
-        ai_summary: str,
-        processed_shap: Optional[Dict[str, Any]],
-        visualization_paths: Dict[str, str]
-    ) -> Any:
-        """Save simulation to database."""
-        try:
-            # Prepare stocks data
-            stocks_data = self._prepare_stocks_data_for_db(
-                recommendations["stocks"], simulation_results.asset_breakdown
-            )
-            
-            # Convert simulation results to dictionary format
-            results_dict = {
-                "starting_value": simulation_results.portfolio_metrics.starting_value,
-                "ending_value": simulation_results.portfolio_metrics.ending_value,
-                "total_return": simulation_results.portfolio_metrics.total_return,
-                "annualized_return": simulation_results.portfolio_metrics.annualized_return,
-                "volatility": simulation_results.portfolio_metrics.volatility,
-                "sharpe_ratio": simulation_results.portfolio_metrics.sharpe_ratio,
-                "max_drawdown": simulation_results.portfolio_metrics.max_drawdown,
-                "total_contributed": simulation_results.portfolio_metrics.total_contributed,
-                "profit_loss": simulation_results.portfolio_metrics.profit_loss,
-                "timeline_data": simulation_results.timeline_data,
-                "contribution_data": simulation_results.contribution_data,
-                "asset_breakdown": simulation_results.asset_breakdown
-            }
-            
-            # FIXED: Use correct variable names and structure
-            saved_simulation = self.database_service.save_simulation(
-                db=db,
-                user_id=validated_input["user_id"],  # Fixed: use dict access
-                name=validated_input.get("goal", "Investment Simulation"),  # Fixed: use dict access
-                input_payload=validated_input,  # Fixed: use validated_input instead of simulation_input
-                result_payload={
-                    "stocks_picked": stocks_data,
-                    "portfolio_metrics": results_dict,  # Fixed: use results_dict instead of simulation_results
-                    "ai_summary": ai_summary,
-                    "shap_explanation": processed_shap,  # Fixed: use processed_shap instead of shap_explanation
-                    "visualization_paths": visualization_paths,
-                    "target_achieved": simulation_results.portfolio_metrics.ending_value >= validated_input["target_value"]  # Fixed: access ending_value correctly
-                }
-            )
-            
-            return saved_simulation
-        
-        except Exception as e:
-            logger.error(f"Database save failed: {str(e)}")
-            raise PortfolioSimulatorError(
-                f"Failed to save simulation: {str(e)}",
-                error_code="DATABASE_SAVE_FAILED"
-            )
-
     def _generate_chart_data(
         self,
         simulation_results: Any,
@@ -523,30 +726,6 @@ class PortfolioSimulatorService:
         except Exception as e:
             logger.warning(f"Chart data generation failed: {str(e)}")
             return {}
-    
-    def _format_final_response(
-        self,
-        saved_simulation: Any,
-        chart_data: Dict[str, Any],
-        visualization_paths: Dict[str, str]
-    ) -> Dict[str, Any]:
-        """Format the final response."""
-        formatted_response = self.results_formatter.format_simulation_response(saved_simulation)
-        
-        # Add chart data and additional metadata
-        formatted_response.update({
-            "chart_data": chart_data,
-            "success": True,
-            "workflow_completed": True,
-            "enhanced_features_enabled": {
-                "ai_recommendations": True,
-                "shap_explanations": bool(saved_simulation.results.get("shap_explanation")),
-                "visualizations": bool(visualization_paths),
-                "interactive_charts": bool(chart_data)
-            }
-        })
-        
-        return formatted_response
     
     def _prepare_stocks_data_for_viz(self, stocks: List[str], asset_breakdown: Dict[str, float]) -> List[Dict[str, Any]]:
         """Prepare stocks data for visualization."""
@@ -642,7 +821,7 @@ def create_portfolio_simulator_service(config_override: Optional[Dict[str, Any]]
         # Create and return service
         service = PortfolioSimulatorService()
         
-        logger.info("Portfolio Simulator Service factory initialization complete")
+        logger.info("Enhanced Portfolio Simulator Service factory initialization complete")
         return service
         
     except Exception as e:
@@ -685,3 +864,18 @@ async def get_simulation_charts(simulation_id: int, db: Session) -> Dict[str, An
     """
     service = create_portfolio_simulator_service()
     return await service.get_simulation_chart_data(simulation_id, db)
+
+
+async def get_simulation_with_full_analysis(simulation_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Convenience function to get simulation with full AI analysis.
+    
+    Args:
+        simulation_id: ID of the simulation
+        db: Database session
+        
+    Returns:
+        Complete simulation data including AI analysis
+    """
+    service = create_portfolio_simulator_service()
+    return await service.get_simulation_with_ai_analysis(simulation_id, db)

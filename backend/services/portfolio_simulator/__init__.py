@@ -6,6 +6,8 @@ A comprehensive, production-ready portfolio simulation service with:
 - SHAP explainable AI
 - Advanced portfolio optimization
 - Interactive visualizations
+- News sentiment analysis
+- Market context analysis
 - Comprehensive error handling
 - Security-focused input validation
 
@@ -13,9 +15,7 @@ This package provides both high-level convenience functions and detailed
 component access for advanced use cases.
 """
 
-__version__ = "2.0.0"
-__author__ = "Portfolio Simulator Team"
-__email__ = "support@portfoliosimulator.com"
+
 
 import logging
 from typing import Dict, Any, Optional
@@ -31,6 +31,7 @@ try:
         create_portfolio_simulator_service,
         simulate_portfolio_workflow,   # modular entrypoint
         get_simulation_charts,
+        get_simulation_with_full_analysis,  # NEW: Full AI analysis retrieval
     )
 except Exception as e:
     # Make the root cause visible in server logs instead of a silent ImportError
@@ -78,6 +79,9 @@ try:
     from .ai_recommendation_service import AIRecommendationService, SHAPDataProcessor
     from .visualization_service import VisualizationService, ChartDataGenerator
     from .database_service import DatabaseService, SimulationResultsFormatter
+    # NEW: AI Analysis services
+    from .ai_analysis import AIAnalysisService
+    from .news_analysis import NewsAnalysisService
 except Exception as e:
     log.exception("Failed importing component modules")
     raise
@@ -91,6 +95,7 @@ __all__ = [
     # Convenience functions (modular entrypoints)
     "simulate_portfolio_workflow",
     "get_simulation_charts",
+    "get_simulation_with_full_analysis",  # NEW
 
     # Configuration
     "initialize_config",
@@ -120,6 +125,8 @@ __all__ = [
     "ChartDataGenerator",
     "DatabaseService",
     "SimulationResultsFormatter",
+    "AIAnalysisService",  # NEW
+    "NewsAnalysisService",  # NEW
 ]
 
 # ---- Helpers to keep import-time initialization SAFE ----
@@ -140,9 +147,23 @@ async def quick_simulation(
     monthly_contribution: float = 0,
     goal: str = "wealth building",
     db_session: Optional[Session] = None,
+    include_ai_analysis: bool = True,  # NEW: Option to include AI analysis
 ) -> Dict[str, Any]:
     """
     Quick portfolio simulation with minimal setup (modular workflow).
+    
+    Args:
+        target_value: Financial goal amount
+        timeframe_years: Investment time horizon
+        risk_score: Risk tolerance (0-100)
+        lump_sum: Initial investment amount
+        monthly_contribution: Monthly investment amount
+        goal: Investment goal description
+        db_session: Database session for persistence
+        include_ai_analysis: Whether to include AI analysis and news sentiment
+    
+    Returns:
+        Complete simulation results with optional AI analysis
     """
     simulation_input = {
         "target_value": target_value,
@@ -154,6 +175,7 @@ async def quick_simulation(
         "goal": goal,
         "years_of_experience": 0,
         "income_bracket": "medium",
+        "user_id": 1,  # Default user ID for quick simulations
     }
 
     if db_session is not None:
@@ -172,6 +194,75 @@ async def quick_simulation(
         def rollback(self): ...
 
     return await service.simulate_portfolio(simulation_input, _MockDB())
+
+
+async def analyze_portfolio_news(
+    portfolio_symbols: list,
+    days_back: int = 7
+) -> Dict[str, Any]:
+    """
+    Analyze news sentiment for a list of portfolio symbols.
+    
+    Args:
+        portfolio_symbols: List of stock/ETF symbols
+        days_back: Number of days to look back for news
+        
+    Returns:
+        News sentiment analysis results
+    """
+    try:
+        ai_analysis_service = AIAnalysisService()
+        portfolio_data = {
+            "stocks_picked": [{"symbol": symbol} for symbol in portfolio_symbols]
+        }
+        
+        return await ai_analysis_service.analyze_portfolio_with_context(
+            portfolio_data, days_back
+        )
+    except Exception as e:
+        log.error(f"Portfolio news analysis failed: {e}")
+        return {"error": str(e)}
+
+
+async def get_market_sentiment(symbols: list, days_back: int = 7) -> Dict[str, Any]:
+    """
+    Get current market sentiment for specific symbols.
+    
+    Args:
+        symbols: List of stock/ETF symbols
+        days_back: Number of days to analyze
+        
+    Returns:
+        Market sentiment analysis
+    """
+    try:
+        news_service = NewsAnalysisService(None)  # Will use env variable
+        async with news_service:
+            news_data = await news_service.get_market_news(symbols, days_back)
+            
+            overall_sentiment = 0
+            total_articles = 0
+            symbol_sentiments = {}
+            
+            for symbol, articles in news_data.items():
+                if articles:
+                    sentiment_result = await news_service.analyze_sentiment(articles)
+                    symbol_sentiments[symbol] = sentiment_result
+                    overall_sentiment += sentiment_result.get("average_sentiment", 0)
+                    total_articles += sentiment_result.get("total_articles", 0)
+            
+            avg_sentiment = overall_sentiment / len(symbols) if symbols else 0
+            
+            return {
+                "overall_sentiment": avg_sentiment,
+                "sentiment_category": _categorize_sentiment(avg_sentiment),
+                "total_articles": total_articles,
+                "symbol_sentiments": symbol_sentiments,
+                "analysis_period": f"{days_back} days"
+            }
+    except Exception as e:
+        log.error(f"Market sentiment analysis failed: {e}")
+        return {"error": str(e)}
 
 
 def validate_input(simulation_input: Dict[str, Any]) -> Dict[str, Any]:
@@ -255,6 +346,20 @@ def _map_risk_score_to_profile(risk_score: int) -> str:
     return "aggressive"
 
 
+def _categorize_sentiment(score: float) -> str:
+    """Categorize sentiment score into readable categories."""
+    if score > 0.3:
+        return "Very Positive"
+    elif score > 0.1:
+        return "Positive"
+    elif score > -0.1:
+        return "Neutral"
+    elif score > -0.3:
+        return "Negative"
+    else:
+        return "Very Negative"
+
+
 # ---- Package initialization (SAFE) ----
 def _initialize_package():
     """Initialize config without breaking imports if env/files are missing."""
@@ -262,7 +367,7 @@ def _initialize_package():
         return
     try:
         initialize_config()
-        log.info("Portfolio Simulator package initialized successfully")
+        log.info("Portfolio Simulator package initialized successfully with AI analysis")
     except Exception as e:
         # Do NOT fail the package import if config initialization fails
         log.warning("Package initialization warning: %s", e)
@@ -284,15 +389,25 @@ if get_risk_profiles is not None:
 PACKAGE_INFO = {
     "name": "portfolio_simulator",
     "version": __version__,
-    "description": "AI-powered portfolio simulation with explainable recommendations",
+    "description": "AI-powered portfolio simulation with explainable recommendations and news sentiment analysis",
     "features": [
         "AI stock recommendations",
         "SHAP explainable AI",
         "Portfolio optimization",
         "Interactive visualizations",
+        "News sentiment analysis",  # NEW
+        "Market context analysis",  # NEW
+        "Comprehensive AI summaries",  # NEW
         "Comprehensive validation",
         "Production-ready error handling",
     ],
     "supported_assets": _supported_assets,
     "risk_profiles": _risk_profiles,
+    "ai_features": {  # NEW
+        "news_sentiment_analysis": True,
+        "market_context_analysis": True,
+        "comprehensive_ai_summaries": True,
+        "portfolio_news_tracking": True,
+        "educational_market_insights": True,
+    }
 }
