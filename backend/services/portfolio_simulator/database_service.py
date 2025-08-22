@@ -478,18 +478,31 @@ class SimulationResultsFormatter:
             "created_at": simulation.created_at.isoformat() if simulation.created_at else None,
         }
 
-        response.update(
-            {
-                "results": results,
-                "has_shap_explanations": results.get("has_shap_explanations", False),
-                "has_visualizations": results.get("has_visualizations", False),
-                "visualization_count": results.get("visualization_count", 0),
-                "methodology": results.get("metadata", {}).get("methodology", "Standard simulation"),
-                "enhanced_features": results.get("metadata", {}).get("enhanced_features", {}),
-            }
-        )
+        # FIXED: Map nested data to top-level fields for frontend
+        portfolio_metrics = results.get("portfolio_metrics", {})
+        
+        response.update({
+            "results": results,
+            "has_shap_explanations": results.get("shap_explanation") is not None,
+            "has_visualizations": results.get("has_visualizations", False),
+            "visualization_count": results.get("visualization_count", 0),
+            "methodology": results.get("metadata", {}).get("methodology", "Standard simulation"),
+            "enhanced_features": results.get("metadata", {}).get("enhanced_features", {}),
+            
+            # Map nested data to top-level fields for frontend
+            "final_balance": portfolio_metrics.get("ending_value", 0),
+            "stocks": results.get("stocks_picked", []),
+            "breakdown": {
+                stock["symbol"]: stock["allocation"] 
+                for stock in results.get("stocks_picked", [])
+            },
+            "timeline": portfolio_metrics.get("timeline_data", []),
+            "volatility": portfolio_metrics.get("volatility", 0),
+            "sharpe_ratio": portfolio_metrics.get("sharpe_ratio", 0),
+            "total_return": portfolio_metrics.get("total_return", 0),
+        })
 
-        performance_metrics = self._extract_performance_metrics(results)
+        performance_metrics = self._extract_performance_metrics(results, portfolio_metrics)
         response["performance_metrics"] = performance_metrics
 
         if results.get("shap_explanation"):
@@ -505,6 +518,9 @@ class SimulationResultsFormatter:
     def format_simulation_list(self, simulations: List[models.Simulation]) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
         for sim in simulations:
+            # Extract portfolio metrics for list view
+            portfolio_metrics = sim.results.get("portfolio_metrics", {}) if sim.results else {}
+            
             summary = {
                 "id": sim.id,
                 "name": sim.name,
@@ -513,31 +529,30 @@ class SimulationResultsFormatter:
                 "target_achieved": sim.target_achieved,
                 "risk_label": sim.risk_label,
                 "created_at": sim.created_at.isoformat() if sim.created_at else None,
-                "has_shap_explanations": sim.results.get("has_shap_explanations", False) if sim.results else False,
+                "has_shap_explanations": sim.results.get("shap_explanation") is not None if sim.results else False,
                 "has_visualizations": sim.results.get("has_visualizations", False) if sim.results else False,
             }
             if sim.results:
-                summary.update(
-                    {
-                        "end_value": sim.results.get("end_value", 0),
-                        "total_return": sim.results.get("total_return", 0),
-                        "profit_loss": sim.results.get("profit_loss", 0),
-                    }
-                )
+                summary.update({
+                    "end_value": portfolio_metrics.get("ending_value", 0),
+                    "total_return": portfolio_metrics.get("total_return", 0),
+                    "profit_loss": portfolio_metrics.get("profit_loss", 0),
+                })
             out.append(summary)
         return out
 
-    def _extract_performance_metrics(self, results: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_performance_metrics(self, results: Dict[str, Any], portfolio_metrics: Dict[str, Any]) -> Dict[str, Any]:
+        # Use portfolio_metrics first, fall back to top-level results
         return {
-            "starting_value": results.get("starting_value", 0),
-            "ending_value": results.get("end_value", 0),
-            "total_return": results.get("total_return", 0),
-            "annualized_return": results.get("annualized_return", 0),
-            "volatility": results.get("volatility", 0),
-            "sharpe_ratio": results.get("sharpe_ratio", 0),
-            "max_drawdown": results.get("max_drawdown", 0),
-            "total_contributed": results.get("total_contributed", 0),
-            "profit_loss": results.get("profit_loss", 0),
+            "starting_value": portfolio_metrics.get("starting_value", results.get("starting_value", 0)),
+            "ending_value": portfolio_metrics.get("ending_value", results.get("end_value", 0)),
+            "total_return": portfolio_metrics.get("total_return", results.get("total_return", 0)),
+            "annualized_return": portfolio_metrics.get("annualized_return", results.get("annualized_return", 0)),
+            "volatility": portfolio_metrics.get("volatility", results.get("volatility", 0)),
+            "sharpe_ratio": portfolio_metrics.get("sharpe_ratio", results.get("sharpe_ratio", 0)),
+            "max_drawdown": portfolio_metrics.get("max_drawdown", results.get("max_drawdown", 0)),
+            "total_contributed": portfolio_metrics.get("total_contributed", results.get("total_contributed", 0)),
+            "profit_loss": portfolio_metrics.get("profit_loss", results.get("profit_loss", 0)),
         }
 
     def _extract_shap_summary(self, shap_explanation: Dict[str, Any]) -> Dict[str, Any]:
