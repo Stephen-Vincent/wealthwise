@@ -54,21 +54,44 @@ const PortfolioGraph = () => {
   const [showGainLoss, setShowGainLoss] = useState(true);
 
   const processedData = useMemo(() => {
-    // Extract timeline arrays from portfolio data
-    const portfolio = portfolioData?.timeline ?? [];
-    const contributions =
-      portfolioData?.results?.timeline?.contributions ??
-      portfolioData?.timeline?.contributions ??
-      portfolioData?.contribution_data ??
-      [];
+    // Normalize any timeline shape into an array of { date, value }
+    const normalizeTimeline = (input) => {
+      if (Array.isArray(input)) return input;
+      if (input && typeof input === "object") {
+        // legacy mapping: { "2024-01": 1234, ... }
+        const keys = Object.keys(input);
+        if (keys.length && keys.every((k) => typeof input[k] === "number")) {
+          return keys
+            .map((k) => ({ date: k, value: Number(input[k]) }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+        // legacy nested: { portfolio: [...], contributions: [...] }
+        if (Array.isArray(input.portfolio)) return input.portfolio;
+      }
+      return [];
+    };
 
-    // Debug logging
-    console.log("Portfolio timeline:", portfolio.slice(0, 3));
-    console.log("Contributions timeline:", contributions.slice(0, 3));
+    // Extract and normalize timeline arrays from portfolio data (handles {}, arrays, and legacy shapes)
+    const results = portfolioData?.results || {};
+    const portfolioPM = results?.portfolio_metrics?.timeline_data;
+    const portfolioRaw = portfolioData?.timeline;
+
+    const portfolio = normalizeTimeline(
+      portfolioPM ?? portfolioRaw ?? results?.timeline?.portfolio
+    );
+
+    const contributions = normalizeTimeline(
+      results?.timeline?.contributions ?? portfolioData?.timeline?.contributions
+    );
+
+    // Safe debug logging
+    const dbg = (x) => (Array.isArray(x) ? x.slice(0, 3) : x);
+    console.log("Portfolio timeline sample:", dbg(portfolio));
+    console.log("Contributions timeline sample:", dbg(contributions));
     console.log("Lump sum:", portfolioData?.lump_sum);
 
     // Handle case where there is no data
-    if (portfolio.length === 0) {
+    if (!Array.isArray(portfolio) || portfolio.length === 0) {
       return {
         labels: [],
         portfolioValues: [],
@@ -83,7 +106,9 @@ const PortfolioGraph = () => {
     const lumpSum = portfolioData?.lump_sum || 0;
 
     // Create a proper starting date (before the first portfolio entry)
-    const firstPortfolioDate = new Date(portfolio[0]?.date);
+    const firstPortfolioDate = portfolio[0]?.date
+      ? new Date(portfolio[0].date)
+      : new Date();
     const startDate = new Date(firstPortfolioDate);
     startDate.setMonth(startDate.getMonth() - 1); // One month before
 
@@ -190,11 +215,13 @@ const PortfolioGraph = () => {
     };
   }, [portfolioData, viewMode]);
 
-  console.log(
-    "DEBUG portfolioData.timeline type:",
-    typeof portfolioData?.timeline,
-    portfolioData?.timeline
-  );
+  console.log("DEBUG timeline type/shape:", {
+    type: typeof portfolioData?.timeline,
+    isArray: Array.isArray(portfolioData?.timeline),
+    length: Array.isArray(portfolioData?.timeline)
+      ? portfolioData.timeline.length
+      : 0,
+  });
 
   if (processedData.isEmpty) {
     return (
