@@ -250,7 +250,7 @@ export default function DashboardButtons() {
       : "";
 
     const aiSummary =
-      portfolioData?.ai_analysis?.summary ||
+      portfolioData?.results.ai_analysis?.summary ||
       portfolioData?.ai_summary ||
       "Investment analysis not available.";
 
