@@ -33,45 +33,66 @@ export default function usePortfolioCalculations(portfolioData) {
       "portfolioData keys": Object.keys(portfolioData),
     });
 
-    // FIXED: Prioritize backend-calculated values first
+    // ---------- Normalize possible timeline shapes to arrays ----------
+    const rawTopLevelTimeline = portfolioData?.timeline;
+    const normalizedTopLevelTimeline = Array.isArray(rawTopLevelTimeline)
+      ? rawTopLevelTimeline
+      : [];
+
+    // Legacy nested shape: results.timeline.portfolio / results.timeline.contributions
+    const rawLegacyPortfolioTimeline = results?.timeline?.portfolio;
+    const legacyPortfolioTimeline = Array.isArray(rawLegacyPortfolioTimeline)
+      ? rawLegacyPortfolioTimeline
+      : [];
+
+    const rawLegacyContribTimeline = results?.timeline?.contributions;
+    const legacyContribTimeline = Array.isArray(rawLegacyContribTimeline)
+      ? rawLegacyContribTimeline
+      : [];
+
+    // Newer backend shape: results.portfolio_metrics.timeline_data (array)
+    const rawPMTimeline = results?.portfolio_metrics?.timeline_data;
+    const pmTimeline = Array.isArray(rawPMTimeline) ? rawPMTimeline : [];
+
+    // ---------- Final Balance (prefer backend-calculated metrics) ----------
     let finalBalance = 0;
 
-    // 1. First, check the new top-level final_balance from backend
     if (portfolioData?.final_balance) {
       finalBalance = portfolioData.final_balance;
       console.log("✅ Using backend final_balance:", finalBalance);
-    }
-    // 2. Check performance_metrics.ending_value
-    else if (portfolioData?.performance_metrics?.ending_value) {
+    } else if (portfolioData?.performance_metrics?.ending_value) {
       finalBalance = portfolioData.performance_metrics.ending_value;
       console.log("✅ Using performance_metrics.ending_value:", finalBalance);
-    }
-    // 3. Check portfolio_metrics.ending_value in results
-    else if (results?.portfolio_metrics?.ending_value) {
+    } else if (results?.portfolio_metrics?.ending_value) {
       finalBalance = results.portfolio_metrics.ending_value;
       console.log(
         "✅ Using results.portfolio_metrics.ending_value:",
         finalBalance
       );
-    }
-    // 4. Fallback to timeline if no backend values
-    else {
-      const timeline = portfolioData?.timeline || results?.timeline;
+    } else {
+      // fallback to any available timeline arrays in preference order
+      const candidateTimelines = [
+        pmTimeline,
+        legacyPortfolioTimeline,
+        normalizedTopLevelTimeline,
+      ].filter((arr) => Array.isArray(arr) && arr.length > 0);
 
-      if (timeline && Array.isArray(timeline) && timeline.length > 0) {
-        const lastEntry = timeline[timeline.length - 1];
+      if (candidateTimelines.length > 0) {
+        const tl = candidateTimelines[0];
+        const lastEntry = tl[tl.length - 1];
         finalBalance = lastEntry?.value || 0;
         console.log("✅ Using timeline fallback:", finalBalance);
-      }
-      // 5. Check nested timeline structure
-      else if (timeline?.portfolio && timeline.portfolio.length > 0) {
+      } else if (
+        results?.timeline?.portfolio &&
+        Array.isArray(results.timeline.portfolio) &&
+        results.timeline.portfolio.length > 0
+      ) {
         const lastPortfolioEntry =
-          timeline.portfolio[timeline.portfolio.length - 1];
+          results.timeline.portfolio[results.timeline.portfolio.length - 1];
         finalBalance = lastPortfolioEntry?.value || 0;
         console.log("✅ Using nested timeline fallback:", finalBalance);
-      }
-      // 6. Last resort - check old field names
-      else {
+      } else {
+        // last resort fallbacks
         const possibleBalances = [
           results?.end_value,
           portfolioData?.current_value,
@@ -80,7 +101,6 @@ export default function usePortfolioCalculations(portfolioData) {
           portfolioData?.totalValue,
           results?.total_value,
         ];
-
         for (const balance of possibleBalances) {
           if (balance !== undefined && balance !== null && balance !== 0) {
             finalBalance = balance;
@@ -93,47 +113,44 @@ export default function usePortfolioCalculations(portfolioData) {
 
     console.log("🎯 Final selected balance:", finalBalance);
 
-    // Calculate total invested - prioritize backend data
+    // ---------- Total Invested ----------
     let totalInvested = 0;
 
-    // 1. Check if backend provides total_contributed
     if (portfolioData?.performance_metrics?.total_contributed) {
       totalInvested = portfolioData.performance_metrics.total_contributed;
       console.log("✅ Using backend total_contributed:", totalInvested);
     } else if (results?.portfolio_metrics?.total_contributed) {
       totalInvested = results.portfolio_metrics.total_contributed;
       console.log("✅ Using results total_contributed:", totalInvested);
-    }
-    // 2. Try to get from timeline contributions
-    else {
-      const contributionsTimeline =
-        portfolioData?.timeline || results?.timeline?.contributions;
+    } else {
+      // Try to infer from contributions timeline (prefer explicit contribs)
+      const candidateContribs = [
+        legacyContribTimeline, // results.timeline.contributions
+        pmTimeline, // if timeline_data includes total_contributed values
+        normalizedTopLevelTimeline,
+      ].find((arr) => Array.isArray(arr) && arr.length > 0);
 
-      if (contributionsTimeline && contributionsTimeline.length > 0) {
-        const sortedContributions = [...contributionsTimeline].sort(
+      if (candidateContribs) {
+        const sortedContributions = [...candidateContribs].sort(
           (a, b) => new Date(a.date) - new Date(b.date)
         );
         const lastContribution =
           sortedContributions[sortedContributions.length - 1];
         totalInvested =
-          lastContribution?.total_contributed || lastContribution?.value || 0;
+          lastContribution?.total_contributed ?? lastContribution?.value ?? 0;
         console.log("✅ Total invested from timeline:", totalInvested);
-      }
-      // 3. Fallback: Calculate based on parameters
-      else {
+      } else {
         totalInvested = lumpSum + monthlyContribution * 12 * timeframeYears;
         console.log("⚠️ Total invested calculated (fallback):", totalInvested);
       }
     }
 
-    // Calculate gains/losses
+    // ---------- Returns ----------
     const totalGainLoss = finalBalance - totalInvested;
 
-    // Get return percentages from backend first, calculate as fallback
     let totalReturnPercent = 0;
     let annualizedReturnPercent = 0;
 
-    // Use backend calculations if available
     if (portfolioData?.performance_metrics?.total_return) {
       totalReturnPercent = portfolioData.performance_metrics.total_return;
       console.log("✅ Using backend total_return:", totalReturnPercent);
@@ -179,13 +196,12 @@ export default function usePortfolioCalculations(portfolioData) {
     };
 
     console.log("🧮 Final calculations:", calculatedResults);
-
     return calculatedResults;
   }, [portfolioData]);
 
-  // Calculate target achievement status
+  // ---------- Target achievement status ----------
   const targetStatus = useMemo(() => {
-    // Use the backend target_achieved flag first
+    // Use backend flag if present
     if (portfolioData?.target_achieved !== undefined) {
       const targetValue = portfolioData?.target_value || 0;
 
@@ -216,22 +232,25 @@ export default function usePortfolioCalculations(portfolioData) {
       }
     }
 
-    // Fallback: Calculate from timeline data
+    // Fallback: derive from any available timeline array
+    const rawCandidates = [
+      portfolioData?.results?.portfolio_metrics?.timeline_data,
+      portfolioData?.results?.timeline?.portfolio,
+      portfolioData?.timeline,
+    ];
     const timeline =
-      portfolioData?.timeline ||
-      portfolioData?.results?.timeline?.portfolio ||
-      [];
+      rawCandidates.find((arr) => Array.isArray(arr))?.filter(Boolean) || [];
+
     const targetValue = portfolioData?.target_value;
 
     console.log("🎯 Target status calculation:", {
       targetValue,
-      timelineLength: Array.isArray(timeline) ? timeline.length : 0,
+      timelineLength: timeline.length,
       finalBalance: calculations.finalBalance,
       target_achieved: portfolioData?.target_achieved,
     });
 
-    if (!targetValue || !Array.isArray(timeline) || !timeline.length)
-      return null;
+    if (!targetValue || timeline.length === 0) return null;
 
     const sortedTimeline = [...timeline].sort(
       (a, b) => new Date(a.date) - new Date(b.date)

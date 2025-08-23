@@ -135,7 +135,6 @@ const PortfolioGraph = () => {
 
     // Use data with starting values
     const groupedPortfolio = groupData(portfolioWithStart, viewMode);
-    const groupedContributions = groupData(contributionsWithStart, viewMode);
 
     // Generate labels
     const labels = groupedPortfolio.map((entry) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import { Chart } from "react-google-charts";
 import PortfolioContext from "../../context/PortfolioContext";
 import StockInfoAPI from "../../utils/stockInfoAPI";
