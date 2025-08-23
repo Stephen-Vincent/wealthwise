@@ -26,6 +26,33 @@ import {
 } from "lucide-react";
 import { usePortfolio } from "../../context/PortfolioContext";
 
+// --- Helpers to safely read numbers/arrays from possibly mixed shapes ---
+const toNumber = (v, def = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : def;
+};
+
+const ensureArray = (val) => (Array.isArray(val) ? val : []);
+
+const getEndingValue = (pd) => {
+  if (!pd) return 0;
+  // Prefer top-level final_balance
+  if (pd.final_balance != null) return toNumber(pd.final_balance, 0);
+  // performance_metrics.ending_value
+  if (pd.performance_metrics && pd.performance_metrics.ending_value != null) {
+    return toNumber(pd.performance_metrics.ending_value, 0);
+  }
+  // results.portfolio_metrics.ending_value
+  if (
+    pd.results &&
+    pd.results.portfolio_metrics &&
+    pd.results.portfolio_metrics.ending_value != null
+  ) {
+    return toNumber(pd.results.portfolio_metrics.ending_value, 0);
+  }
+  return 0;
+};
+
 const SHAPDashboard = () => {
   const {
     portfolioData,
@@ -158,16 +185,11 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
 
   // Calculate correct target progress
   const calculateTargetProgress = () => {
-    const targetValue = portfolioData?.target_value || 0;
-    const currentValue =
-      portfolioData?.performance_metrics?.ending_value ||
-      portfolioData?.final_balance ||
-      0;
-
+    const targetValue = toNumber(portfolioData?.target_value, 0);
+    const currentValue = getEndingValue(portfolioData);
     if (targetValue <= 0) return 0;
-
     const progress = (currentValue / targetValue) * 100;
-    return Math.min(Math.max(progress, 0), 100); // Clamp between 0 and 100
+    return Math.min(Math.max(progress, 0), 100);
   };
 
   const targetProgress = calculateTargetProgress();
@@ -224,23 +246,27 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
           AI Decision Summary
         </h3>
 
-        {shapData?.human_readable_explanation && (
-          <div className="space-y-4">
-            {Object.entries(shapData.human_readable_explanation).map(
-              ([key, explanation], index) => (
-                <div
-                  key={index}
-                  className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500"
-                >
-                  <div className="font-semibold text-blue-800 mb-2">
-                    {formatFactorName(key)}
+        {shapData?.human_readable_explanation &&
+          typeof shapData.human_readable_explanation === "object" &&
+          !Array.isArray(shapData.human_readable_explanation) && (
+            <div className="space-y-4">
+              {Object.entries(shapData.human_readable_explanation).map(
+                ([key, explanation], index) => (
+                  <div
+                    key={index}
+                    className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500"
+                  >
+                    <div className="font-semibold text-blue-800 mb-2">
+                      {formatFactorName(key)}
+                    </div>
+                    <p className="text-gray-700 leading-relaxed">
+                      {explanation}
+                    </p>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">{explanation}</p>
-                </div>
-              )
-            )}
-          </div>
-        )}
+                )
+              )}
+            </div>
+          )}
       </div>
 
       {/* Add target progress details */}
@@ -251,18 +277,13 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-2xl font-bold text-blue-800">
-              £{(portfolioData?.target_value || 0).toLocaleString()}
+              £{toNumber(portfolioData?.target_value, 0).toLocaleString()}
             </div>
             <div className="text-sm text-blue-600">Target Amount</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-2xl font-bold text-green-800">
-              £
-              {(
-                portfolioData?.performance_metrics?.ending_value ||
-                portfolioData?.final_balance ||
-                0
-              ).toLocaleString()}
+              £{toNumber(getEndingValue(portfolioData), 0).toLocaleString()}
             </div>
             <div className="text-sm text-green-600">Current Value</div>
           </div>
@@ -304,27 +325,56 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
 // Factors Tab - Fixed data source issue
 const FactorsTab = ({ chartData, shapData }) => {
   const factorImportanceData = useMemo(() => {
-    // First try chartData.feature_importance
+    // case 1: chartData.feature_importance is an array of { factor/feature, importance }
     if (
-      chartData?.feature_importance &&
+      Array.isArray(chartData?.feature_importance) &&
       chartData.feature_importance.length > 0
     ) {
-      return chartData.feature_importance.map((item) => ({
-        ...item,
-        importance: Number(item.importance) || 0,
-        isPositive: Number(item.importance) >= 0,
-      }));
+      return chartData.feature_importance.map((item) => {
+        const factor = item.factor || item.feature || "Factor";
+        const importance = toNumber(item.importance, 0);
+        return {
+          factor: formatFactorName(factor),
+          importance,
+          isPositive: importance >= 0,
+          description: getFactorDescription(factor),
+        };
+      });
     }
 
-    // Fallback to shapData.feature_contributions
-    if (shapData?.feature_contributions) {
+    // case 2: chartData.feature_importance is an object map { factor: importance }
+    if (
+      chartData?.feature_importance &&
+      typeof chartData.feature_importance === "object"
+    ) {
+      return Object.entries(chartData.feature_importance)
+        .map(([factor, importance]) => {
+          const imp = toNumber(importance, 0);
+          return {
+            factor: formatFactorName(factor),
+            importance: imp,
+            isPositive: imp >= 0,
+            description: getFactorDescription(factor),
+          };
+        })
+        .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance));
+    }
+
+    // case 3: fallback to shapData.feature_contributions
+    if (
+      shapData?.feature_contributions &&
+      typeof shapData.feature_contributions === "object"
+    ) {
       return Object.entries(shapData.feature_contributions)
-        .map(([factor, importance]) => ({
-          factor: formatFactorName(factor),
-          importance: Number(importance) || 0,
-          isPositive: Number(importance) >= 0,
-          description: getFactorDescription(factor),
-        }))
+        .map(([factor, importance]) => {
+          const imp = toNumber(importance, 0);
+          return {
+            factor: formatFactorName(factor),
+            importance: imp,
+            isPositive: imp >= 0,
+            description: getFactorDescription(factor),
+          };
+        })
         .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance));
     }
 
@@ -489,19 +539,19 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
       }.`,
     });
 
-    if (
-      chartData?.feature_importance &&
-      chartData.feature_importance.length > 0
-    ) {
-      const topFactor = chartData.feature_importance[0];
-      const isPositive = topFactor.importance >= 0;
+    const fi = chartData?.feature_importance;
+    if (Array.isArray(fi) && fi.length > 0) {
+      const topFactor = fi[0];
+      const imp = toNumber(topFactor.importance, 0);
+      const name = topFactor.factor || topFactor.feature || "Top Factor";
+      const isPositive = imp >= 0;
 
       insights.push({
         icon: <TrendingUp size={24} />,
         title: "Primary Decision Factor",
-        description: `${topFactor.factor || topFactor.feature} had the ${
+        description: `${name} had the ${
           isPositive ? "most positive" : "most challenging"
-        } impact on your portfolio design with an impact score of ${topFactor.importance.toFixed(
+        } impact on your portfolio design with an impact score of ${imp.toFixed(
           3
         )}.`,
       });
@@ -589,13 +639,20 @@ const InsightsTab = ({ shapData, portfolioData, chartData }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-2xl font-bold text-gray-800">
-                {chartData.feature_importance?.length || 0}
+                {Array.isArray(chartData?.feature_importance)
+                  ? chartData.feature_importance.length
+                  : chartData?.feature_importance &&
+                    typeof chartData.feature_importance === "object"
+                  ? Object.keys(chartData.feature_importance).length
+                  : 0}
               </div>
               <div className="text-sm text-gray-600">Factors Analyzed</div>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <div className="text-2xl font-bold text-gray-800">
-                {chartData.performance_timeline?.portfolio?.length || 0}
+                {Array.isArray(chartData?.performance_timeline?.portfolio)
+                  ? chartData.performance_timeline.portfolio.length
+                  : 0}
               </div>
               <div className="text-sm text-gray-600">Data Points</div>
             </div>

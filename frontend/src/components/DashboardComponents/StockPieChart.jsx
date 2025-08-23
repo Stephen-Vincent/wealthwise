@@ -135,16 +135,29 @@ const ENHANCED_CATEGORY_CONFIG = {
 
 const DEFAULT_CATEGORY_CONFIG = ENHANCED_CATEGORY_CONFIG["Other"];
 
+// Safe coercion helpers
+const toNumber = (v, fallback = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+const toStringSafe = (v, fallback = "") =>
+  typeof v === "string" ? v : v == null ? fallback : String(v);
+
 // Utility to lighten or darken a hex color
 function shadeColor(color, percent) {
-  let hex = color.replace(/^#/, "");
+  const base = toStringSafe(color, "#999999");
+  let hex = base.replace(/^#/, "");
   if (hex.length === 3) {
     hex = hex
       .split("")
       .map((c) => c + c)
       .join("");
   }
-  let num = parseInt(hex, 16);
+  // Fallback if hex is invalid
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+    hex = "999999";
+  }
+  const num = parseInt(hex, 16);
   let r = (num >> 16) & 0xff;
   let g = (num >> 8) & 0xff;
   let b = num & 0xff;
@@ -156,7 +169,19 @@ function shadeColor(color, percent) {
 
 export default function StockPieChart() {
   const { portfolioData } = useContext(PortfolioContext);
-  const stocksPicked = portfolioData?.results?.stocks_picked || [];
+  // Normalize stocks list from multiple possible backend shapes
+  const rawPicked =
+    portfolioData?.results?.stocks_picked ??
+    portfolioData?.stocks_picked ??
+    portfolioData?.stocks ??
+    [];
+
+  const stocksPicked = Array.isArray(rawPicked)
+    ? rawPicked
+    : rawPicked && typeof rawPicked === "object"
+    ? // Sometimes comes back as an object map { symbol: { allocation, ... } }
+      Object.values(rawPicked)
+    : [];
   const [selectedInstrument, setSelectedInstrument] = useState(null);
   const [enhancedStocks, setEnhancedStocks] = useState([]);
   const [categoryTotals, setCategoryTotals] = useState({});
@@ -167,11 +192,12 @@ export default function StockPieChart() {
 
   // Process stock data with API enhancement
   useEffect(() => {
-    if (stocksPicked.length === 0) {
+    if (!Array.isArray(stocksPicked) || stocksPicked.length === 0) {
       setLoading(false);
+      setEnhancedStocks([]);
+      setCategoryTotals({});
       return;
     }
-
     enhanceStocksWithAPI();
   }, [stocksPicked]);
 
@@ -181,26 +207,46 @@ export default function StockPieChart() {
 
     try {
       console.log("🔄 Fetching stock information from API...");
-      const symbols = stocksPicked.map((stock) => stock.symbol);
+      const symbols = stocksPicked
+        .map((stock) => toStringSafe(stock?.symbol))
+        .filter(Boolean);
       const apiData = await stockInfoAPI.getBatchStockInfo(symbols);
 
       // Enhance stocks with API data
       const enhanced = stocksPicked.map((stock) => {
-        const apiInfo = apiData[stock.symbol];
+        const apiInfo = apiData[toStringSafe(stock?.symbol)];
         return {
           ...stock,
-          name: apiInfo?.name || stock.name || stock.symbol,
-          category: apiInfo?.category || "Other",
-          description: apiInfo?.description || "Investment instrument",
-          riskLevel: apiInfo?.riskLevel || "Unknown",
-          sector: apiInfo?.sector || "Unknown",
-          price: apiInfo?.price || null,
-          marketCap: apiInfo?.marketCap || null,
-          dividendYield: apiInfo?.dividendYield || 0,
-          beta: apiInfo?.beta || null,
-          isETF: apiInfo?.isETF || false,
-          dataSource: apiInfo?.dataSource || "Enhanced Database",
-          confidence: apiInfo?.confidence || "Medium",
+          symbol: toStringSafe(stock?.symbol),
+          name: toStringSafe(apiInfo?.name || stock?.name || stock?.symbol),
+          allocation: toNumber(stock?.allocation, 0),
+          category: toStringSafe(
+            apiInfo?.category || stock?.category || "Other"
+          ),
+          description: toStringSafe(
+            apiInfo?.description ||
+              stock?.description ||
+              "Investment instrument"
+          ),
+          riskLevel: toStringSafe(
+            apiInfo?.riskLevel || stock?.riskLevel || "Unknown"
+          ),
+          sector: toStringSafe(apiInfo?.sector || stock?.sector || "Unknown"),
+          price: apiInfo?.price != null ? toNumber(apiInfo.price, null) : null,
+          marketCap:
+            apiInfo?.marketCap != null
+              ? toNumber(apiInfo.marketCap, null)
+              : null,
+          dividendYield: toNumber(apiInfo?.dividendYield, 0),
+          beta: apiInfo?.beta != null ? toNumber(apiInfo.beta, null) : null,
+          isETF: Boolean(apiInfo?.isETF),
+          dataSource: toStringSafe(
+            apiInfo?.dataSource || stock?.dataSource || "Enhanced Database"
+          ),
+          confidence: toStringSafe(
+            apiInfo?.confidence || stock?.confidence || "Medium"
+          ),
+          explanation: toStringSafe(stock?.explanation, ""),
         };
       });
 
@@ -214,20 +260,53 @@ export default function StockPieChart() {
 
       // Still try to use the enhanced API's fallback data
       try {
-        const symbols = stocksPicked.map((stock) => stock.symbol);
+        const symbols = stocksPicked
+          .map((stock) => toStringSafe(stock?.symbol))
+          .filter(Boolean);
         const fallbackData = await stockInfoAPI.getBatchStockInfo(symbols);
 
         const fallbackStocks = stocksPicked.map((stock) => {
-          const fallbackInfo = fallbackData[stock.symbol];
+          const fallbackInfo = fallbackData[toStringSafe(stock?.symbol)];
           return {
             ...stock,
-            name: fallbackInfo?.name || stock.name || stock.symbol,
-            category: fallbackInfo?.category || "Other",
-            description: fallbackInfo?.description || "Investment instrument",
-            riskLevel: fallbackInfo?.riskLevel || "Unknown",
-            sector: fallbackInfo?.sector || "Unknown",
-            dataSource: fallbackInfo?.dataSource || "Fallback",
+            symbol: toStringSafe(stock?.symbol),
+            name: toStringSafe(
+              fallbackInfo?.name || stock?.name || stock?.symbol
+            ),
+            allocation: toNumber(stock?.allocation, 0),
+            category: toStringSafe(
+              fallbackInfo?.category || stock?.category || "Other"
+            ),
+            description: toStringSafe(
+              fallbackInfo?.description ||
+                stock?.description ||
+                "Investment instrument"
+            ),
+            riskLevel: toStringSafe(
+              fallbackInfo?.riskLevel || stock?.riskLevel || "Unknown"
+            ),
+            sector: toStringSafe(
+              fallbackInfo?.sector || stock?.sector || "Unknown"
+            ),
+            price:
+              fallbackInfo?.price != null
+                ? toNumber(fallbackInfo.price, null)
+                : null,
+            marketCap:
+              fallbackInfo?.marketCap != null
+                ? toNumber(fallbackInfo.marketCap, null)
+                : null,
+            dividendYield: toNumber(fallbackInfo?.dividendYield, 0),
+            beta:
+              fallbackInfo?.beta != null
+                ? toNumber(fallbackInfo.beta, null)
+                : null,
+            isETF: Boolean(fallbackInfo?.isETF),
+            dataSource: toStringSafe(
+              fallbackInfo?.dataSource || stock?.dataSource || "Fallback"
+            ),
             confidence: "Low",
+            explanation: toStringSafe(stock?.explanation, ""),
           };
         });
 
@@ -237,11 +316,14 @@ export default function StockPieChart() {
         console.error("❌ Fallback also failed:", fallbackError);
         // Use basic stock data
         setEnhancedStocks(
-          stocksPicked.map((stock) => ({
+          (Array.isArray(stocksPicked) ? stocksPicked : []).map((stock) => ({
             ...stock,
-            category: "Other",
+            symbol: toStringSafe(stock?.symbol),
+            allocation: toNumber(stock?.allocation, 0),
+            category: toStringSafe(stock?.category || "Other"),
             dataSource: "Basic",
             confidence: "None",
+            explanation: toStringSafe(stock?.explanation, ""),
           }))
         );
         calculateCategoryTotals(stocksPicked);
@@ -252,8 +334,9 @@ export default function StockPieChart() {
   };
 
   const calculateCategoryTotals = (stocks) => {
-    const categories = stocks.reduce((acc, stock) => {
-      const category = stock.category || "Other";
+    const safeList = Array.isArray(stocks) ? stocks : [];
+    const categories = safeList.reduce((acc, stock) => {
+      const category = toStringSafe(stock?.category || "Other");
       if (!acc[category]) {
         acc[category] = {
           allocation: 0,
@@ -262,12 +345,11 @@ export default function StockPieChart() {
           info: ENHANCED_CATEGORY_CONFIG[category] || DEFAULT_CATEGORY_CONFIG,
         };
       }
-      acc[category].allocation += stock.allocation || 0;
+      acc[category].allocation += toNumber(stock?.allocation, 0);
       acc[category].count += 1;
       acc[category].stocks.push(stock);
       return acc;
     }, {});
-
     setCategoryTotals(categories);
   };
 
@@ -303,7 +385,8 @@ export default function StockPieChart() {
     );
   }
 
-  const rawValues = enhancedStocks.map((stock) => stock.allocation || 0);
+  const safeEnhanced = Array.isArray(enhancedStocks) ? enhancedStocks : [];
+  const rawValues = safeEnhanced.map((stock) => toNumber(stock?.allocation, 0));
   const total = rawValues.reduce((sum, val) => sum + val, 0);
 
   if (total === 0) {
@@ -319,14 +402,16 @@ export default function StockPieChart() {
   // Chart data preparation
   const chartData = [
     ["Stock", "Allocation"],
-    ...enhancedStocks.map((stock) => [
-      `${stock.symbol} (${((stock.allocation || 0) * 100).toFixed(1)}%)`,
-      (stock.allocation || 0) * 100,
+    ...safeEnhanced.map((stock) => [
+      `${toStringSafe(stock?.symbol)} (${(
+        toNumber(stock?.allocation, 0) * 100
+      ).toFixed(1)}%)`,
+      toNumber(stock?.allocation, 0) * 100,
     ]),
   ];
 
-  const chartColors = enhancedStocks.map((stock, idx) => {
-    const category = stock.category || "Other";
+  const chartColors = safeEnhanced.map((stock, idx) => {
+    const category = toStringSafe(stock?.category || "Other");
     const categoryConfig =
       ENHANCED_CATEGORY_CONFIG[category] || DEFAULT_CATEGORY_CONFIG;
     const baseColor = categoryConfig.color;
@@ -404,39 +489,57 @@ export default function StockPieChart() {
             </h4>
             <div className="space-y-3">
               {Object.entries(categoryTotals)
-                .sort(([, a], [, b]) => b.allocation - a.allocation)
-                .map(([category, data]) => {
-                  const config = data.info;
-                  const percentage = (data.allocation * 100).toFixed(1);
+                .sort(
+                  ([, a], [, b]) =>
+                    toNumber(b.allocation, 0) - toNumber(a.allocation, 0)
+                )
+                .map(
+                  ([
+                    category,
+                    data = {
+                      allocation: 0,
+                      count: 0,
+                      stocks: [],
+                      info:
+                        ENHANCED_CATEGORY_CONFIG[category] ||
+                        DEFAULT_CATEGORY_CONFIG,
+                    },
+                  ]) => {
+                    const config = data.info;
+                    const percentage = (
+                      toNumber(data.allocation, 0) * 100
+                    ).toFixed(1);
 
-                  return (
-                    <div
-                      key={category}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: config.color }}
-                        />
-                        <div>
-                          <span className="font-medium text-gray-800">
-                            {config.label}
-                          </span>
+                    return (
+                      <div
+                        key={category}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: config.color }}
+                          />
+                          <div>
+                            <span className="font-medium text-gray-800">
+                              {config.label}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              {config.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-semibold">{percentage}%</span>
                           <p className="text-xs text-gray-500">
-                            {config.description}
+                            {toNumber(data.count, 0)} holding
+                            {toNumber(data.count, 0) !== 1 ? "s" : ""}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="font-semibold">{percentage}%</span>
-                        <p className="text-xs text-gray-500">
-                          {data.count} holding{data.count !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
             </div>
           </div>
 
@@ -446,13 +549,20 @@ export default function StockPieChart() {
               Individual Holdings
             </h4>
             <div className="space-y-3">
-              {enhancedStocks
-                .sort((a, b) => (b.allocation || 0) - (a.allocation || 0))
+              {safeEnhanced
+                .slice()
+                .sort(
+                  (a, b) =>
+                    toNumber(b.allocation, 0) - toNumber(a.allocation, 0)
+                )
                 .map((stock, index) => {
-                  const percentage = ((stock.allocation || 0) * 100).toFixed(1);
+                  const percentage = (
+                    toNumber(stock.allocation, 0) * 100
+                  ).toFixed(1);
                   const categoryConfig =
-                    ENHANCED_CATEGORY_CONFIG[stock.category] ||
-                    DEFAULT_CATEGORY_CONFIG;
+                    ENHANCED_CATEGORY_CONFIG[
+                      toStringSafe(stock.category, "Other")
+                    ] || DEFAULT_CATEGORY_CONFIG;
 
                   return (
                     <div
@@ -493,11 +603,12 @@ export default function StockPieChart() {
                         <div className="text-xs text-gray-500">
                           {stock.riskLevel || "Unknown"} Risk
                         </div>
-                        {stock.price && (
-                          <div className="text-xs text-blue-600">
-                            ${stock.price.toFixed(2)}
-                          </div>
-                        )}
+                        {typeof stock.price === "number" &&
+                          Number.isFinite(stock.price) && (
+                            <div className="text-xs text-blue-600">
+                              ${toNumber(stock.price, 0).toFixed(2)}
+                            </div>
+                          )}
                       </div>
                     </div>
                   );
@@ -524,8 +635,9 @@ export default function StockPieChart() {
                 <span className="text-2xl">
                   {
                     (
-                      ENHANCED_CATEGORY_CONFIG[selectedInstrument.category] ||
-                      DEFAULT_CATEGORY_CONFIG
+                      ENHANCED_CATEGORY_CONFIG[
+                        toStringSafe(selectedInstrument.category, "Other")
+                      ] || DEFAULT_CATEGORY_CONFIG
                     ).icon
                   }
                 </span>
@@ -578,8 +690,9 @@ export default function StockPieChart() {
                   <span className="font-medium">
                     {
                       (
-                        ENHANCED_CATEGORY_CONFIG[selectedInstrument.category] ||
-                        DEFAULT_CATEGORY_CONFIG
+                        ENHANCED_CATEGORY_CONFIG[
+                          toStringSafe(selectedInstrument.category, "Other")
+                        ] || DEFAULT_CATEGORY_CONFIG
                       ).label
                     }
                   </span>
@@ -606,22 +719,28 @@ export default function StockPieChart() {
                     </span>
                   </div>
                 )}
-                {selectedInstrument.price && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Current Price:</span>
-                    <span className="font-medium text-green-600">
-                      ${selectedInstrument.price.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-                {selectedInstrument.marketCap && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Market Cap:</span>
-                    <span className="font-medium">
-                      ${(selectedInstrument.marketCap / 1e9).toFixed(1)}B
-                    </span>
-                  </div>
-                )}
+                {typeof selectedInstrument.price === "number" &&
+                  Number.isFinite(selectedInstrument.price) && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Current Price:</span>
+                      <span className="font-medium text-green-600">
+                        ${toNumber(selectedInstrument.price, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                {typeof selectedInstrument.marketCap === "number" &&
+                  Number.isFinite(selectedInstrument.marketCap) && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Market Cap:</span>
+                      <span className="font-medium">
+                        $
+                        {(
+                          toNumber(selectedInstrument.marketCap, 0) / 1e9
+                        ).toFixed(1)}
+                        B
+                      </span>
+                    </div>
+                  )}
                 {selectedInstrument.beta && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Beta:</span>
@@ -646,16 +765,18 @@ export default function StockPieChart() {
                   About{" "}
                   {
                     (
-                      ENHANCED_CATEGORY_CONFIG[selectedInstrument.category] ||
-                      DEFAULT_CATEGORY_CONFIG
+                      ENHANCED_CATEGORY_CONFIG[
+                        toStringSafe(selectedInstrument.category, "Other")
+                      ] || DEFAULT_CATEGORY_CONFIG
                     ).label
                   }
                 </h5>
                 <p className="text-sm text-blue-700">
                   {
                     (
-                      ENHANCED_CATEGORY_CONFIG[selectedInstrument.category] ||
-                      DEFAULT_CATEGORY_CONFIG
+                      ENHANCED_CATEGORY_CONFIG[
+                        toStringSafe(selectedInstrument.category, "Other")
+                      ] || DEFAULT_CATEGORY_CONFIG
                     ).description
                   }
                 </p>
@@ -669,7 +790,8 @@ export default function StockPieChart() {
                     AI Selection Reason
                   </h5>
                   <p className="text-sm text-green-700">
-                    {selectedInstrument.explanation.substring(0, 150)}...
+                    {toStringSafe(selectedInstrument.explanation).slice(0, 150)}
+                    ...
                   </p>
                 </div>
               )}
