@@ -2,6 +2,36 @@
 import { useMemo } from "react";
 import { formatCurrency } from "../utils/portfolioCalculations";
 
+// Normalize any timeline-ish input into an array of { date, value, ... }
+// Supports shapes:
+//  - Array of entries: [{date, value, ...}]
+//  - Legacy object with keys: { "2024-01": 1234, ... }
+//  - Legacy nested: { portfolio: [...], contributions: [...] }
+function normalizeTimeline(input) {
+  if (Array.isArray(input)) return input;
+
+  if (input && typeof input === "object") {
+    // Nested legacy shape
+    if (Array.isArray(input.portfolio)) return input.portfolio;
+
+    // Mapping object -> array
+    const keys = Object.keys(input);
+    if (keys.length > 0 && !("length" in input)) {
+      return keys.map((date) => {
+        const raw = input[date];
+        if (raw && typeof raw === "object") {
+          // already an entry object, ensure date exists
+          return { date, ...raw };
+        }
+        const value = typeof raw === "number" ? raw : Number(raw) || 0;
+        return { date, value };
+      });
+    }
+  }
+
+  return [];
+}
+
 export default function usePortfolioCalculations(portfolioData) {
   const calculations = useMemo(() => {
     console.log("🔍 DEBUG: usePortfolioCalculations input:", portfolioData);
@@ -34,25 +64,14 @@ export default function usePortfolioCalculations(portfolioData) {
     });
 
     // ---------- Normalize possible timeline shapes to arrays ----------
-    const rawTopLevelTimeline = portfolioData?.timeline;
-    const normalizedTopLevelTimeline = Array.isArray(rawTopLevelTimeline)
-      ? rawTopLevelTimeline
-      : [];
-
-    // Legacy nested shape: results.timeline.portfolio / results.timeline.contributions
-    const rawLegacyPortfolioTimeline = results?.timeline?.portfolio;
-    const legacyPortfolioTimeline = Array.isArray(rawLegacyPortfolioTimeline)
-      ? rawLegacyPortfolioTimeline
-      : [];
-
-    const rawLegacyContribTimeline = results?.timeline?.contributions;
-    const legacyContribTimeline = Array.isArray(rawLegacyContribTimeline)
-      ? rawLegacyContribTimeline
-      : [];
-
-    // Newer backend shape: results.portfolio_metrics.timeline_data (array)
-    const rawPMTimeline = results?.portfolio_metrics?.timeline_data;
-    const pmTimeline = Array.isArray(rawPMTimeline) ? rawPMTimeline : [];
+    const topLevelTimeline = normalizeTimeline(portfolioData?.timeline);
+    const legacyPortfolioTimeline = normalizeTimeline(results?.timeline);
+    const legacyContribTimeline = normalizeTimeline(
+      results?.timeline?.contributions
+    );
+    const pmTimeline = normalizeTimeline(
+      results?.portfolio_metrics?.timeline_data
+    );
 
     // ---------- Final Balance (prefer backend-calculated metrics) ----------
     let finalBalance = 0;
@@ -74,13 +93,13 @@ export default function usePortfolioCalculations(portfolioData) {
       const candidateTimelines = [
         pmTimeline,
         legacyPortfolioTimeline,
-        normalizedTopLevelTimeline,
+        topLevelTimeline,
       ].filter((arr) => Array.isArray(arr) && arr.length > 0);
 
       if (candidateTimelines.length > 0) {
         const tl = candidateTimelines[0];
         const lastEntry = tl[tl.length - 1];
-        finalBalance = lastEntry?.value || 0;
+        finalBalance = lastEntry?.value ?? lastEntry?.ending_value ?? 0;
         console.log("✅ Using timeline fallback:", finalBalance);
       } else if (
         results?.timeline?.portfolio &&
@@ -127,7 +146,7 @@ export default function usePortfolioCalculations(portfolioData) {
       const candidateContribs = [
         legacyContribTimeline, // results.timeline.contributions
         pmTimeline, // if timeline_data includes total_contributed values
-        normalizedTopLevelTimeline,
+        topLevelTimeline,
       ].find((arr) => Array.isArray(arr) && arr.length > 0);
 
       if (candidateContribs) {
@@ -233,24 +252,24 @@ export default function usePortfolioCalculations(portfolioData) {
     }
 
     // Fallback: derive from any available timeline array
-    const rawCandidates = [
-      portfolioData?.results?.portfolio_metrics?.timeline_data,
-      portfolioData?.results?.timeline?.portfolio,
-      portfolioData?.timeline,
-    ];
     const timeline =
-      rawCandidates.find((arr) => Array.isArray(arr))?.filter(Boolean) || [];
+      normalizeTimeline(
+        portfolioData?.results?.portfolio_metrics?.timeline_data
+      ) ||
+      normalizeTimeline(portfolioData?.results?.timeline) ||
+      normalizeTimeline(portfolioData?.timeline);
 
     const targetValue = portfolioData?.target_value;
 
     console.log("🎯 Target status calculation:", {
       targetValue,
-      timelineLength: timeline.length,
+      timelineLength: Array.isArray(timeline) ? timeline.length : 0,
       finalBalance: calculations.finalBalance,
       target_achieved: portfolioData?.target_achieved,
     });
 
-    if (!targetValue || timeline.length === 0) return null;
+    if (!targetValue || !Array.isArray(timeline) || timeline.length === 0)
+      return null;
 
     const sortedTimeline = [...timeline].sort(
       (a, b) => new Date(a.date) - new Date(b.date)
