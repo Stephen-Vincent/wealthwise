@@ -1,4 +1,19 @@
-import React, { useState, useEffect } from "react";
+/**
+ * DashboardButtons Component
+ *
+ * This component provides utility buttons for the dashboard view, specifically:
+ * - Fetches and displays the user's name from localStorage or via an API call.
+ * - Generates a detailed investment summary report (Portfolio Overview, Performance Metrics,
+ *   Holdings, AI Analysis, and Goal Achievement).
+ * - Dynamically converts the report into printable HTML, embedding the WealthWise logo,
+ *   formatted portfolio data, and an AI-generated analysis section.
+ * - Supports one-click printing by creating a hidden iframe, loading the report, and triggering print.
+ *
+ * Usage: Displayed on the dashboard to allow users to generate and print a professional
+ * investment summary of their portfolio.
+ */
+
+import { useState, useEffect } from "react";
 import { usePortfolio } from "../../context/PortfolioContext";
 import logo from "../../assets/wealthwise.png";
 
@@ -162,7 +177,7 @@ export default function DashboardButtons() {
     console.log("Displayed Return:", displayedReturn);
     console.log("Annualized Return:", annualizedReturn.toFixed(2) + "%");
 
-    // Handle stocks data - using stocks_picked from your actual data
+    // Handle stocks data - using stocks_picked from actual data
     const stocks = portfolioData?.stocks_picked || portfolioData?.stocks || [];
     console.log("📈 STOCKS DATA:", stocks);
 
