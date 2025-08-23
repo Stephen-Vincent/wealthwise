@@ -56,6 +56,8 @@ class DatabaseService:
         """
         try:
             logger.info("Saving simulation to database (compact API)")
+            logger.debug("Input payload being saved: %s", input_payload)
+            logger.debug("Result payload being saved: %s", result_payload)
 
             # Derive a few convenient top-level columns from payloads
             target_value = float(input_payload.get("target_value", 0) or 0)
@@ -480,7 +482,41 @@ class SimulationResultsFormatter:
 
         # FIXED: Map nested data to top-level fields for frontend
         portfolio_metrics = results.get("portfolio_metrics", {})
-        
+
+        # --- Normalize timeline so frontend always gets a LIST ---
+        timeline_normalized = []
+
+        # Newer shape: portfolio_metrics contains an array under `timeline_data`
+        pm_timeline_data = portfolio_metrics.get("timeline_data")
+        if isinstance(pm_timeline_data, list):
+            timeline_normalized = pm_timeline_data
+        # Some generators might store under `timeline` directly as a list
+        elif isinstance(portfolio_metrics.get("timeline"), list):
+            timeline_normalized = portfolio_metrics.get("timeline") or []
+        else:
+            # Legacy shape: results["timeline"] is a dict with keys `portfolio` and `contributions`
+            legacy_timeline = results.get("timeline")
+            if isinstance(legacy_timeline, dict):
+                legacy_portfolio = legacy_timeline.get("portfolio")
+                if isinstance(legacy_portfolio, list):
+                    timeline_normalized = legacy_portfolio
+                else:
+                    timeline_normalized = []
+            elif isinstance(legacy_timeline, list):
+                # Rare case where it's already a list at results.level
+                timeline_normalized = legacy_timeline
+            else:
+                timeline_normalized = []
+
+        # Build a safe breakdown mapping (guards for missing keys)
+        stocks_list = results.get("stocks_picked", []) or []
+        safe_breakdown = {}
+        for s in stocks_list:
+            sym = s.get("symbol")
+            alloc = s.get("allocation")
+            if sym is not None and alloc is not None:
+                safe_breakdown[str(sym)] = float(alloc)
+
         response.update({
             "results": results,
             "has_shap_explanations": results.get("shap_explanation") is not None,
@@ -488,15 +524,12 @@ class SimulationResultsFormatter:
             "visualization_count": results.get("visualization_count", 0),
             "methodology": results.get("metadata", {}).get("methodology", "Standard simulation"),
             "enhanced_features": results.get("metadata", {}).get("enhanced_features", {}),
-            
+
             # Map nested data to top-level fields for frontend
             "final_balance": portfolio_metrics.get("ending_value", 0),
-            "stocks": results.get("stocks_picked", []),
-            "breakdown": {
-                stock["symbol"]: stock["allocation"] 
-                for stock in results.get("stocks_picked", [])
-            },
-            "timeline": portfolio_metrics.get("timeline_data", []),
+            "stocks": stocks_list,
+            "breakdown": safe_breakdown,
+            "timeline": timeline_normalized,  # ALWAYS a list now
             "volatility": portfolio_metrics.get("volatility", 0),
             "sharpe_ratio": portfolio_metrics.get("sharpe_ratio", 0),
             "total_return": portfolio_metrics.get("total_return", 0),
