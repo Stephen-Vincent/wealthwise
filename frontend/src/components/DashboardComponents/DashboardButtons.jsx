@@ -127,31 +127,27 @@ export default function DashboardButtons() {
 
     // Basic portfolio information - using actual field names from your data
     const goal = portfolioData?.goal || "Investment Goal";
-
     const timeframe = portfolioData?.timeframe || "Not specified";
-
     const riskLabel = portfolioData?.risk_label || "Not specified";
-
     const riskScore = portfolioData?.risk_score || "Not calculated";
-
     const targetValue = portfolioData?.target_value || 0;
 
-    // Financial performance data - using performance_metrics and actual field names
+    // Financial performance data - calculate total invested correctly
     const performanceMetrics = portfolioData?.performance_metrics || {};
 
-    const totalInvested =
-      performanceMetrics?.starting_value || portfolioData?.lump_sum || 0;
+    // Calculate total invested: lump sum + monthly contributions over timeframe
+    const lumpSum = portfolioData?.lump_sum || 0;
+    const monthlyContribution = portfolioData?.monthly || 0;
+    const timeframeYears = parseInt(timeframe) || 0;
+    const monthlyContributions = monthlyContribution * timeframeYears * 12;
+
+    const totalInvested = lumpSum + monthlyContributions;
 
     const portfolioValue =
       performanceMetrics?.ending_value || portfolioData?.final_balance || 0;
-
     const rawReturn =
       performanceMetrics?.total_return || portfolioData?.total_return || 0;
-
-    // Handle return calculation - rawReturn is already a percentage
-    const displayedReturn = rawReturn; // Your data shows 61.31114745630604 which is already percentage
-
-    // Get annualized return from performance metrics
+    const displayedReturn = rawReturn; // Already a percentage
     const annualizedReturn = performanceMetrics?.annualized_return || 0;
 
     console.log("📊 EXTRACTED VALUES:");
@@ -168,7 +164,6 @@ export default function DashboardButtons() {
 
     // Handle stocks data - using stocks_picked from your actual data
     const stocks = portfolioData?.stocks_picked || portfolioData?.stocks || [];
-
     console.log("📈 STOCKS DATA:", stocks);
 
     // Enhanced sector mapping
@@ -208,7 +203,6 @@ export default function DashboardButtons() {
           stock.percentage ||
           stock.percent ||
           0;
-
         const sector = getSectorForStock(stock);
         const symbol = stock.symbol || stock.ticker || stock.code || "N/A";
         const name =
@@ -261,66 +255,55 @@ export default function DashboardButtons() {
     const formatAISummary = (text) => {
       if (!text) return "";
 
+      // Clean up the text and handle markdown formatting
       let htmlText = text
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-        .replace(/(\d+\.)\s+/g, "<br><strong>$1</strong> ")
-        .replace(/[""]([^""]+)[""]?/g, '<em>"$1"</em>');
+        .replace(/^##\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
+        .replace(
+          /^\*\*([^*]+)\*\*$/gm,
+          '<h4 class="analysis-subheading">$1</h4>'
+        )
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="analysis-bold">$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em class="analysis-italic">$1</em>')
+        .replace(
+          /[""]([^""]+)[""]?/g,
+          '<span class="analysis-quote">"$1"</span>'
+        )
+        .replace(/^\s*[-•]\s*(.+)$/gm, '<li class="analysis-bullet">$1</li>')
+        .replace(
+          /(\d+\.)\s+([^<\n]+)/g,
+          '<div class="analysis-numbered"><strong>$1</strong> $2</div>'
+        );
 
-      const sentences = htmlText.split(
-        /(?<=[.!?])\s*(?=["']|\*\*|<strong>|[A-Z])/
-      );
+      // Split into paragraphs and clean up
+      const paragraphs = htmlText.split(/\n\s*\n/);
       let formattedText = "";
-      let currentParagraph = "";
 
-      sentences.forEach((sentence, index) => {
-        sentence = sentence.trim();
-        if (!sentence) return;
+      paragraphs.forEach((paragraph) => {
+        paragraph = paragraph.trim();
+        if (!paragraph) return;
 
         if (
-          sentence.includes("<strong>") ||
-          sentence.includes("Key lessons") ||
-          sentence.includes("Remember") ||
-          sentence.includes("Important") ||
-          sentence.includes("However") ||
-          sentence.includes("<br>") ||
-          (index > 0 && sentence.length > 120)
+          paragraph.includes("<h3") ||
+          paragraph.includes("<h4") ||
+          paragraph.includes('<div class="analysis-numbered">')
         ) {
-          if (currentParagraph) {
-            formattedText += `<p>${currentParagraph.trim()}</p>`;
-            currentParagraph = "";
-          }
-          currentParagraph = sentence + " ";
+          formattedText += paragraph;
         } else {
-          currentParagraph += sentence + " ";
+          // Handle bullet lists
+          if (paragraph.includes('<li class="analysis-bullet">')) {
+            formattedText += `<ul class="analysis-list">${paragraph}</ul>`;
+          } else {
+            formattedText += `<div class="analysis-paragraph">${paragraph}</div>`;
+          }
         }
       });
 
-      if (currentParagraph) {
-        formattedText += `<p>${currentParagraph.trim()}</p>`;
-      }
+      // Clean up extra whitespace
+      formattedText = formattedText.replace(/\s+/g, " ").trim();
 
-      if (formattedText.length < 50) {
-        const allSentences = htmlText.split(/(?<=[.!?])\s+/);
-        formattedText = "";
-
-        for (let i = 0; i < allSentences.length; i += 2) {
-          const paragraph = allSentences
-            .slice(i, i + 2)
-            .join(" ")
-            .trim();
-          if (paragraph) {
-            formattedText += `<p>${paragraph}</p>`;
-          }
-        }
-      }
-
-      formattedText = formattedText
-        .replace(/<br>\s*<br>/g, "<br>")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      return formattedText || `<p>${htmlText}</p>`;
+      return (
+        formattedText || `<div class="analysis-paragraph">${htmlText}</div>`
+      );
     };
 
     const aiSummarySection = `
@@ -567,7 +550,27 @@ export default function DashboardButtons() {
               margin-bottom: 20px;
             }
 
-            .ai-summary-card p {
+            .ai-summary-card .analysis-heading {
+              font-size: 16px;
+              font-weight: bold;
+              color: #00A8FF;
+              margin: 20px 0 10px 0;
+              padding-bottom: 5px;
+              border-bottom: 2px solid #00A8FF;
+            }
+
+            .ai-summary-card .analysis-heading:first-child {
+              margin-top: 0;
+            }
+
+            .ai-summary-card .analysis-subheading {
+              font-size: 14px;
+              font-weight: bold;
+              color: #0056b3;
+              margin: 15px 0 8px 0;
+            }
+
+            .ai-summary-card .analysis-paragraph {
               font-size: 12px;
               line-height: 1.6;
               color: #333;
@@ -575,18 +578,57 @@ export default function DashboardButtons() {
               text-align: justify;
             }
 
-            .ai-summary-card p:last-child {
-              margin-bottom: 0;
+            .ai-summary-card .analysis-numbered {
+              font-size: 12px;
+              line-height: 1.6;
+              color: #333;
+              margin: 8px 0;
+              padding: 8px 12px;
+              background: #f8f9fa;
+              border-left: 3px solid #00A8FF;
+              border-radius: 4px;
             }
 
-            .ai-summary-card strong {
+            .ai-summary-card .analysis-list {
+              list-style: none;
+              padding: 0;
+              margin: 10px 0;
+            }
+
+            .ai-summary-card .analysis-bullet {
+              font-size: 12px;
+              line-height: 1.5;
+              color: #333;
+              margin: 6px 0;
+              padding: 4px 0 4px 20px;
+              position: relative;
+            }
+
+            .ai-summary-card .analysis-bullet:before {
+              content: "•";
+              color: #00A8FF;
+              font-weight: bold;
+              position: absolute;
+              left: 8px;
+            }
+
+            .ai-summary-card .analysis-bold {
               font-weight: bold;
               color: #00A8FF;
             }
 
-            .ai-summary-card em {
+            .ai-summary-card .analysis-italic {
               font-style: italic;
               color: #555;
+            }
+
+            .ai-summary-card .analysis-quote {
+              font-style: italic;
+              color: #666;
+              background: #f0f9ff;
+              padding: 2px 6px;
+              border-radius: 3px;
+              border-left: 2px solid #00A8FF;
             }
             
             @media print {
