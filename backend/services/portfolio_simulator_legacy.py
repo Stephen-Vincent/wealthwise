@@ -968,7 +968,7 @@ async def generate_enhanced_ai_summary(
     try:
         logger.info("Generating INTEGRATED AI summary with SHAP + News Analysis")
         
-        from services.ai_analysis import AIAnalysisService
+        from backend.services.portfolio_simulator.ai_analysis import AIAnalysisService
         ai_service = AIAnalysisService()
         
         try:
