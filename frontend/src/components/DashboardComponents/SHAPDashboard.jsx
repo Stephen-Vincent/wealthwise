@@ -24,90 +24,7 @@ import {
   Trophy,
   Activity,
 } from "lucide-react";
-
-// Mock usePortfolio hook for demonstration
-const usePortfolio = () => ({
-  portfolioData: {
-    risk_score: 65,
-    target_achieved: false,
-    has_shap_explanations: true,
-  },
-  shapData: {
-    confidence_score: 85,
-    portfolio_quality_score: 88,
-    methodology: "SHAP Analysis",
-    feature_contributions: {
-      risk_score: 0.15,
-      target_value_log: -0.08,
-      timeframe: 0.12,
-      required_return: -0.05,
-      monthly_contribution: 0.18,
-      market_volatility: -0.03,
-      market_trend_score: 0.09,
-    },
-    human_readable_explanation: {
-      risk_score:
-        "Your moderate risk tolerance allows for a balanced portfolio that can grow while protecting your money.",
-      monthly_contribution:
-        "Your regular monthly savings create a strong foundation for reaching your financial goals.",
-      timeframe:
-        "Having 10 years to invest gives us flexibility to choose growth-focused investments.",
-    },
-  },
-  hasShapData: true,
-  chartData: {
-    feature_importance: [
-      {
-        factor: "Monthly Contribution",
-        importance: 0.18,
-        description: "Your regular savings amount",
-      },
-      {
-        factor: "Risk Tolerance",
-        importance: 0.15,
-        description: "Your comfort with investment risk",
-      },
-      {
-        factor: "Time Horizon",
-        importance: 0.12,
-        description: "Years until you need the money",
-      },
-      {
-        factor: "Market Trend",
-        importance: 0.09,
-        description: "Current market direction",
-      },
-      {
-        factor: "Target Value",
-        importance: -0.08,
-        description: "Amount you want to reach",
-      },
-      {
-        factor: "Required Return",
-        importance: -0.05,
-        description: "Growth rate needed",
-      },
-      {
-        factor: "Market Volatility",
-        importance: -0.03,
-        description: "Current market uncertainty",
-      },
-    ],
-    performance_timeline: {
-      portfolio: [
-        { date: "2024-01", value: 10000, return: 0 },
-        { date: "2024-02", value: 10200, return: 2.0 },
-        { date: "2024-03", value: 10150, return: 1.5 },
-        { date: "2024-04", value: 10300, return: 3.0 },
-        { date: "2024-05", value: 10450, return: 4.5 },
-        { date: "2024-06", value: 10400, return: 4.0 },
-      ],
-    },
-  },
-  enhancedData: {},
-  loading: false,
-  error: null,
-});
+import { usePortfolio } from "../../context/PortfolioContext";
 
 const SHAPDashboard = () => {
   const {
@@ -233,11 +150,27 @@ const SHAPDashboard = () => {
   );
 };
 
-// Summary Tab - Only showing 4 metric boxes, no pie chart
+// Summary Tab - Fixed target progress calculation
 const SummaryTab = ({ shapData, portfolioData, chartData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const methodology = shapData?.methodology || "SHAP Analysis";
   const portfolioQualityScore = shapData?.portfolio_quality_score || 85;
+
+  // Calculate correct target progress
+  const calculateTargetProgress = () => {
+    const targetValue = portfolioData?.target_value || 0;
+    const currentValue =
+      portfolioData?.performance_metrics?.ending_value ||
+      portfolioData?.final_balance ||
+      0;
+
+    if (targetValue <= 0) return 0;
+
+    const progress = (currentValue / targetValue) * 100;
+    return Math.min(Math.max(progress, 0), 100); // Clamp between 0 and 100
+  };
+
+  const targetProgress = calculateTargetProgress();
 
   const metrics = [
     {
@@ -269,11 +202,11 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
     },
     {
       title: "Target Progress",
-      value: portfolioData?.target_achieved ? 100 : 75,
+      value: targetProgress,
       maxValue: 100,
       unit: "%",
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
+      color: targetProgress >= 100 ? "text-green-600" : "text-purple-600",
+      bgColor: targetProgress >= 100 ? "bg-green-50" : "bg-purple-50",
       icon: <Target size={24} />,
     },
   ];
@@ -306,6 +239,61 @@ const SummaryTab = ({ shapData, portfolioData, chartData }) => {
                 </div>
               )
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Add target progress details */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-xl font-bold text-gray-800 mb-4">
+          Goal Progress Details
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-800">
+              £{(portfolioData?.target_value || 0).toLocaleString()}
+            </div>
+            <div className="text-sm text-blue-600">Target Amount</div>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-800">
+              £
+              {(
+                portfolioData?.performance_metrics?.ending_value ||
+                portfolioData?.final_balance ||
+                0
+              ).toLocaleString()}
+            </div>
+            <div className="text-sm text-green-600">Current Value</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div
+              className={`text-2xl font-bold ${
+                targetProgress >= 100 ? "text-green-800" : "text-purple-800"
+              }`}
+            >
+              {targetProgress.toFixed(1)}%
+            </div>
+            <div
+              className={`text-sm ${
+                targetProgress >= 100 ? "text-green-600" : "text-purple-600"
+              }`}
+            >
+              Progress to Goal
+            </div>
+          </div>
+        </div>
+        {portfolioData?.target_achieved !== undefined && (
+          <div
+            className={`mt-4 p-3 rounded-lg text-center font-semibold ${
+              portfolioData.target_achieved
+                ? "bg-green-100 text-green-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {portfolioData.target_achieved
+              ? "🎉 Congratulations! You have achieved your target goal!"
+              : "📈 Keep investing to reach your target goal"}
           </div>
         )}
       </div>

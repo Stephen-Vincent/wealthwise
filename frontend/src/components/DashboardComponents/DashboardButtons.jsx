@@ -255,54 +255,81 @@ export default function DashboardButtons() {
     const formatAISummary = (text) => {
       if (!text) return "";
 
-      // Clean up the text and handle markdown formatting
-      let htmlText = text
+      // First, clean up any existing HTML class artifacts
+      let cleanText = text
+        .replace(/"analysis-[^"]*">/g, "") // Remove class name artifacts
+        .replace(/analysis-[a-z]+>/g, "") // Remove remaining class fragments
+        .trim();
+
+      // Convert markdown-style formatting to HTML
+      let htmlText = cleanText
+        // Headers
         .replace(/^##\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
-        .replace(
-          /^\*\*([^*]+)\*\*$/gm,
-          '<h4 class="analysis-subheading">$1</h4>'
-        )
+        .replace(/^#\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
+
+        // Bold text (handle ** patterns)
         .replace(/\*\*(.*?)\*\*/g, '<strong class="analysis-bold">$1</strong>')
+
+        // Italic text
         .replace(/\*([^*\n]+)\*/g, '<em class="analysis-italic">$1</em>')
+
+        // Bullet points
+        .replace(/^\s*[\*\-•]\s+(.+)$/gm, '<li class="analysis-bullet">$1</li>')
+
+        // Quotes
         .replace(
           /[""]([^""]+)[""]?/g,
           '<span class="analysis-quote">"$1"</span>'
         )
-        .replace(/^\s*[-•]\s*(.+)$/gm, '<li class="analysis-bullet">$1</li>')
+
+        // Numbered points
         .replace(
-          /(\d+\.)\s+([^<\n]+)/g,
+          /^(\d+\.)\s+(.+)$/gm,
           '<div class="analysis-numbered"><strong>$1</strong> $2</div>'
         );
 
-      // Split into paragraphs and clean up
-      const paragraphs = htmlText.split(/\n\s*\n/);
+      // Split into sections by double line breaks
+      const sections = htmlText.split(/\n\s*\n+/);
       let formattedText = "";
 
-      paragraphs.forEach((paragraph) => {
-        paragraph = paragraph.trim();
-        if (!paragraph) return;
+      sections.forEach((section) => {
+        section = section.trim();
+        if (!section) return;
 
-        if (
-          paragraph.includes("<h3") ||
-          paragraph.includes("<h4") ||
-          paragraph.includes('<div class="analysis-numbered">')
+        // Check if section contains bullet points
+        if (section.includes('<li class="analysis-bullet">')) {
+          const bulletItems = section.split("\n").filter((line) => line.trim());
+          const listItems = bulletItems
+            .map((item) =>
+              item.includes('<li class="analysis-bullet">')
+                ? item
+                : `<li class="analysis-bullet">${item}</li>`
+            )
+            .join("");
+          formattedText += `<ul class="analysis-list">${listItems}</ul>`;
+        }
+        // Check if it's a heading or numbered item
+        else if (
+          section.includes("<h3") ||
+          section.includes('<div class="analysis-numbered">')
         ) {
-          formattedText += paragraph;
-        } else {
-          // Handle bullet lists
-          if (paragraph.includes('<li class="analysis-bullet">')) {
-            formattedText += `<ul class="analysis-list">${paragraph}</ul>`;
-          } else {
-            formattedText += `<div class="analysis-paragraph">${paragraph}</div>`;
-          }
+          formattedText += section;
+        }
+        // Regular paragraph
+        else {
+          formattedText += `<div class="analysis-paragraph">${section}</div>`;
         }
       });
 
-      // Clean up extra whitespace
-      formattedText = formattedText.replace(/\s+/g, " ").trim();
+      // Clean up any remaining artifacts and normalize whitespace
+      formattedText = formattedText
+        .replace(/\s+/g, " ")
+        .replace(/>\s+</g, "><")
+        .replace(/analysis-[a-z]+"?>/g, "") // Final cleanup of any remaining class fragments
+        .trim();
 
       return (
-        formattedText || `<div class="analysis-paragraph">${htmlText}</div>`
+        formattedText || `<div class="analysis-paragraph">${cleanText}</div>`
       );
     };
 
