@@ -53,11 +53,19 @@ const PortfolioGraph = () => {
   const [showTarget, setShowTarget] = useState(true);
   const [showGainLoss, setShowGainLoss] = useState(true);
 
-  // Memoized processing of timeline data for chart and metrics
   const processedData = useMemo(() => {
     // Extract timeline arrays from portfolio data
     const portfolio = portfolioData?.timeline ?? [];
-    const contributions = portfolioData?.results?.timeline?.contributions ?? [];
+    const contributions =
+      portfolioData?.results?.timeline?.contributions ??
+      portfolioData?.timeline?.contributions ??
+      portfolioData?.contribution_data ??
+      [];
+
+    // Debug logging
+    console.log("Portfolio timeline:", portfolio.slice(0, 3));
+    console.log("Contributions timeline:", contributions.slice(0, 3));
+    console.log("Lump sum:", portfolioData?.lump_sum);
 
     // Handle case where there is no data
     if (portfolio.length === 0) {
@@ -71,10 +79,28 @@ const PortfolioGraph = () => {
       };
     }
 
-    /**
-     * Groups time series data by the selected period (monthly, quarterly, yearly).
-     * For each group, selects the entry with the latest date.
-     */
+    // ADD STARTING POINT: Include initial investment
+    const lumpSum = portfolioData?.lump_sum || 0;
+
+    // Create a proper starting date (before the first portfolio entry)
+    const firstPortfolioDate = new Date(portfolio[0]?.date);
+    const startDate = new Date(firstPortfolioDate);
+    startDate.setMonth(startDate.getMonth() - 1); // One month before
+
+    const startingPortfolio = {
+      date: startDate.toISOString(),
+      value: lumpSum,
+    };
+    const startingContributions = {
+      date: startDate.toISOString(),
+      value: lumpSum,
+    };
+
+    // Prepend starting values to the data
+    const portfolioWithStart = [startingPortfolio, ...portfolio];
+    const contributionsWithStart = [startingContributions, ...contributions];
+
+    // Group data function
     const groupData = (data, groupBy) => {
       const grouped = {};
       data.forEach((entry) => {
@@ -95,7 +121,6 @@ const PortfolioGraph = () => {
               "0"
             )}`;
         }
-        // Keep the entry with the latest date for each group
         if (
           !grouped[key] ||
           new Date(entry.date) > new Date(grouped[key].date)
@@ -103,17 +128,16 @@ const PortfolioGraph = () => {
           grouped[key] = entry;
         }
       });
-      // Return entries sorted by date
       return Object.values(grouped).sort(
         (a, b) => new Date(a.date) - new Date(b.date)
       );
     };
 
-    // Group portfolio and contributions according to view mode
-    const groupedPortfolio = groupData(portfolio, viewMode);
-    const groupedContributions = groupData(contributions, viewMode);
+    // Use data with starting values
+    const groupedPortfolio = groupData(portfolioWithStart, viewMode);
+    const groupedContributions = groupData(contributionsWithStart, viewMode);
 
-    // Generate labels for the x-axis based on view mode
+    // Generate labels
     const labels = groupedPortfolio.map((entry) => {
       const date = new Date(entry.date);
       switch (viewMode) {
@@ -131,25 +155,27 @@ const PortfolioGraph = () => {
       }
     });
 
-    // Extract portfolio values for the chart
     const portfolioValues = groupedPortfolio.map((entry) => entry.value);
 
-    // Match contributions to each portfolio timeline point (by date proximity)
-    const contributionValues = groupedPortfolio.map((portfolioEntry) => {
-      const matchingContribution = groupedContributions.find(
-        (contrib) =>
-          Math.abs(new Date(contrib.date) - new Date(portfolioEntry.date)) <
-          30 * 24 * 60 * 60 * 1000
-      );
-      return matchingContribution?.value || 0;
+    // FIXED: Calculate cumulative contributions properly
+    const contributionValues = groupedPortfolio.map((portfolioEntry, index) => {
+      // For the starting point, return lump sum
+      if (index === 0) {
+        return lumpSum;
+      }
+
+      // Calculate cumulative contributions up to this point
+      const monthlyContribution = portfolioData?.monthly || 0;
+      const monthsElapsed = index; // Approximation based on timeline position
+      return lumpSum + monthlyContribution * monthsElapsed;
     });
 
-    // Calculate gain/loss for each point (portfolio value - contributions)
+    // Calculate gain/loss
     const gainLossValues = portfolioValues.map(
       (portfolio, index) => portfolio - (contributionValues[index] || 0)
     );
 
-    // Build a target line if a target value is set
+    // Build target line
     const targetValue = portfolioData?.target_value;
     const targetLine = targetValue
       ? new Array(labels.length).fill(targetValue)

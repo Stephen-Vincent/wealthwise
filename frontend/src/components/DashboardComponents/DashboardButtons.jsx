@@ -3,7 +3,7 @@ import { usePortfolio } from "../../context/PortfolioContext";
 import logo from "../../assets/wealthwise.png";
 
 export default function DashboardButtons() {
-  const { portfolioData } = usePortfolio();
+  const { portfolioData, apiCall, token } = usePortfolio();
   const [userName, setUserName] = useState("Investor");
 
   const fetchUserName = async () => {
@@ -25,25 +25,12 @@ export default function DashboardButtons() {
         }
       }
 
-      // Try API call
-      const token = localStorage.getItem("token");
-      if (token) {
+      // Try API call using the context's apiCall method
+      if (token && apiCall) {
         try {
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/users/${userId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          if (response.ok) {
-            const userData = await response.json();
-            if (userData.name) {
-              setUserName(userData.name);
-            }
+          const userData = await apiCall(`/users/${userId}`);
+          if (userData.name) {
+            setUserName(userData.name);
           }
         } catch (error) {
           console.log("API call failed:", error);
@@ -58,7 +45,7 @@ export default function DashboardButtons() {
     if (portfolioData?.user_id) {
       fetchUserName();
     }
-  }, [portfolioData?.user_id]);
+  }, [portfolioData?.user_id, token, apiCall]);
 
   const handlePrint = async () => {
     const printContent = await generatePrintHTML();
@@ -134,28 +121,92 @@ export default function DashboardButtons() {
       ).toFixed(2)}%`;
     };
 
-    // Extract ALL data from portfolioData
+    // CORRECTED: Extract data with proper fallback logic
     console.log("🔍 EXTRACTING DATA FROM PORTFOLIO:");
-    console.log("portfolioData.results:", portfolioData?.results);
+    console.log("Full portfolioData:", portfolioData);
 
-    const goal = portfolioData?.goal || "Investment Goal";
-    const timeframe = portfolioData?.timeframe || "Not specified";
-    const riskLabel = portfolioData?.risk_label || "Not specified";
-    const riskScore = portfolioData?.risk_score || "Not calculated";
-    const targetValue = portfolioData?.target_value || 0;
+    // Basic portfolio information - check multiple possible locations
+    const goal =
+      portfolioData?.goal ||
+      portfolioData?.investment_goal ||
+      portfolioData?.results?.goal ||
+      "Investment Goal";
 
-    // Get financial data from results object
-    const totalInvested = portfolioData?.results?.starting_value || 0;
-    const portfolioValue = portfolioData?.results?.end_value || 0;
-    const rawReturn = portfolioData?.results?.return || 0;
-    const displayedReturn = rawReturn > 1 ? rawReturn : rawReturn * 100;
+    const timeframe =
+      portfolioData?.timeframe ||
+      portfolioData?.time_horizon ||
+      portfolioData?.results?.timeframe ||
+      portfolioData?.years ||
+      "Not specified";
 
-    // Calculate annualized return dynamically
+    const riskLabel =
+      portfolioData?.risk_label ||
+      portfolioData?.risk_profile ||
+      portfolioData?.results?.risk_label ||
+      "Not specified";
+
+    const riskScore =
+      portfolioData?.risk_score ||
+      portfolioData?.risk_tolerance ||
+      portfolioData?.results?.risk_score ||
+      "Not calculated";
+
+    const targetValue =
+      portfolioData?.target_value ||
+      portfolioData?.target_amount ||
+      portfolioData?.goal_amount ||
+      portfolioData?.results?.target_value ||
+      0;
+
+    // Financial performance data - check results first, then top level
+    const results = portfolioData?.results || portfolioData;
+
+    const totalInvested =
+      results?.starting_value ||
+      results?.initial_investment ||
+      results?.start_value ||
+      portfolioData?.initial_amount ||
+      0;
+
+    const portfolioValue =
+      results?.end_value ||
+      results?.final_value ||
+      results?.ending_value ||
+      portfolioData?.final_balance ||
+      portfolioData?.current_value ||
+      0;
+
+    const rawReturn =
+      results?.return || results?.total_return || portfolioData?.return || 0;
+
+    // Handle return calculation - check if it's already a percentage or decimal
+    let displayedReturn;
+    if (rawReturn > 1) {
+      displayedReturn = rawReturn; // Already a percentage
+    } else if (totalInvested > 0 && portfolioValue > 0) {
+      // Calculate return percentage if we have the values
+      displayedReturn =
+        ((portfolioValue - totalInvested) / totalInvested) * 100;
+    } else {
+      displayedReturn = rawReturn * 100; // Convert decimal to percentage
+    }
+
+    // Calculate annualized return
     const annualizedReturn = (() => {
-      if (totalInvested <= 0 || portfolioValue <= 0 || timeframe <= 0) return 0;
+      if (
+        totalInvested <= 0 ||
+        portfolioValue <= 0 ||
+        !timeframe ||
+        timeframe <= 0
+      ) {
+        return 0;
+      }
+
+      const years =
+        typeof timeframe === "number" ? timeframe : parseFloat(timeframe) || 1;
 
       // CAGR formula: (End Value / Start Value)^(1/years) - 1
-      const cagr = Math.pow(portfolioValue / totalInvested, 1 / timeframe) - 1;
+      const cagr = Math.pow(portfolioValue / totalInvested, 1 / years) - 1;
       return cagr * 100;
     })();
 
@@ -165,17 +216,25 @@ export default function DashboardButtons() {
     console.log("Timeframe:", timeframe);
     console.log("Risk Label:", riskLabel);
     console.log("Risk Score:", riskScore);
-    console.log("Total Invested (starting_value):", totalInvested);
-    console.log("Portfolio Value (end_value):", portfolioValue);
-    console.log("Return (decimal):", rawReturn);
-    console.log("Return (percentage):", displayedReturn);
+    console.log("Total Invested:", totalInvested);
+    console.log("Portfolio Value:", portfolioValue);
+    console.log("Raw Return:", rawReturn);
+    console.log("Displayed Return:", displayedReturn);
     console.log(
       "Calculated Annualized Return:",
       annualizedReturn.toFixed(2) + "%"
     );
 
-    // Handle stocks data
-    const stocks = portfolioData?.stocks_picked || [];
+    // Handle stocks data - check multiple possible locations
+    const stocks =
+      portfolioData?.stocks_picked ||
+      portfolioData?.portfolio_holdings ||
+      portfolioData?.holdings ||
+      portfolioData?.assets ||
+      portfolioData?.results?.stocks_picked ||
+      [];
+
+    console.log("📈 STOCKS DATA:", stocks);
 
     // Enhanced sector mapping
     const getSectorForStock = (stock) => {
@@ -187,6 +246,7 @@ export default function DashboardButtons() {
       const symbol = stock.symbol || stock.ticker || "";
       const name = stock.name || stock.company_name || stock.description || "";
 
+      // ETF mappings
       if (symbol.includes("VTI") || name.includes("Total Stock Market"))
         return "Broad Market ETF";
       if (symbol.includes("VEA") || name.includes("Developed Markets"))
@@ -208,15 +268,25 @@ export default function DashboardButtons() {
     const stockRowsHTML = stocks
       .map((stock) => {
         const allocation =
-          stock.allocation || stock.weight || stock.percentage || 0;
+          stock.allocation ||
+          stock.weight ||
+          stock.percentage ||
+          stock.percent ||
+          0;
+
         const sector = getSectorForStock(stock);
+        const symbol = stock.symbol || stock.ticker || stock.code || "N/A";
+        const name =
+          stock.name ||
+          stock.company_name ||
+          stock.description ||
+          stock.security_name ||
+          "N/A";
 
         return `
         <tr>
-          <td><strong>${stock.symbol || stock.ticker || "N/A"}</strong></td>
-          <td>${
-            stock.name || stock.company_name || stock.description || "N/A"
-          }</td>
+          <td><strong>${symbol}</strong></td>
+          <td>${name}</td>
           <td>${allocation ? allocation.toFixed(1) + "%" : "N/A"}</td>
           <td>${sector}</td>
         </tr>
@@ -249,7 +319,11 @@ export default function DashboardButtons() {
 
     // AI Summary with markdown conversion
     const aiSummary =
-      portfolioData?.ai_summary || "Investment analysis not available.";
+      portfolioData?.ai_summary ||
+      portfolioData?.summary ||
+      portfolioData?.analysis ||
+      portfolioData?.results?.ai_summary ||
+      "Investment analysis not available.";
 
     const formatAISummary = (text) => {
       if (!text) return "";
@@ -326,21 +400,21 @@ export default function DashboardButtons() {
     `;
 
     // Goal achievement section
+    const targetAchieved =
+      portfolioData?.target_achieved ||
+      portfolioData?.goal_achieved ||
+      portfolioData?.results?.target_achieved ||
+      portfolioValue >= targetValue;
+
     const goalAchievementSection =
-      portfolioData?.target_achieved !== undefined
+      targetValue > 0
         ? `
       <div class="summary-section">
         <h2 class="section-title">Goal Achievement</h2>
         <div class="summary-card">
           <h3>Target Achievement Status</h3>
-          <div class="value ${
-            portfolioData.target_achieved ? "positive" : "negative"
-          }">
-            ${
-              portfolioData.target_achieved
-                ? "✓ Target Achieved"
-                : "✗ Target Not Achieved"
-            }
+          <div class="value ${targetAchieved ? "positive" : "negative"}">
+            ${targetAchieved ? "✓ Target Achieved" : "✗ Target Not Achieved"}
           </div>
         </div>
       </div>
@@ -717,6 +791,7 @@ export default function DashboardButtons() {
       <button
         onClick={handlePrint}
         className="bg-white text-[#00A8FF] font-bold px-6 py-3 border border-[#00A8FF] rounded-[15px] hover:bg-[#00A8FF] hover:text-white transition"
+        disabled={!portfolioData}
       >
         📄 Print Summary
       </button>
