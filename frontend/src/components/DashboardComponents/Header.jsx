@@ -71,8 +71,10 @@ export default function Header({ portfolioData }) {
               <div className="flex items-center space-x-1">
                 <span>💼</span>
                 <span>
-                  {portfolioData.goal.charAt(0).toUpperCase() +
-                    portfolioData.goal.slice(1)}
+                  {typeof portfolioData.goal === "string"
+                    ? portfolioData.goal.charAt(0).toUpperCase() +
+                      portfolioData.goal.slice(1)
+                    : String(portfolioData.goal || "Goal")}
                 </span>
               </div>
             )}

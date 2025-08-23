@@ -191,6 +191,12 @@ const PortfolioGraph = () => {
     };
   }, [portfolioData, viewMode]);
 
+  console.log(
+    "DEBUG portfolioData.timeline type:",
+    typeof portfolioData?.timeline,
+    portfolioData?.timeline
+  );
+
   if (processedData.isEmpty) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-4 md:p-8 text-center">
