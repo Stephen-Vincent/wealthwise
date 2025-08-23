@@ -460,6 +460,44 @@ class SimulationResultsFormatter:
     def __init__(self):
         self.config = get_config()
 
+    def _normalize_timeline(self, results: Dict[str, Any], portfolio_metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Return timeline as a list of points no matter how it was stored."""
+        try:
+            # Preferred: portfolio_metrics["timeline_data"] is already a list
+            pm_timeline_data = portfolio_metrics.get("timeline_data")
+            if isinstance(pm_timeline_data, list):
+                return pm_timeline_data
+
+            # Sometimes stored directly on portfolio_metrics as a list under "timeline"
+            pm_timeline = portfolio_metrics.get("timeline")
+            if isinstance(pm_timeline, list):
+                return pm_timeline
+
+            # Legacy: results["timeline"] could be a list (already OK)
+            results_timeline = results.get("timeline")
+            if isinstance(results_timeline, list):
+                return results_timeline
+
+            # Legacy: results["timeline"] as dict { "portfolio": [...], "contributions": [...] }
+            if isinstance(results_timeline, dict):
+                legacy_portfolio = results_timeline.get("portfolio")
+                if isinstance(legacy_portfolio, list):
+                    return legacy_portfolio
+                # Edge case: some generators may store a mapping {date: value}; turn into list
+                if legacy_portfolio and isinstance(legacy_portfolio, dict):
+                    # Convert mapping to sorted list of {date, value}
+                    items = []
+                    for k, v in legacy_portfolio.items():
+                        items.append({"date": str(k), "value": float(v) if isinstance(v, (int, float)) else v})
+                    items.sort(key=lambda x: x.get("date", ""))
+                    return items
+
+            # Absolute fallback
+            return []
+        except Exception:
+            # Never let an exception bubble up; return empty list instead
+            return []
+
     def format_simulation_response(self, simulation: models.Simulation) -> Dict[str, Any]:
         results = simulation.results or {}
 
@@ -484,29 +522,14 @@ class SimulationResultsFormatter:
         portfolio_metrics = results.get("portfolio_metrics", {})
 
         # --- Normalize timeline so frontend always gets a LIST ---
-        timeline_normalized = []
-
-        # Newer shape: portfolio_metrics contains an array under `timeline_data`
-        pm_timeline_data = portfolio_metrics.get("timeline_data")
-        if isinstance(pm_timeline_data, list):
-            timeline_normalized = pm_timeline_data
-        # Some generators might store under `timeline` directly as a list
-        elif isinstance(portfolio_metrics.get("timeline"), list):
-            timeline_normalized = portfolio_metrics.get("timeline") or []
-        else:
-            # Legacy shape: results["timeline"] is a dict with keys `portfolio` and `contributions`
-            legacy_timeline = results.get("timeline")
-            if isinstance(legacy_timeline, dict):
-                legacy_portfolio = legacy_timeline.get("portfolio")
-                if isinstance(legacy_portfolio, list):
-                    timeline_normalized = legacy_portfolio
-                else:
-                    timeline_normalized = []
-            elif isinstance(legacy_timeline, list):
-                # Rare case where it's already a list at results.level
-                timeline_normalized = legacy_timeline
-            else:
-                timeline_normalized = []
+        timeline_normalized = self._normalize_timeline(results, portfolio_metrics)
+        # Debug hint fields to help the frontend/team diagnose data shape issues
+        response["_timeline_debug_shape"] = {
+            "pm_has_timeline_data": isinstance(portfolio_metrics.get("timeline_data"), list),
+            "pm_has_timeline_list": isinstance(portfolio_metrics.get("timeline"), list),
+            "results_timeline_type": type(results.get("timeline")).__name__,
+            "length": len(timeline_normalized),
+        }
 
         # Build a safe breakdown mapping (guards for missing keys)
         stocks_list = results.get("stocks_picked", []) or []
@@ -545,6 +568,10 @@ class SimulationResultsFormatter:
             response["available_visualizations"] = list(results["visualization_paths"].keys())
         else:
             response["available_visualizations"] = []
+
+        # Final safety: ensure the outgoing timeline is a list
+        if not isinstance(response.get("timeline"), list):
+            response["timeline"] = []
 
         return response
 
