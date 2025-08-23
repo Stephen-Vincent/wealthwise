@@ -121,94 +121,38 @@ export default function DashboardButtons() {
       ).toFixed(2)}%`;
     };
 
-    // CORRECTED: Extract data with proper fallback logic
+    // Extract data based on actual data structure
     console.log("🔍 EXTRACTING DATA FROM PORTFOLIO:");
     console.log("Full portfolioData:", portfolioData);
 
-    // Basic portfolio information - check multiple possible locations
-    const goal =
-      portfolioData?.goal ||
-      portfolioData?.investment_goal ||
-      portfolioData?.results?.goal ||
-      "Investment Goal";
+    // Basic portfolio information - using actual field names from your data
+    const goal = portfolioData?.goal || "Investment Goal";
 
-    const timeframe =
-      portfolioData?.timeframe ||
-      portfolioData?.time_horizon ||
-      portfolioData?.results?.timeframe ||
-      portfolioData?.years ||
-      "Not specified";
+    const timeframe = portfolioData?.timeframe || "Not specified";
 
-    const riskLabel =
-      portfolioData?.risk_label ||
-      portfolioData?.risk_profile ||
-      portfolioData?.results?.risk_label ||
-      "Not specified";
+    const riskLabel = portfolioData?.risk_label || "Not specified";
 
-    const riskScore =
-      portfolioData?.risk_score ||
-      portfolioData?.risk_tolerance ||
-      portfolioData?.results?.risk_score ||
-      "Not calculated";
+    const riskScore = portfolioData?.risk_score || "Not calculated";
 
-    const targetValue =
-      portfolioData?.target_value ||
-      portfolioData?.target_amount ||
-      portfolioData?.goal_amount ||
-      portfolioData?.results?.target_value ||
-      0;
+    const targetValue = portfolioData?.target_value || 0;
 
-    // Financial performance data - check results first, then top level
-    const results = portfolioData?.results || portfolioData;
+    // Financial performance data - using performance_metrics and actual field names
+    const performanceMetrics = portfolioData?.performance_metrics || {};
 
     const totalInvested =
-      results?.starting_value ||
-      results?.initial_investment ||
-      results?.start_value ||
-      portfolioData?.initial_amount ||
-      0;
+      performanceMetrics?.starting_value || portfolioData?.lump_sum || 0;
 
     const portfolioValue =
-      results?.end_value ||
-      results?.final_value ||
-      results?.ending_value ||
-      portfolioData?.final_balance ||
-      portfolioData?.current_value ||
-      0;
+      performanceMetrics?.ending_value || portfolioData?.final_balance || 0;
 
     const rawReturn =
-      results?.return || results?.total_return || portfolioData?.return || 0;
+      performanceMetrics?.total_return || portfolioData?.total_return || 0;
 
-    // Handle return calculation - check if it's already a percentage or decimal
-    let displayedReturn;
-    if (rawReturn > 1) {
-      displayedReturn = rawReturn; // Already a percentage
-    } else if (totalInvested > 0 && portfolioValue > 0) {
-      // Calculate return percentage if we have the values
-      displayedReturn =
-        ((portfolioValue - totalInvested) / totalInvested) * 100;
-    } else {
-      displayedReturn = rawReturn * 100; // Convert decimal to percentage
-    }
+    // Handle return calculation - rawReturn is already a percentage
+    const displayedReturn = rawReturn; // Your data shows 61.31114745630604 which is already percentage
 
-    // Calculate annualized return
-    const annualizedReturn = (() => {
-      if (
-        totalInvested <= 0 ||
-        portfolioValue <= 0 ||
-        !timeframe ||
-        timeframe <= 0
-      ) {
-        return 0;
-      }
-
-      const years =
-        typeof timeframe === "number" ? timeframe : parseFloat(timeframe) || 1;
-
-      // CAGR formula: (End Value / Start Value)^(1/years) - 1
-      const cagr = Math.pow(portfolioValue / totalInvested, 1 / years) - 1;
-      return cagr * 100;
-    })();
+    // Get annualized return from performance metrics
+    const annualizedReturn = performanceMetrics?.annualized_return || 0;
 
     console.log("📊 EXTRACTED VALUES:");
     console.log("Goal:", goal);
@@ -220,19 +164,10 @@ export default function DashboardButtons() {
     console.log("Portfolio Value:", portfolioValue);
     console.log("Raw Return:", rawReturn);
     console.log("Displayed Return:", displayedReturn);
-    console.log(
-      "Calculated Annualized Return:",
-      annualizedReturn.toFixed(2) + "%"
-    );
+    console.log("Annualized Return:", annualizedReturn.toFixed(2) + "%");
 
-    // Handle stocks data - check multiple possible locations
-    const stocks =
-      portfolioData?.stocks_picked ||
-      portfolioData?.portfolio_holdings ||
-      portfolioData?.holdings ||
-      portfolioData?.assets ||
-      portfolioData?.results?.stocks_picked ||
-      [];
+    // Handle stocks data - using stocks_picked from your actual data
+    const stocks = portfolioData?.stocks_picked || portfolioData?.stocks || [];
 
     console.log("📈 STOCKS DATA:", stocks);
 
@@ -317,12 +252,10 @@ export default function DashboardButtons() {
     `
         : "";
 
-    // AI Summary with markdown conversion
+    // AI Summary - check ai_analysis.summary since ai_summary is null in your data
     const aiSummary =
+      portfolioData?.ai_analysis?.summary ||
       portfolioData?.ai_summary ||
-      portfolioData?.summary ||
-      portfolioData?.analysis ||
-      portfolioData?.results?.ai_summary ||
       "Investment analysis not available.";
 
     const formatAISummary = (text) => {
@@ -401,10 +334,9 @@ export default function DashboardButtons() {
 
     // Goal achievement section
     const targetAchieved =
-      portfolioData?.target_achieved ||
-      portfolioData?.goal_achieved ||
-      portfolioData?.results?.target_achieved ||
-      portfolioValue >= targetValue;
+      portfolioData?.target_achieved !== undefined
+        ? portfolioData.target_achieved
+        : portfolioValue >= targetValue;
 
     const goalAchievementSection =
       targetValue > 0
@@ -709,9 +641,7 @@ export default function DashboardButtons() {
               </div>
               <div class="summary-card">
                 <h3>Time Horizon</h3>
-                <div class="value">${timeframe}${
-      typeof timeframe === "number" ? " years" : ""
-    }</div>
+                <div class="value">${timeframe} years</div>
               </div>
               <div class="summary-card">
                 <h3>Risk Profile</h3>
@@ -719,9 +649,7 @@ export default function DashboardButtons() {
               </div>
               <div class="summary-card">
                 <h3>Risk Score</h3>
-                <div class="value">${riskScore}${
-      typeof riskScore === "number" ? "/100" : ""
-    }</div>
+                <div class="value">${riskScore}/100</div>
               </div>
               <div class="summary-card">
                 <h3>Annualized Return</h3>
