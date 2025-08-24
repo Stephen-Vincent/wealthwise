@@ -1,3 +1,9 @@
+/**
+ * This file contains three progress indicator components for tracking user progress in multi-step flows:
+ * - ProgressDots: displays a series of dots indicating the current step.
+ * - ProgressBar: shows a progress bar with percentage and step count.
+ * - NumberedProgressSteps: renders numbered steps with visual indication of progress.
+ */
 import React from "react";
 
 // Progress Dots Component

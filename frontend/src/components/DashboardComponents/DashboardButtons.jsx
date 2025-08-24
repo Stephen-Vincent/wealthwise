@@ -4,6 +4,10 @@
  * Prints a clean investment summary from the data currently in PortfolioContext.
  * This version is defensive against mixed backend shapes and fixes percentage/amount
  * formatting issues that were showing 0.00% / 0.2% allocations in the printout.
+ *
+ * NEW: The AI Investment Analysis section now mirrors the normalization used in
+ * AIPortfolioSummary (string/array/object -> markdown string), then converts a
+ * small subset of markdown to print-friendly HTML so it actually shows up.
  */
 
 import { useState, useEffect } from "react";
@@ -249,67 +253,76 @@ export default function DashboardButtons() {
     `
       : "";
 
-    const aiSummary =
-      portfolioData?.results.ai_analysis?.summary ||
-      portfolioData?.ai_summary ||
-      "Investment analysis not available.";
+    // --- AI Summary (mirror AIPortfolioSummary normalization) ---
+    const aiAnalysisRaw =
+      portfolioData?.ai_analysis ?? portfolioData?.results?.ai_analysis ?? null;
 
+    const normalizeToMarkdown = (value) => {
+      if (value == null) return "";
+      if (typeof value === "string") {
+        // unescape literal "\\n" into real newlines
+        return value.replace(/\\n/g, "\n");
+      }
+      if (Array.isArray(value)) {
+        // join array parts as paragraphs
+        return value.map(normalizeToMarkdown).join("\n\n");
+      }
+      // objects/numbers/bools → pretty JSON as a fenced block
+      try {
+        return "```\n" + JSON.stringify(value, null, 2) + "\n```";
+      } catch {
+        return String(value);
+      }
+    };
+
+    const aiSummaryMarkdown = normalizeToMarkdown(
+      aiAnalysisRaw?.summary ?? aiAnalysisRaw ?? portfolioData?.ai_summary ?? ""
+    );
+
+    // Convert markdown-ish string to simple HTML for printing
     const formatAISummary = (text) => {
-      if (!text) return "";
-      let cleanText = String(text)
-        .replace(/"analysis-[^"]*">/g, "")
-        .replace(/analysis-[a-z]+>/g, "")
-        .trim();
+      const src = (text || "").toString();
+      if (!src.trim())
+        return '<div class="analysis-paragraph">No AI analysis available yet.</div>';
 
-      let htmlText = cleanText
+      let html = src
+        .replace(/\r/g, "")
+        // headings
+        .replace(/^###\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
         .replace(/^##\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
         .replace(/^#\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
+        // bold / italic
         .replace(/\*\*(.*?)\*\*/g, '<strong class="analysis-bold">$1</strong>')
-        .replace(/\*([^*\n]+)\*/g, '<em class="analysis-italic">$1</em>')
-        .replace(/^\s*[\*\-•]\s+(.+)$/gm, '<li class="analysis-bullet">$1</li>')
-        .replace(
-          /[""]([^""]+)[""]?/g,
-          '<span class="analysis-quote">"$1"</span>'
-        )
-        .replace(
-          /^(\d+\.)\s+(.+)$/gm,
-          '<div class="analysis-numbered"><strong>$1</strong> $2</div>'
-        );
+        .replace(/\*(.*?)\*/g, '<em class="analysis-italic">$1</em>')
+        // fenced code blocks
+        .replace(/```([\s\S]*?)```/g, '<pre class="analysis-code">$1</pre>');
 
-      const sections = htmlText.split(/\n\s*\n+/);
-      let formattedText = "";
-      sections.forEach((section) => {
-        let sec = section.trim();
-        if (!sec) return;
-        if (sec.includes('<li class="analysis-bullet">')) {
-          const bulletItems = sec.split("\n").filter((l) => l.trim());
-          const listItems = bulletItems
-            .map((item) =>
-              item.includes('<li class="analysis-bullet">')
-                ? item
-                : `<li class="analysis-bullet">${item}<\/li>`
-            )
-            .join("");
-          formattedText += `<ul class="analysis-list">${listItems}<\/ul>`;
-        } else if (
-          sec.includes("<h3") ||
-          sec.includes('<div class="analysis-numbered">')
-        ) {
-          formattedText += sec;
+      const lines = html.split(/\n+/);
+      const out = [];
+      let inList = false;
+      for (const line of lines) {
+        const m = line.match(/^\s*[-*•]\s+(.+)/);
+        if (m) {
+          if (!inList) {
+            out.push('<ul class="analysis-list">');
+            inList = true;
+          }
+          out.push(`<li class="analysis-bullet">${m[1]}</li>`);
         } else {
-          formattedText += `<div class="analysis-paragraph">${sec}<\/div>`;
+          if (inList) {
+            out.push("</ul>");
+            inList = false;
+          }
+          if (line.trim().startsWith("<h3")) {
+            out.push(line.trim());
+          } else if (line.trim()) {
+            out.push(`<div class="analysis-paragraph">${line.trim()}</div>`);
+          }
         }
-      });
+      }
+      if (inList) out.push("</ul>");
 
-      formattedText = formattedText
-        .replace(/\s+/g, " ")
-        .replace(/>\s+</g, "><")
-        .replace(/analysis-[a-z]+"?>/g, "")
-        .trim();
-
-      return (
-        formattedText || `<div class="analysis-paragraph">${cleanText}<\/div>`
-      );
+      return out.join("");
     };
 
     const targetAchieved =
@@ -364,10 +377,11 @@ export default function DashboardButtons() {
             .ai-summary-card .analysis-numbered { font-size:12px; line-height:1.6; color:#333; margin:8px 0; padding:8px 12px; background:#f8f9fa; border-left:3px solid #00A8FF; border-radius:4px; }
             .ai-summary-card .analysis-list { list-style:none; padding:0; margin:10px 0; }
             .ai-summary-card .analysis-bullet { font-size:12px; line-height:1.5; color:#333; margin:6px 0; padding:4px 0 4px 20px; position:relative; }
-            .ai-summary-card .analysis-bullet:before { content:"•"; color:#00A8FF; font-weight:bold; position:absolute; left:8px; }
+            .ai-summary-card .analysis-bullet:before { content:\"•\"; color:#00A8FF; font-weight:bold; position:absolute; left:8px; }
             .ai-summary-card .analysis-bold { font-weight:bold; color:#00A8FF; }
             .ai-summary-card .analysis-italic { font-style:italic; color:#555; }
             .ai-summary-card .analysis-quote { font-style:italic; color:#666; background:#f0f9ff; padding:2px 6px; border-radius:3px; border-left:2px solid #00A8FF; }
+            .ai-summary-card .analysis-code { font-size:11px; background:#f6f8fa; padding:10px; border-radius:4px; overflow-x:auto; border:1px solid #e1e4e8; }
             @media print { body { font-size:12px; } .header, .summary-section, .portfolio-table { break-inside: avoid; } }
           </style>
         </head>
@@ -439,7 +453,9 @@ export default function DashboardButtons() {
 
           <div class="summary-section">
             <h2 class="section-title">AI Investment Analysis</h2>
-            <div class="ai-summary-card">${formatAISummary(aiSummary)}</div>
+            <div class="ai-summary-card">${formatAISummary(
+              aiSummaryMarkdown
+            )}</div>
           </div>
 
           ${
