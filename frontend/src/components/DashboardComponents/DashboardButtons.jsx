@@ -5,9 +5,12 @@
  * This version is defensive against mixed backend shapes and fixes percentage/amount
  * formatting issues that were showing 0.00% / 0.2% allocations in the printout.
  *
- * NEW: The AI Investment Analysis section now mirrors the normalization used in
- * AIPortfolioSummary (string/array/object -> markdown string), then converts a
- * small subset of markdown to print-friendly HTML so it actually shows up.
+ * Additionally, the "AI Investment Analysis" section now mirrors AIPortfolioSummary:
+ * - Prefer `portfolioData.ai_analysis.summary` (or `.ai_summary`) if present
+ * - Fall back to `results.ai_analysis.summary`
+ * - If given a JSON string or object, extract the `summary`/`ai_summary` field only
+ * - Render markdown to HTML (headings, lists, bold/italic, links, blockquotes)
+ * - Hide the section entirely if no summary is available
  */
 
 import { useState, useEffect } from "react";
@@ -107,6 +110,133 @@ export default function DashboardButtons() {
       iframe.contentWindow.print();
       setTimeout(() => document.body.removeChild(iframe), 1000);
     };
+  };
+
+  // --- tiny markdown → HTML (no external libs in print iframe) ---
+  const mdToHtml = (md) => {
+    if (!md) return "";
+
+    let text = String(md).replace(/\\n/g, "\n").trim();
+
+    // Convert blockquotes
+    text = text.replace(/^>\s?(.*)$/gm, "<blockquote>$1</blockquote>");
+
+    // Headings (# to h3 for visual balance)
+    text = text
+      .replace(/^###\s+(.+)$/gm, "<h4>$1</h4>")
+      .replace(/^##\s+(.+)$/gm, "<h3>$1</h3>")
+      .replace(/^#\s+(.+)$/gm, "<h3>$1</h3>");
+
+    // Bold / Italic
+    text = text
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    // Links [label](url)
+    text = text.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+    // Numbered lists
+    text = text.replace(
+      /^(?:\d+\.)\s+(.+)$/gm,
+      '<li class="analysis-numbered-item">$1</li>'
+    );
+    // Bulleted lists
+    text = text.replace(
+      /^\s*[-*•]\s+(.+)$/gm,
+      '<li class="analysis-bullet">$1</li>'
+    );
+
+    // Wrap consecutive <li> into <ol>/<ul>
+    // For ordered
+    text = text.replace(
+      /(?:<li class="analysis-numbered-item">[\s\S]*?<\/li>)(?=(?:\n|$))/g,
+      (block) => `<ol class="analysis-list">${block}</ol>`
+    );
+    // For unordered
+    text = text.replace(
+      /(?:<li class="analysis-bullet">[\s\S]*?<\/li>)(?=(?:\n|$))/g,
+      (block) => `<ul class="analysis-list">${block}</ul>`
+    );
+
+    // Split into paragraphs (blank lines)
+    const parts = text
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const html = parts
+      .map((p) =>
+        /<(h3|h4|ul|ol|blockquote)/.test(p)
+          ? p
+          : `<p class="analysis-paragraph">${p}</p>`
+      )
+      .join("");
+
+    return html;
+  };
+
+  // Find the AI summary text the same way AIPortfolioSummary does (robustly)
+  const extractAISummaryHTML = (pd) => {
+    if (!pd) return "";
+
+    // Prefer top-level ai_analysis
+    const topAi = pd.ai_analysis;
+    const resAi = pd.results?.ai_analysis;
+
+    // If any string is actually JSON, attempt to parse it
+    const safeParse = (val) => {
+      if (typeof val !== "string") return null;
+      const s = val.trim();
+      if (!(s.startsWith("{") && s.endsWith("}"))) return null;
+      try {
+        return JSON.parse(s);
+      } catch {
+        return null;
+      }
+    };
+
+    // Candidates to search for markdown text
+    const candidates = [
+      topAi?.summary,
+      topAi?.ai_summary, // some payloads use this name
+      resAi?.summary,
+      resAi?.ai_summary,
+      pd.ai_summary, // sometimes incorrectly saved at top-level
+      pd.results?.ai_summary, // very defensive fallback
+    ];
+
+    // If any candidate is a JSON string with ai_summary, extract it
+    for (const c of candidates) {
+      const parsed = safeParse(c);
+      if (parsed && (parsed.summary || parsed.ai_summary)) {
+        const text = parsed.summary || parsed.ai_summary;
+        if (typeof text === "string" && text.trim()) {
+          return mdToHtml(text);
+        }
+      }
+    }
+
+    // If any candidate is already a plain string
+    for (const c of candidates) {
+      if (typeof c === "string" && c.trim()) {
+        return mdToHtml(c);
+      }
+    }
+
+    // If any candidate is an object holding summary/ai_summary
+    for (const c of candidates) {
+      if (c && typeof c === "object") {
+        const text = c.summary || c.ai_summary;
+        if (typeof text === "string" && text.trim()) {
+          return mdToHtml(text);
+        }
+      }
+    }
+
+    // nothing usable
+    return "";
   };
 
   const generatePrintHTML = async () => {
@@ -253,77 +383,8 @@ export default function DashboardButtons() {
     `
       : "";
 
-    // --- AI Summary (mirror AIPortfolioSummary normalization) ---
-    const aiAnalysisRaw =
-      portfolioData?.ai_analysis ?? portfolioData?.results?.ai_analysis ?? null;
-
-    const normalizeToMarkdown = (value) => {
-      if (value == null) return "";
-      if (typeof value === "string") {
-        // unescape literal "\\n" into real newlines
-        return value.replace(/\\n/g, "\n");
-      }
-      if (Array.isArray(value)) {
-        // join array parts as paragraphs
-        return value.map(normalizeToMarkdown).join("\n\n");
-      }
-      // objects/numbers/bools → pretty JSON as a fenced block
-      try {
-        return "```\n" + JSON.stringify(value, null, 2) + "\n```";
-      } catch {
-        return String(value);
-      }
-    };
-
-    const aiSummaryMarkdown = normalizeToMarkdown(
-      aiAnalysisRaw?.summary ?? aiAnalysisRaw ?? portfolioData?.ai_summary ?? ""
-    );
-
-    // Convert markdown-ish string to simple HTML for printing
-    const formatAISummary = (text) => {
-      const src = (text || "").toString();
-      if (!src.trim())
-        return '<div class="analysis-paragraph">No AI analysis available yet.</div>';
-
-      let html = src
-        .replace(/\r/g, "")
-        // headings
-        .replace(/^###\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
-        .replace(/^##\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
-        .replace(/^#\s+(.+)$/gm, '<h3 class="analysis-heading">$1</h3>')
-        // bold / italic
-        .replace(/\*\*(.*?)\*\*/g, '<strong class="analysis-bold">$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em class="analysis-italic">$1</em>')
-        // fenced code blocks
-        .replace(/```([\s\S]*?)```/g, '<pre class="analysis-code">$1</pre>');
-
-      const lines = html.split(/\n+/);
-      const out = [];
-      let inList = false;
-      for (const line of lines) {
-        const m = line.match(/^\s*[-*•]\s+(.+)/);
-        if (m) {
-          if (!inList) {
-            out.push('<ul class="analysis-list">');
-            inList = true;
-          }
-          out.push(`<li class="analysis-bullet">${m[1]}</li>`);
-        } else {
-          if (inList) {
-            out.push("</ul>");
-            inList = false;
-          }
-          if (line.trim().startsWith("<h3")) {
-            out.push(line.trim());
-          } else if (line.trim()) {
-            out.push(`<div class="analysis-paragraph">${line.trim()}</div>`);
-          }
-        }
-      }
-      if (inList) out.push("</ul>");
-
-      return out.join("");
-    };
+    // Build AI Summary HTML (mirrors AIPortfolioSummary behavior)
+    const aiSummaryHTML = extractAISummaryHTML(portfolioData);
 
     const targetAchieved =
       portfolioData?.target_achieved !== undefined
@@ -369,20 +430,22 @@ export default function DashboardButtons() {
             .disclaimer { background:#fff3cd; border:1px solid #ffeaa7; border-radius:5px; padding:15px; margin-top:20px; }
             .disclaimer h4 { color:#856404; margin-bottom:10px; font-size:14px; }
             .disclaimer p { color:#856404; font-size:11px; line-height:1.4; }
+
+            /* AI Summary styles */
             .ai-summary-card { background:#e8f4fd; border:1px solid #00A8FF; border-radius:8px; padding:20px; margin-bottom:20px; }
-            .ai-summary-card .analysis-heading { font-size:16px; font-weight:bold; color:#00A8FF; margin:20px 0 10px 0; padding-bottom:5px; border-bottom:2px solid #00A8FF; }
-            .ai-summary-card .analysis-heading:first-child { margin-top:0; }
-            .ai-summary-card .analysis-subheading { font-size:14px; font-weight:bold; color:#0056b3; margin:15px 0 8px 0; }
-            .ai-summary-card .analysis-paragraph { font-size:12px; line-height:1.6; color:#333; margin:0 0 12px 0; text-align:justify; }
-            .ai-summary-card .analysis-numbered { font-size:12px; line-height:1.6; color:#333; margin:8px 0; padding:8px 12px; background:#f8f9fa; border-left:3px solid #00A8FF; border-radius:4px; }
-            .ai-summary-card .analysis-list { list-style:none; padding:0; margin:10px 0; }
-            .ai-summary-card .analysis-bullet { font-size:12px; line-height:1.5; color:#333; margin:6px 0; padding:4px 0 4px 20px; position:relative; }
-            .ai-summary-card .analysis-bullet:before { content:\"•\"; color:#00A8FF; font-weight:bold; position:absolute; left:8px; }
-            .ai-summary-card .analysis-bold { font-weight:bold; color:#00A8FF; }
-            .ai-summary-card .analysis-italic { font-style:italic; color:#555; }
-            .ai-summary-card .analysis-quote { font-style:italic; color:#666; background:#f0f9ff; padding:2px 6px; border-radius:3px; border-left:2px solid #00A8FF; }
-            .ai-summary-card .analysis-code { font-size:11px; background:#f6f8fa; padding:10px; border-radius:4px; overflow-x:auto; border:1px solid #e1e4e8; }
-            @media print { body { font-size:12px; } .header, .summary-section, .portfolio-table { break-inside: avoid; } }
+            .ai-summary-card h3 { font-size:16px; font-weight:bold; color:#00A8FF; margin:18px 0 10px; }
+            .ai-summary-card h4 { font-size:14px; font-weight:bold; color:#0056b3; margin:14px 0 8px; }
+            .ai-summary-card .analysis-paragraph { font-size:12px; line-height:1.7; color:#333; margin:0 0 10px 0; text-align:justify; }
+            .ai-summary-card .analysis-list { margin:8px 0 12px 18px; }
+            .ai-summary-card .analysis-list li { font-size:12px; margin:6px 0; }
+            .ai-summary-card blockquote { border-left:3px solid #00A8FF; background:#f0f9ff; padding:8px 12px; margin:10px 0; font-style:italic; color:#555; }
+            .ai-summary-card a { color:#0056b3; text-decoration:underline; }
+
+            @media print {
+              body { font-size:12px; }
+              .header, .summary-section, .portfolio-table { break-inside: avoid; }
+              .ai-summary-card { break-inside: avoid; }
+            }
           </style>
         </head>
         <body>
@@ -451,12 +514,17 @@ export default function DashboardButtons() {
               : ""
           }
 
+          ${
+            aiSummaryHTML
+              ? `
           <div class="summary-section">
             <h2 class="section-title">AI Investment Analysis</h2>
-            <div class="ai-summary-card">${formatAISummary(
-              aiSummaryMarkdown
-            )}</div>
-          </div>
+            <div class="ai-summary-card">
+              ${aiSummaryHTML}
+            </div>
+          </div>`
+              : ""
+          }
 
           ${
             targetValue > 0
