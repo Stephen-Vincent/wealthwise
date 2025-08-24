@@ -443,8 +443,10 @@ export default function DashboardButtons() {
 
             @media print {
               body { font-size:12px; }
-              .header, .summary-section, .portfolio-table { break-inside: avoid; }
-              .ai-summary-card { break-inside: avoid; }
+              /* Keep header and tables intact, but allow the AI analysis to flow across pages */
+              .header, .portfolio-table { break-inside: avoid; }
+              .summary-section { break-inside: auto; page-break-inside: auto; }
+              .ai-summary-card { break-inside: auto; page-break-inside: auto; }
             }
           </style>
         </head>
