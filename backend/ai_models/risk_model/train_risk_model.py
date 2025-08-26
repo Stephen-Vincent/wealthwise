@@ -1,3 +1,61 @@
+"""
+train_risk_model.py — Train and persist the WealthWise risk scoring model.
+
+Overview
+--------
+This script trains a supervised regression model that predicts a user's numeric
+risk score (1–100) from questionnaire + financial features. The target
+`risk_score` is taken directly from the dataset—no recalculation is performed.
+
+Data
+----
+- Input CSV: ./training_data/complete_risk_dataset.csv
+- Target (y): risk_score
+- Features (X):
+  • Categorical: loss_tolerance, panic_behavior, financial_behavior,
+                 engagement_level, investment_goal, income
+  • Numerical:   years_of_experience, timeframe, target_amount,
+                 lump_sum_investment, monthly_investment
+
+Pipeline
+--------
+- Preprocessing via ColumnTransformer:
+  • OneHotEncoder(handle_unknown="ignore") for categorical columns
+  • StandardScaler() for numerical columns
+- Estimator: XGBRegressor (n_estimators=200, learning_rate=0.05, max_depth=6,
+                           subsample=0.8, colsample_bytree=0.8, random_state=42)
+- All steps are wrapped in a single scikit-learn Pipeline so that training and
+  inference use identical transformations.
+
+Training & Evaluation
+---------------------
+- Train/test split: 80/20, random_state=42
+- Metrics (on the test set): MSE and R² (reported on predictions clamped to
+  [1, 100] for safe display). Raw prediction range is printed for diagnostics.
+- The script also:
+  • Prints NaN/Inf counts for basic data health checks
+  • Shows five sample predictions spanning the distribution
+  • Buckets predicted scores into labels:
+      Ultra Conservative (<30), Conservative (30–<50), Moderate (50–<70),
+      Moderate Aggressive (70–<85), Aggressive (>=85)
+  • Logs the label distribution for sanity-checking class balance
+  • Runs two "extreme profile" predictions (very conservative vs very aggressive)
+    to verify the model spans the risk spectrum
+
+Output
+------
+- Persists the trained Pipeline (preprocessing + model) to:
+    ./enhanced_model.pkl
+  Consumers can load this pickle and call `predict()` directly with a DataFrame
+  containing the same column schema as the training data.
+
+Maintenance Notes
+-----------------
+- If the dataset schema changes (column names or categories), update the
+  `categorical_features` and `numerical_features` lists accordingly.
+- `RandomForestRegressor` and `math` were previously imported but unused and
+  have been removed in this version.
+"""
 import pandas as pd
 import os
 import pickle
@@ -5,11 +63,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import numpy as np
-import math
 
 # FIXED: Use correct path where data generator saves the file
 data_path = os.path.join(os.path.dirname(__file__), "training_data", "complete_risk_dataset.csv")

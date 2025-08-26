@@ -152,10 +152,8 @@ def setup_cors():
         "https://wealthwise-git-main-stephen-vincents-projects.vercel.app", 
         "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
         "https://wealthwise-6hl28l023-stephen-vincents-projects.vercel.app",
-        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app",
-        
-        # Wildcard pattern for all Vercel deployments
-        "https://*.vercel.app"
+        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"
+        # Wildcard pattern removed as per instructions
     ]
     
     # Combine all origins
@@ -191,8 +189,8 @@ def setup_cors():
         allow_origins=all_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["*"],
-        expose_headers=["*"]
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"],
+        expose_headers=["Content-Length", "Content-Type"]
     )
     
     logger.info(f"CORS configured for origins: {all_origins}")
@@ -212,36 +210,48 @@ except Exception as e:
 @app.middleware("http")
 async def add_cors_to_errors(request, call_next):
     """Ensure CORS headers are present on all responses, including errors"""
-    response = await call_next(request)
-    
+    # Define allowed headers and methods as variables
+    allowed_headers_value = "Authorization, Content-Type, X-Requested-With, Accept, Origin"
+    allowed_methods_value = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+
     # Get origin from request
     origin = request.headers.get("origin")
-    
+
+    # Updated allowed origins list to match current deployments
+    allowed_origins = [
+        # Development
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        # All current Vercel deployments
+        "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-six-gamma.vercel.app",
+        "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
+        "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"
+    ]
+
+    # Handle preflight requests explicitly so browsers see the right headers
+    if request.method == "OPTIONS" and origin and (origin in allowed_origins or origin.endswith(".vercel.app")):
+        preflight = Response(status_code=204)
+        preflight.headers["Access-Control-Allow-Origin"] = origin
+        preflight.headers["Access-Control-Allow-Credentials"] = "true"
+        preflight.headers["Access-Control-Allow-Methods"] = allowed_methods_value
+        preflight.headers["Access-Control-Allow-Headers"] = allowed_headers_value
+        return preflight
+
+    response = await call_next(request)
+
     # Add CORS headers to all responses (including errors)
     if origin:
-        # Updated allowed origins list to match current deployments
-        allowed_origins = [
-            # Development
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5173",
-            
-            # All current Vercel deployments
-            "https://wealthwise-qfjdrpesk-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-c3jjtfc2i-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-six-gamma.vercel.app",
-            "https://wealthwise-git-main-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-1uf20iu4j-stephen-vincents-projects.vercel.app",
-            "https://wealthwise-gnayglrqo-stephen-vincents-projects.vercel.app"
-        ]
-        
         if origin in allowed_origins or origin.endswith(".vercel.app"):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-    
+            response.headers["Access-Control-Allow-Methods"] = allowed_methods_value
+            response.headers["Access-Control-Allow-Headers"] = allowed_headers_value
+
     return response
 
 

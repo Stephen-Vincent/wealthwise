@@ -1,8 +1,31 @@
 """
-Complete Risk Assessment Dataset Generator
-Generates a comprehensive training dataset with full 1-100 risk score range
-Updated with improved scoring methodology for better AI training
+Synthetic Risk Assessment Dataset Generator
+-------------------------------------------
+Purpose:
+    Generates a synthetic dataset for training risk assessment models, covering the full 1-100 risk score range.
+    The output is designed for use in financial AI applications, especially for profiling user risk tolerance.
+
+How it works:
+    - Simulates user profiles by combining behavioral, financial, and demographic factors.
+    - Each synthetic profile is assigned values for experience, loss tolerance, panic behavior, financial habits, engagement, goals, income, investment amounts, and timeframes.
+    - These factors are mapped to a comprehensive scoring system, with domain-informed weights and modifiers, to calculate a realistic risk score for each profile.
+    - Scores are mapped and balanced to ensure robust coverage across the full risk spectrum.
+
+Distribution Balancing:
+    - Explicitly generates targeted samples for each risk category:
+        - Ultra Conservative (lowest risk, e.g. score 1-25)
+        - Conservative (score 25-45)
+        - Moderate (score 45-65)
+        - Aggressive (score 65-80)
+        - Ultra Aggressive (highest risk, score 80-100)
+    - Ensures the dataset is not skewed, providing a representative and balanced distribution for model training.
+
+Outputs:
+    - Writes a CSV file containing all generated user profiles and their computed risk scores.
+    - Prints summary statistics and risk category distributions for validation and inspection.
+    - Sample data preview is displayed for quick verification.
 """
+
 
 import pandas as pd
 import numpy as np
