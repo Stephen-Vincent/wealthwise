@@ -1,3 +1,41 @@
+/**
+ * stockInfoAPI.js
+ * -----------------------------------------------------------------------------
+ * Purpose:
+ *   Centralized utilities for fetching and enriching stock/ETF information used
+ *   across the app. Provides a resilient, cached API that prefers fast local
+ *   lookups and gracefully falls back to external providers when available.
+ *
+ * What it contains:
+ *   - StockInfoAPI class:
+ *       • In‑memory caching (1‑hour TTL) to reduce network calls.
+ *       • An enhanced local database for instant, offline-friendly lookups of
+ *         known symbols (e.g., QQQ, VGT, ARKK, VWO, etc.).
+ *       • Integrations with multiple providers (Alpha Vantage, FMP, Finnhub)
+ *         with robust error handling and rate‑limit safe sequencing.
+ *       • Helper methods to infer sector/category/risk for unknown symbols.
+ *       • Batch retrieval (getBatchStockInfo) with paced requests when using
+ *         external APIs, while skipping delays for local database reads.
+ *       • Fallback strategy:
+ *           1) Try cache
+ *           2) Try local enhanced database (instant)
+ *           3) Try enabled external APIs (if keys present)
+ *           4) Use a smart fallback with guessed metadata
+ *
+ *   - enhancePortfolioWithAPI(portfolioData):
+ *       • Takes a simulation/portfolio payload and enriches each picked stock
+ *         with the freshest info (price, name, data source, etc.).
+ *       • Preserves original allocation values and annotates results with
+ *         metadata (sources used, last update time).
+ *
+ * Notes:
+ *   - This module favors resiliency and UX over strict real‑time quotes.
+ *   - If you need to invalidate stored quotes (e.g., on sign‑out), call
+ *     StockInfoAPI#clearCache().
+ *   - There are two Alpha Vantage implementations in this file for historical
+ *     reasons. They return equivalent shapes, but consider consolidating them
+ *     in a future cleanup to avoid duplication.
+ */
 // utils/stockInfoAPI.js - Enhanced with Better Fallbacks
 
 class StockInfoAPI {
@@ -331,7 +369,7 @@ class StockInfoAPI {
     }
   }
 
-  // 3. Alpha Vantage - Your existing implementation (improved)
+  // 3. Alpha Vantage
   async getAlphaVantageData(symbol) {
     if (
       !this.apis.alphaVantage.enabled ||
@@ -453,60 +491,6 @@ class StockInfoAPI {
       isETF: this.isETF(symbol),
       confidence: "Medium",
     };
-  }
-
-  // Alpha Vantage - simplified and more robust
-  async getAlphaVantageData(symbol) {
-    if (!this.apis.alphaVantage.key || this.apis.alphaVantage.key === "demo") {
-      throw new Error("Alpha Vantage API key required");
-    }
-
-    try {
-      const quoteUrl = `${this.apis.alphaVantage.baseURL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.apis.alphaVantage.key}`;
-
-      const response = await fetch(quoteUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Check for API errors
-      if (data.Note || data["Error Message"] || data.Information) {
-        throw new Error(
-          data.Note ||
-            data["Error Message"] ||
-            data.Information ||
-            "API limit reached"
-        );
-      }
-
-      const quote = data["Global Quote"];
-      if (!quote || Object.keys(quote).length === 0) {
-        throw new Error("No quote data returned from Alpha Vantage");
-      }
-
-      const price = parseFloat(quote["05. price"]) || 0;
-      const change = parseFloat(quote["09. change"]) || 0;
-      const changePercent =
-        parseFloat(quote["10. change percent"]?.replace("%", "")) || 0;
-
-      return {
-        symbol: symbol.toUpperCase(),
-        name: symbol.toUpperCase(), // Alpha Vantage doesn't provide full names
-        price: price,
-        change: change,
-        changePercent: changePercent,
-        volume: parseInt(quote["06. volume"]) || 0,
-        previousClose: parseFloat(quote["08. previous close"]) || 0,
-        sector: this.guessSectorFromSymbol(symbol),
-        dataSource: "Alpha Vantage",
-        lastUpdated:
-          quote["07. latest trading day"] || new Date().toISOString(),
-      };
-    } catch (error) {
-      throw new Error(`Alpha Vantage failed: ${error.message}`);
-    }
   }
 
   // Batch processing with rate limiting and better error handling

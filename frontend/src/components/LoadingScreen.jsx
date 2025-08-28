@@ -1,3 +1,12 @@
+/**
+ * LoadingScreen.jsx
+ *
+ * This component serves as the loading screen for WealthWise.
+ * It displays animated progress and cycling status messages while the AI creates the user's personalized portfolio.
+ * The component manages navigation timing, ensuring that the user is only redirected to the dashboard after all required data
+ * is loaded and a minimum display duration is reached. It provides smooth progress animations and handles fallback and emergency
+ * navigation scenarios to avoid stuck states, while offering clear feedback throughout the loading process.
+ */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortfolio } from "../context/PortfolioContext";

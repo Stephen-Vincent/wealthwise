@@ -1,3 +1,13 @@
+/*
+  App.css - Global Styles for Wealthwise App
+  ------------------------------------------
+  This file provides global CSS styles for the Wealthwise application.
+  It includes:
+    - Layout settings for the root container.
+    - Logo styles and spin/hover animations.
+    - Card and documentation text styling.
+    - Custom pulse animation effects for charts and chart target dots.
+*/
 #root {
   max-width: 1280px;
   margin: 0 auto;

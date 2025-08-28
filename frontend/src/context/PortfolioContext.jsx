@@ -1,5 +1,15 @@
+/**
+ * PortfolioContext.jsx
+ *
+ * This file defines a React Context and Provider for managing portfolio-related state,
+ * handling API calls, and storing simulation data across the WealthWise app.
+ * It centralizes the logic for fetching, updating, and providing portfolio and simulation data,
+ * as well as user authentication and loading/error states, making this information
+ * accessible to any component in the app tree.
+ */
 // Enhanced PortfolioContext - Centralized data management for all portfolio-related data
-import React, { createContext, useEffect, useState, useCallback } from "react";
+
+import { createContext, useEffect, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 const PortfolioContext = createContext();

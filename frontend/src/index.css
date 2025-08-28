@@ -1,3 +1,13 @@
+/**
+ * index.css
+ *
+ * This file sets up Tailwind CSS base, components, and utilities for the project.
+ * It also defines custom @font-face rules for the "Cabin Condensed" font family,
+ * loading various font weights and styles from local assets.
+ * Additionally, it applies global background and font styling for the html and body,
+ * including a linear gradient background, fallback for non-supporting browsers,
+ * and sets the default font family.
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -1,3 +1,21 @@
+/**
+ * WelcomeScreen Component
+ * ----------------------
+ * Displays a personalized welcome screen for logged-in users.
+ *
+ * Props:
+ *   - onBack: function to call when the user logs out (navigates back to main welcome)
+ *   - userName: string (user's name for greeting)
+ *   - onShowOnboarding: function to show onboarding/new simulation (optional)
+ *   - onShowSimulations: function to show user's simulations (optional)
+ *
+ * Key Behavior:
+ *   - Fade-in effect on mount for smooth UX.
+ *   - Checks if the user has existing investment simulations via API call.
+ *   - Displays "View My Simulations" if there are simulations; always shows "Start New Simulation".
+ *   - Handles navigation via optional callback props or falls back to route navigation.
+ *   - Handles logout, clears auth info, and calls onBack after fade-out.
+ */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 

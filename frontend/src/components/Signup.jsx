@@ -1,3 +1,22 @@
+/**
+ * Signup Component
+ *
+ * Purpose:
+ *   Renders a sign-up form for new users to create an account.
+ *   Handles form state, input changes, submission to the backend, and error display.
+ *   After successful signup, it switches to the login panel.
+ *
+ * Main Features:
+ *   - Collects user's name, email, and password.
+ *   - Validates required fields.
+ *   - Submits user data to the backend API for account creation.
+ *   - Displays error messages on failure.
+ *   - Provides navigation to login and back to the welcome screen.
+ *
+ * Props:
+ *   - onBack: Function to call when the user wants to return to the welcome screen.
+ *   - onShowLogin: Function to call to show the login panel (after successful signup or when clicking "Log In").
+ */
 import { useState } from "react";
 
 // Modified Signup component to work with panel system

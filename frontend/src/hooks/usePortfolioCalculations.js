@@ -1,3 +1,20 @@
+/**
+ * usePortfolioCalculations
+ * ------------------------
+ * This React custom hook calculates key portfolio metrics such as:
+ * - Final balance
+ * - Total invested
+ * - Gain/loss
+ * - Total and annualized returns
+ * - Target achievement status
+ *
+ * It normalizes various timeline data shapes (arrays, legacy objects, nested structures)
+ * to ensure consistent calculations. Where possible, it prefers backend-calculated values
+ * (from API responses), but will fall back to local calculations if those are unavailable.
+ *
+ * The hook returns both the calculated portfolio metrics and the target achievement status,
+ * making it suitable for dashboards, summaries, or goal-tracking portfolio features.
+ */
 // hooks/usePortfolioCalculations.js
 import { useMemo } from "react";
 import { formatCurrency } from "../utils/portfolioCalculations";

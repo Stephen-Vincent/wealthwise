@@ -1,5 +1,15 @@
+/**
+ * PasswordResetConfirm.jsx
+ *
+ * This component provides the password reset confirmation page.
+ * It verifies the reset token (via `/auth/verify-reset-token`), allows the user to set a new password,
+ * and validates password strength using several criteria (length, uppercase, lowercase, number, special character).
+ * The component handles different states: loading (token verification), invalid/expired token,
+ * successful reset, and the reset form itself.
+ * The password reset action is performed via the `/auth/reset-password` endpoint.
+ */
 // src/components/PasswordResetConfirm.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import wealthwiseLogo from "../assets/wealthwise.png";
 

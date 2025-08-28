@@ -1,3 +1,16 @@
+/**
+ * Dashboard.jsx
+ * --------------
+ * Main Dashboard component for the WealthWise application.
+ *
+ * - Pulls portfolio data and related information from context.
+ * - Manages loading and error states for robust user experience.
+ * - Handles sidebar navigation and integrates scroll navigation via refs for each key section.
+ * - Renders the main dashboard sections: summary cards, portfolio graphs, SHAP (AI explainability) analysis,
+ *   AI portfolio summary, stock pie chart, and dashboard action buttons.
+ * - Integrates a responsive sidebar with toggling for mobile/desktop layouts.
+ * - Provides enhanced feedback when SHAP (explainable AI) data is available, and includes development/debug panels.
+ */
 import { useRef, useState, useEffect } from "react";
 import Sidebar from "./DashboardComponents/Sidebar";
 import Header from "./DashboardComponents/Header";

@@ -1,14 +1,8 @@
 // test_shap.js - Frontend SHAP Testing Utility
-// Save this as a separate file in your frontend project and import it for testing
 
 /**
  * 🧪 Comprehensive SHAP Testing Suite for Frontend
- *
- * Usage:
- * 1. Save this file as test_shap.js in your frontend project
- * 2. Import it: import { testShapData, monitorShapRequests } from './test_shap.js'
- * 3. Run tests in your console or component
- */
+
 
 // =============================================================================
 // MAIN SHAP TESTING FUNCTIONS

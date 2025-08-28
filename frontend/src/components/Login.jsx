@@ -1,3 +1,13 @@
+/**
+ * Login Component
+ *
+ * This component provides the login form for users to authenticate into the application.
+ * It manages the state of the login form fields (email and password), handles form submission,
+ * and interacts with the backend API to perform authentication. On successful login, it stores
+ * the user information and access token in localStorage, and triggers a callback to show the
+ * welcome screen. The component also handles navigation callbacks for sign up, forgot password,
+ * and back to the welcome screen.
+ */
 import { useState, useEffect } from "react";
 
 export default function Login({

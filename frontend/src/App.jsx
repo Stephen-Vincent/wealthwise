@@ -1,3 +1,11 @@
+/**
+ * App.jsx
+ * --------------
+ * The App component sets up the main routing for the Wealthwise app.
+ * - Wraps the app with PortfolioProvider to provide portfolio context.
+ * - Defines routes for Landing, Auth, Dashboard, Simulations, Password Reset, and Loading screens.
+ * - Ensures a consistent layout with min-h-screen styling for full viewport coverage.
+ */
 import Simulations from "./components/Simulations";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingScreen from "./components/LandingScreen";

@@ -1,3 +1,11 @@
+/**
+ * LandingScreen component serves as the main entry point for the WealthWise application.
+ * It manages the display and transitions between different panels such as login, signup,
+ * welcome screen, onboarding, loading, and simulations. It handles user authentication
+ * state, animated panel transitions, and navigation logic based on user interaction and
+ * login status.
+ */
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/wealthwise.png";

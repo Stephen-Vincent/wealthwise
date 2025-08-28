@@ -1,3 +1,10 @@
+/**
+ * Sidebar component for the dashboard.
+ * - Renders the sidebar navigation for the dashboard.
+ * - Provides navigation between sections of the dashboard using refs.
+ * - Includes action buttons for Logout, New Simulation, and View All Simulations.
+ * - Uses helper functions to format labels and display icons for each section.
+ */
 import logo from "../../assets/wealthwise.png";
 import { useNavigate } from "react-router-dom";
 

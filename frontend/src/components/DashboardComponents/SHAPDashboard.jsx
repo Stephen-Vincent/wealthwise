@@ -1,5 +1,24 @@
+/**
+ * SHAPDashboard.jsx
+ * ------------------
+ * High‑level dashboard for explaining AI portfolio recommendations (SHAP-based).
+ *
+ * What it does:
+ * - Reads `portfolioData`, `shapData`, `hasShapData`, `chartData`, `loading`, `error` from PortfolioContext.
+ * - Renders three tabs (Overview, Key Factors, AI Insights) showing:
+ *    • Overview: confidence, quality, risk and goal progress, plus human‑readable SHAP explanations.
+ *    • Key Factors: a feature‑importance bar chart (Recharts) and factor impact cards.
+ *    • AI Insights: concise takeaways driven by SHAP and chart metadata.
+ * - Handles mixed backend shapes safely (e.g., final balance present in multiple places).
+ * - Gracefully degrades when SHAP or charts are missing.
+ *
+ * Cleanup:
+ * - Removed unused helper `ensureArray`.
+ * - Removed unused `enhancedData` from context destructure.
+ * - Removed unused local `methodology` variable.
+ */
 // Complete SHAPDashboard component using PortfolioContext
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -8,9 +27,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Area,
-  AreaChart,
-  Legend,
   Cell,
 } from "recharts";
 import {
@@ -22,7 +38,6 @@ import {
   Lightbulb,
   Star,
   Trophy,
-  Activity,
 } from "lucide-react";
 import { usePortfolio } from "../../context/PortfolioContext";
 
@@ -31,8 +46,6 @@ const toNumber = (v, def = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : def;
 };
-
-const ensureArray = (val) => (Array.isArray(val) ? val : []);
 
 const getEndingValue = (pd) => {
   if (!pd) return 0;
@@ -54,15 +67,8 @@ const getEndingValue = (pd) => {
 };
 
 const SHAPDashboard = () => {
-  const {
-    portfolioData,
-    shapData,
-    hasShapData,
-    chartData,
-    enhancedData,
-    loading,
-    error,
-  } = usePortfolio();
+  const { portfolioData, shapData, hasShapData, chartData, loading, error } =
+    usePortfolio();
 
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -180,7 +186,6 @@ const SHAPDashboard = () => {
 // Summary Tab - Fixed target progress calculation
 const SummaryTab = ({ shapData, portfolioData, chartData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
-  const methodology = shapData?.methodology || "SHAP Analysis";
   const portfolioQualityScore = shapData?.portfolio_quality_score || 85;
 
   // Calculate correct target progress

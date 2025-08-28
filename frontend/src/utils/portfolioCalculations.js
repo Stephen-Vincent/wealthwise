@@ -1,5 +1,6 @@
-// utils/portfolioCalculations.js
-// Centralized portfolio calculation utilities
+// Utility file centralizing portfolio calculation and formatting logic,
+// including return calculations, currency/percentage formatting,
+// and goal achievement status checks.
 
 /**
  * Calculate all portfolio return metrics consistently

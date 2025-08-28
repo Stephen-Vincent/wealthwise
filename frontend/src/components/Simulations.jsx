@@ -1,3 +1,23 @@
+/**
+ * Simulations Component
+ * ---------------------
+ * The Simulations component displays a user's list of saved portfolio simulations,
+ * providing features for searching, filtering (by goal, risk, achievement), and sorting.
+ * It fetches simulation data for the current user from the backend API using an auth token,
+ * and supports deleting simulations or loading one into the main portfolio context.
+ *
+ * Main Functionality:
+ * - Fetches all simulations for the current user on mount and when userId changes.
+ * - Allows users to search, filter, and sort their simulations.
+ * - Displays simulation details in a scrollable list with delete and load actions.
+ * - Provides a loading state, error handling, and a back button for navigation.
+ *
+ * State/Context Interaction:
+ * - Uses useState for UI state (filters, loading, error, etc.).
+ * - Uses usePortfolio context to update the global portfolio data when a simulation is loaded.
+ * - Reads user and authentication data from localStorage.
+ * - Calls onShowLoading prop to trigger loading panel when a simulation is loaded.
+ */
 import { useEffect, useState, useMemo } from "react";
 import { usePortfolio } from "../context/PortfolioContext";
 

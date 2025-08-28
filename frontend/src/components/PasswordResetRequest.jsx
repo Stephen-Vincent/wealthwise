@@ -1,5 +1,13 @@
+/**
+ * PasswordResetRequest.jsx
+ *
+ * This component renders the password reset request page.
+ * It manages email input, sends a reset request to the API,
+ * and displays loading, error, and success states.
+ * Users can navigate back to login or retry with a different email upon success.
+ */
 // src/components/PasswordResetRequest.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import wealthwiseLogo from "../assets/wealthwise.png";
 

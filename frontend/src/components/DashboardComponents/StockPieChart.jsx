@@ -1,3 +1,28 @@
+/**
+ * StockPieChart.jsx — Portfolio Allocation (Pie) with Enhanced Instrument Details
+ *
+ * What this component does:
+ * - Reads the user's `portfolioData` from `PortfolioContext` and normalizes multiple possible
+ *   backend shapes (`results.stocks_picked`, `stocks_picked`, or `stocks`) into a single list.
+ * - Enhances each holding with richer metadata (name, sector, category, price, etc.) by calling
+ *   a batch method on `StockInfoAPI`. If the API fails, it transparently falls back to a basic
+ *   representation so the UI still renders.
+ * - Aggregates per-category totals (allocation %, count, and list of holdings) using an
+ *   opinionated `ENHANCED_CATEGORY_CONFIG` (color, label, icon, description).
+ * - Renders:
+ *     1) A 3D Pie chart (react-google-charts) for allocation by instrument.
+ *     2) A category summary card that shows category share and descriptions.
+ *     3) A scrollable “Individual Holdings” list with quick stats and badges.
+ *     4) A details modal for a selected holding with API-enhanced fields and AI explanation.
+ *
+ * Resilience & safety:
+ * - All inbound values are coerced via helpers (`toNumber`, `toStringSafe`) to avoid `NaN`/nulls.
+ * - Defensive checks around arrays/objects ensure no `.slice`/`.map` errors on malformed data.
+ * - Provides user-friendly loading states and an API status pill (loading/success/fallback).
+ *
+ * Dependencies: react-google-charts, PortfolioContext, StockInfoAPI, Tailwind utility classes.
+ * Props: none. The component relies on context only.
+ */
 import { useEffect, useState, useContext } from "react";
 import { Chart } from "react-google-charts";
 import PortfolioContext from "../../context/PortfolioContext";

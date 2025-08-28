@@ -48,4 +48,5 @@ xgboost==2.1.1
 textblob==0.18.0
 shap==0.45.0
 matplotlib==3.8.4
-seaborn==0.13.2
+seaborn==0.13.2scikit-learn==1.5.2
+xgboost==2.1.1

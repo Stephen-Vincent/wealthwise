@@ -1,8 +1,50 @@
-import React, { useState, useEffect } from "react";
+/**
+ * OnboardingForm.jsx
+ * ---------------------------------------------
+ * Multi‑step onboarding wizard used to collect inputs for building an
+ * AI‑assisted investment portfolio. The component:
+ *
+ * 1) Manages step-by-step questions (experience, behavior, goal, target,
+ *    contributions, timeframe, income) with validation per step.
+ * 2) Uses animated transitions and a greeting screen, plus a toast-style
+ *    validation error shown via a React portal.
+ * 3) Reads the logged-in user from localStorage, then POSTs the normalized
+ *    payload to the backend `/onboarding/` endpoint with the stored access
+ *    token.
+ * 4) Immediately triggers the parent-provided `onShowLoading` callback to
+ *    display a loading screen while the API request runs.
+ * 5) On success, persists the returned simulation to localStorage and updates
+ *    the global portfolio context via `usePortfolio().setPortfolioData`.
+ * 6) Exposes navigation controls (prev/next arrows), progress dots, and a
+ *    final consent/submit screen.
+ *
+ * Props:
+ * - onBack:        function called when the user navigates back from the first step.
+ * - onShowLoading: function called right before the API call to show a loading view.
+ *
+ * Key State:
+ * - step, fade, isLoading, isVisible: control flow & animations
+ * - formData: collected answers for all questions
+ * - errorMessage/showError: transient validation messaging (portal toast)
+ *
+ * External Dependencies:
+ * - lucide-react icons (ArrowLeft, ArrowRight, AlertCircle)
+ * - ProgressDots display component
+ * - PortfolioContext via `usePortfolio`
+ *
+ * Notes:
+ * - All validations are performed inline in `nextStep` and `handleSubmit`.
+ * - The component is mobile-friendly and uses Tailwind classes with small
+ *   utility CSS keyframes declared inline for entry animations.
+ */
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import ProgressDots from "../components/CustomComponents/ProgressDots";
 import { usePortfolio } from "../context/PortfolioContext";
+
+// The onboarding form now waits for web fonts to finish loading before rendering
+// to prevent a flash of unstyled text (FOUT).
 
 // Main onboarding form component
 const OnboardingForm = ({ onBack, onShowLoading }) => {
@@ -12,6 +54,7 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showError, setShowError] = useState(false);
+  const [fontsReady, setFontsReady] = useState(false);
 
   // Local state to capture all onboarding form fields
   const [formData, setFormData] = useState({
@@ -62,6 +105,22 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       clearTimeout(fadeInTimer);
       clearTimeout(greetingTimer);
     };
+  }, []);
+
+  // Wait for web fonts to finish loading to avoid FOUT (flash of unstyled text)
+  useEffect(() => {
+    if (
+      typeof document !== "undefined" &&
+      document.fonts &&
+      document.fonts.ready
+    ) {
+      document.fonts.ready
+        .then(() => setFontsReady(true))
+        .catch(() => setFontsReady(true));
+    } else {
+      // If the Font Loading API isn't available, proceed immediately
+      setFontsReady(true);
+    }
   }, []);
 
   // Auto-hide error messages after 4 seconds
@@ -597,129 +656,146 @@ const OnboardingForm = ({ onBack, onShowLoading }) => {
       className={`flex flex-col items-center justify-center text-center px-12 py-12 font-sans mt-12 transition-all duration-1000 ${
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       }`}
+      style={{ visibility: fontsReady ? "visible" : "hidden" }}
     >
       {/* Toast Notification Component - Portal ensures true screen positioning */}
       <ToastNotification message={errorMessage} visible={showError} />
 
-      {showGreeting ? (
-        <div className="animate-fade-in-scale">
-          <h2 className="text-3xl font-bold text-[#00A8FF] mb-4">
-            {userName ? `Hello ${userName}!` : "Hello!"}
-          </h2>
-          <p className="text-gray-600 text-lg">
-            Let's build your investment portfolio...
-          </p>
+      {/* Show a minimal placeholder while fonts are loading */}
+      {!fontsReady ? (
+        <div className="flex items-center justify-center w-full min-h-[300px] text-gray-500">
+          <span className="animate-pulse">Loading fonts…</span>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-[500px] w-full max-w-4xl">
-          <div
-            className={`transition-all duration-500 w-full transform ${
-              fade ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            }`}
-          >
-            {step < questions.length ? (
-              <div className="space-y-8">
-                <h2 className="text-2xl font-semibold mb-8 text-gray-800 animate-fade-in-down">
-                  {questions[step].label}
-                </h2>
-                <div className="mb-16">{renderQuestion(questions[step])}</div>
+      ) : null}
+
+      {fontsReady && (
+        <>
+          {showGreeting ? (
+            <div className="animate-fade-in-scale">
+              <h2 className="text-3xl font-bold text-[#00A8FF] mb-4">
+                {userName ? `Hello ${userName}!` : "Hello!"}
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Let's build your investment portfolio...
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[500px] w-full max-w-4xl">
+              <div
+                className={`transition-all duration-500 w-full transform ${
+                  fade ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                }`}
+              >
+                {step < questions.length ? (
+                  <div className="space-y-8">
+                    <h2 className="text-2xl font-semibold mb-8 text-gray-800 animate-fade-in-down">
+                      {questions[step].label}
+                    </h2>
+                    <div className="mb-16">
+                      {renderQuestion(questions[step])}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center animate-fade-in-scale">
+                    <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+                      Declaration
+                    </h2>
+                    <div
+                      className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-fade-in-up"
+                      style={{ animationDelay: "0.2s" }}
+                    >
+                      <p className="text-gray-700 text-base mb-4 leading-relaxed">
+                        Thank you for sharing your details! We're excited to
+                        simulate a portfolio tailored to your goals. Please
+                        confirm that you understand this tool is for learning
+                        purposes only and not financial advice.
+                      </p>
+                    </div>
+                    <label
+                      className="flex items-center gap-3 text-base justify-center text-gray-800 mb-6 animate-fade-in-up"
+                      style={{ animationDelay: "0.4s" }}
+                    >
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-[#00A8FF] border-2 border-gray-300 rounded focus:ring-[#00A8FF] focus:ring-2 transition-all duration-200"
+                        checked={formData.consent}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            consent: e.target.checked,
+                          })
+                        }
+                        required
+                      />
+                      I agree this is a learning tool and not financial advice.
+                    </label>
+
+                    {/* Declaration Screen Navigation */}
+                    <div
+                      className="flex flex-col items-center gap-4 animate-fade-in-up"
+                      style={{ animationDelay: "0.6s" }}
+                    >
+                      {/* Submit Button */}
+                      <button
+                        className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                      >
+                        {isLoading
+                          ? "Creating Portfolio..."
+                          : "Let's Build Your Portfolio"}
+                      </button>
+
+                      {/* Back Button - Smaller */}
+                      <button
+                        onClick={prevStep}
+                        className="bg-gray-500 text-white font-medium px-4 py-2 rounded-[12px] hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-2 text-sm"
+                        disabled={isLoading}
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center animate-fade-in-scale">
-                <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-                  Declaration
-                </h2>
+
+              {/* Progress bar with animation */}
+              {step < questions.length && (
                 <div
-                  className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 animate-fade-in-up"
-                  style={{ animationDelay: "0.2s" }}
+                  className="animate-fade-in-up mt-8"
+                  style={{ animationDelay: "0.5s" }}
                 >
-                  <p className="text-gray-700 text-base mb-4 leading-relaxed">
-                    Thank you for sharing your details! We're excited to
-                    simulate a portfolio tailored to your goals. Please confirm
-                    that you understand this tool is for learning purposes only
-                    and not financial advice.
-                  </p>
+                  <ProgressDots total={questions.length} current={step} />
                 </div>
-                <label
-                  className="flex items-center gap-3 text-base justify-center text-gray-800 mb-6 animate-fade-in-up"
-                  style={{ animationDelay: "0.4s" }}
-                >
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 text-[#00A8FF] border-2 border-gray-300 rounded focus:ring-[#00A8FF] focus:ring-2 transition-all duration-200"
-                    checked={formData.consent}
-                    onChange={(e) =>
-                      setFormData({ ...formData, consent: e.target.checked })
-                    }
-                    required
-                  />
-                  I agree this is a learning tool and not financial advice.
-                </label>
+              )}
 
-                {/* Declaration Screen Navigation */}
+              {/* Navigation Arrows with animation */}
+              {step < questions.length && (
                 <div
-                  className="flex flex-col items-center gap-4 animate-fade-in-up"
-                  style={{ animationDelay: "0.6s" }}
+                  className="flex justify-center items-center space-x-10 mt-8 animate-fade-in-up"
+                  style={{ animationDelay: "0.7s" }}
                 >
-                  {/* Submit Button */}
-                  <button
-                    className="bg-[#00A8FF] text-white font-bold px-8 py-4 rounded-[15px] hover:brightness-110 transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                  >
-                    {isLoading
-                      ? "Creating Portfolio..."
-                      : "Let's Build Your Portfolio"}
-                  </button>
-
-                  {/* Back Button - Smaller */}
                   <button
                     onClick={prevStep}
-                    className="bg-gray-500 text-white font-medium px-4 py-2 rounded-[12px] hover:bg-gray-600 transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-2 text-sm"
+                    className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
                     disabled={isLoading}
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
+                    <ArrowLeft className="text-white w-6 h-6" />
+                  </button>
+
+                  <button
+                    onClick={nextStep}
+                    className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
+                    disabled={isLoading}
+                  >
+                    <ArrowRight className="text-white w-6 h-6" />
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Progress bar with animation */}
-          {step < questions.length && (
-            <div
-              className="animate-fade-in-up mt-8"
-              style={{ animationDelay: "0.5s" }}
-            >
-              <ProgressDots total={questions.length} current={step} />
+              )}
             </div>
           )}
-
-          {/* Navigation Arrows with animation */}
-          {step < questions.length && (
-            <div
-              className="flex justify-center items-center space-x-10 mt-8 animate-fade-in-up"
-              style={{ animationDelay: "0.7s" }}
-            >
-              <button
-                onClick={prevStep}
-                className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
-                disabled={isLoading}
-              >
-                <ArrowLeft className="text-white w-6 h-6" />
-              </button>
-
-              <button
-                onClick={nextStep}
-                className="bg-[#00A8FF] text-white w-14 h-14 rounded-full flex items-center justify-center hover:brightness-110 transition-all duration-300 transform hover:scale-110 hover:shadow-lg"
-                disabled={isLoading}
-              >
-                <ArrowRight className="text-white w-6 h-6" />
-              </button>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
       <style>{`
