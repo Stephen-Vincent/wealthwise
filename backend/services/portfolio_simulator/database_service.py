@@ -83,7 +83,48 @@ class DatabaseService:
             target_achieved = bool(result_payload.get("target_achieved", False))
 
             # AI summary optional (if you have one upstream)
-            ai_summary = (result_payload.get("ai_summary") or "")
+            ai_summary = (
+                result_payload.get("ai_summary")
+                or result_payload.get("ai_analysis", {}).get("summary")
+                or result_payload.get("education", {}).get("summary")
+                or ""
+            )
+
+            # Optional fields pulled from payloads if present
+            allocation_guidance = (
+                result_payload.get("allocation_guidance")
+                or result_payload.get("ai_analysis", {}).get("allocation_guidance")
+                or input_payload.get("allocation_guidance")
+            )
+
+            # Recommended allocations (try several likely shapes)
+            recommended_stock_allocation = (
+                result_payload.get("recommended_stock_allocation")
+                or result_payload.get("recommendation", {}).get("recommended_stock_allocation")
+                or result_payload.get("portfolio_metrics", {}).get("recommended_stock_allocation")
+                or input_payload.get("recommended_stock_allocation")
+            )
+            recommended_bond_allocation = (
+                result_payload.get("recommended_bond_allocation")
+                or result_payload.get("recommendation", {}).get("recommended_bond_allocation")
+                or result_payload.get("portfolio_metrics", {}).get("recommended_bond_allocation")
+                or input_payload.get("recommended_bond_allocation")
+            )
+
+            # Risk narrative fields
+            risk_description = (
+                input_payload.get("risk_description")
+                or result_payload.get("ai_analysis", {}).get("risk_description")
+                or result_payload.get("recommendation", {}).get("risk_description")
+            )
+            risk_explanation = (
+                input_payload.get("risk_explanation")
+                or result_payload.get("ai_analysis", {}).get("risk_explanation")
+                or result_payload.get("recommendation", {}).get("risk_explanation")
+            )
+
+            # Legacy label if upstream provides it
+            legacy_risk_label = input_payload.get("legacy_risk_label")
 
             sim = models.Simulation(
                 user_id=user_id,
@@ -98,6 +139,12 @@ class DatabaseService:
                 risk_score=risk_score,
                 risk_label=risk_label,
                 ai_summary=ai_summary,
+                allocation_guidance=allocation_guidance,
+                recommended_stock_allocation=recommended_stock_allocation,
+                recommended_bond_allocation=recommended_bond_allocation,
+                risk_description=risk_description,
+                risk_explanation=risk_explanation,
+                legacy_risk_label=legacy_risk_label,
                 results=result_payload,  # store the rich JSON blob
             )
 
@@ -515,6 +562,12 @@ class SimulationResultsFormatter:
             "risk_score": simulation.risk_score,
             "risk_label": simulation.risk_label,
             "ai_summary": simulation.ai_summary,
+            "allocation_guidance": getattr(simulation, "allocation_guidance", None),
+            "recommended_stock_allocation": getattr(simulation, "recommended_stock_allocation", None),
+            "recommended_bond_allocation": getattr(simulation, "recommended_bond_allocation", None),
+            "risk_description": getattr(simulation, "risk_description", None),
+            "risk_explanation": getattr(simulation, "risk_explanation", None),
+            "legacy_risk_label": getattr(simulation, "legacy_risk_label", None),
             "created_at": simulation.created_at.isoformat() if simulation.created_at else None,
         }
 
