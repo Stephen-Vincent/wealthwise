@@ -91,9 +91,28 @@ export const PortfolioProvider = ({ children }) => {
         // Fetch main simulation data
         const simulationData = await apiCall(`/simulations/${simulationId}`);
 
+        // --- Normalize AI summary across possible shapes ---
+        const normalizedAiSummary =
+          simulationData?.ai_summary ||
+          simulationData?.results?.ai_analysis?.ai_summary ||
+          simulationData?.results?.ai_analysis?.summary ||
+          simulationData?.results?.education?.summary ||
+          "";
+
+        // Attach normalized summary if not present at top-level
+        if (!simulationData.ai_summary && normalizedAiSummary) {
+          simulationData.ai_summary = normalizedAiSummary;
+        }
+
         // Check if we already have chart_data in the simulation response
         if (simulationData.chart_data) {
           console.log("Chart data found in simulation response");
+          console.log(
+            "🔎 Normalized ai_summary (pre-return):",
+            simulationData.ai_summary
+              ? simulationData.ai_summary.slice(0, 140) + "…"
+              : "(empty)"
+          );
           return simulationData;
         }
 
@@ -125,12 +144,34 @@ export const PortfolioProvider = ({ children }) => {
           console.warn("Enhanced data fetch failed:", enhancedError.message);
         }
 
+        // Build a minimal chart_data fallback if needed
+        if (!chartData && simulationData?.results?.shap_explanation) {
+          const se = simulationData.results.shap_explanation;
+          chartData = {
+            feature_importance: se.feature_importance || [],
+            portfolio_composition: se.portfolio_composition || [],
+            shap_waterfall: se.shap_waterfall || [],
+            performance_timeline:
+              simulationData?.results?.portfolio_metrics?.timeline_data ||
+              simulationData?.results?.timeline ||
+              [],
+          };
+          console.log(
+            "🧩 Constructed minimal chart_data from shap_explanation"
+          );
+        }
+
         // Merge all data together
         const completeData = {
           ...simulationData,
+          ai_summary: simulationData.ai_summary ?? normalizedAiSummary ?? "",
           ...(chartData && { chart_data: chartData }),
           ...(enhancedData && { enhanced_data: enhancedData }),
         };
+        console.log(
+          "🔎 Final ai_summary length:",
+          completeData.ai_summary ? completeData.ai_summary.length : 0
+        );
 
         console.log("Complete simulation data assembled:", {
           hasSimulation: true,
@@ -196,7 +237,12 @@ export const PortfolioProvider = ({ children }) => {
     const enhancedData = {
       ...data, // Keep all original fields including chart_data
       results: Results,
-      ai_summary: data?.ai_summary || null,
+      ai_summary:
+        data?.ai_summary ||
+        data?.results?.ai_analysis?.ai_summary ||
+        data?.results?.ai_analysis?.summary ||
+        data?.results?.education?.summary ||
+        null,
       breakdown: finalBreakdown,
       stocks_picked: stocksPicked,
       timeline: timeline,
@@ -222,6 +268,13 @@ export const PortfolioProvider = ({ children }) => {
       hasBreakdown: !!finalBreakdown,
     });
 
+    console.log(
+      "📝 ai_summary present:",
+      !!enhancedData.ai_summary,
+      "length:",
+      enhancedData.ai_summary ? enhancedData.ai_summary.length : 0
+    );
+
     _setPortfolioData(enhancedData);
   }, []);
 
@@ -238,10 +291,17 @@ export const PortfolioProvider = ({ children }) => {
   }, [selectedSimulationId, token, fetchSimulationData, setPortfolioData]);
 
   // Update the selected simulation ID and store it in local storage
-  const updateSelectedSimulation = useCallback((id) => {
-    localStorage.setItem("selectedSimulationId", id);
-    setSelectedSimulationId(id);
-  }, []);
+  const updateSelectedSimulation = useCallback(
+    (id) => {
+      localStorage.setItem("selectedSimulationId", id);
+      setSelectedSimulationId(id);
+      // cache any existing summary (if switching within session)
+      if (portfolioData?.ai_summary) {
+        localStorage.setItem("cached_ai_summary", portfolioData.ai_summary);
+      }
+    },
+    [portfolioData]
+  );
 
   // Refresh current simulation data
   const refreshPortfolioData = useCallback(async () => {
@@ -267,7 +327,7 @@ export const PortfolioProvider = ({ children }) => {
       setSelectedSimulationId(routeSimulationId);
       localStorage.setItem("selectedSimulationId", routeSimulationId);
     }
-  }, [location, selectedSimulationId]);
+  }, [location, selectedSimulationId, setSelectedSimulationId]);
 
   // Derived data selectors - components can use these instead of parsing portfolioData themselves
   const shapData =
@@ -277,6 +337,12 @@ export const PortfolioProvider = ({ children }) => {
   const hasShapData = shapData && Object.keys(shapData).length > 0;
   const chartData = portfolioData?.chart_data || null;
   const enhancedData = portfolioData?.enhanced_data || null;
+  const aiSummary =
+    portfolioData?.ai_summary ||
+    portfolioData?.results?.ai_analysis?.ai_summary ||
+    portfolioData?.results?.ai_analysis?.summary ||
+    portfolioData?.results?.education?.summary ||
+    "";
 
   return (
     <PortfolioContext.Provider
@@ -307,6 +373,7 @@ export const PortfolioProvider = ({ children }) => {
         hasShapData,
         chartData,
         enhancedData,
+        aiSummary,
       }}
     >
       {children}
