@@ -82,13 +82,59 @@ class DatabaseService:
             # Determine if target was achieved based on result payload
             target_achieved = bool(result_payload.get("target_achieved", False))
 
-            # AI summary optional (if you have one upstream)
-            ai_summary = (
-                result_payload.get("ai_summary")
-                or result_payload.get("ai_analysis", {}).get("summary")
-                or result_payload.get("education", {}).get("summary")
-                or ""
-            )
+            # AI summary extraction with robust fallbacks.
+            ai_summary = ""
+            if result_payload.get("ai_summary"):
+                ai_summary = result_payload.get("ai_summary")
+            else:
+                ai_analysis = result_payload.get("ai_analysis", {})
+                # Try multiple keys in ai_analysis
+                for key in ["summary", "ai_summary", "narrative", "key_takeaways"]:
+                    if ai_analysis.get(key):
+                        ai_summary = ai_analysis.get(key)
+                        break
+                if not ai_summary:
+                    # Try education.summary as fallback
+                    ai_summary = result_payload.get("education", {}).get("summary", "")
+            # If still empty, synthesize a short summary using confidence/quality scores if available
+            if not ai_summary:
+                conf = result_payload.get("confidence_score")
+                pq = result_payload.get("portfolio_metrics", {}).get("portfolio_quality_score") \
+                    or result_payload.get("portfolio_quality_score")
+                if conf is not None or pq is not None:
+                    parts = []
+                    if conf is not None:
+                        parts.append(f"Confidence score: {conf}")
+                    if pq is not None:
+                        parts.append(f"Portfolio quality score: {pq}")
+                    ai_summary = "; ".join(parts)
+            # Persist compact chart data in result_payload if missing.
+            # This ensures charts render when reloading saved simulations from the DB.
+            if "chart_data" not in result_payload:
+                chart_data = {}
+                # Pull SHAP chart keys if present
+                shap = result_payload.get("shap_explanation", {})
+                if isinstance(shap, dict):
+                    for k in ["feature_importance", "portfolio_composition", "shap_waterfall"]:
+                        if k in shap:
+                            chart_data[k] = shap[k]
+                # Determine timeline for performance_timeline
+                timeline = []
+                # Try portfolio_metrics["timeline_data"]
+                pm = result_payload.get("portfolio_metrics", {})
+                tldata = pm.get("timeline_data")
+                if isinstance(tldata, list):
+                    timeline = tldata
+                elif isinstance(result_payload.get("timeline"), dict):
+                    timeline_obj = result_payload.get("timeline")
+                    if isinstance(timeline_obj.get("portfolio"), list):
+                        timeline = timeline_obj.get("portfolio")
+                elif isinstance(result_payload.get("timeline"), list):
+                    timeline = result_payload.get("timeline")
+                if timeline:
+                    chart_data["performance_timeline"] = timeline
+                if chart_data:
+                    result_payload["chart_data"] = chart_data  # Persist for reloads
 
             # Optional fields pulled from payloads if present
             allocation_guidance = (
@@ -583,6 +629,20 @@ class SimulationResultsFormatter:
             "results_timeline_type": type(results.get("timeline")).__name__,
             "length": len(timeline_normalized),
         }
+
+        # Ensure chart_data is always provided in the API response.
+        # This helps the frontend render charts when reloading saved simulations.
+        chart_data = results.get("chart_data")
+        if not chart_data:
+            chart_data = {}
+            shap = results.get("shap_explanation", {})
+            if isinstance(shap, dict):
+                for k in ["feature_importance", "portfolio_composition", "shap_waterfall"]:
+                    if k in shap:
+                        chart_data[k] = shap[k]
+            if timeline_normalized:
+                chart_data["performance_timeline"] = timeline_normalized
+        response["chart_data"] = chart_data if chart_data else None
 
         # Build a safe breakdown mapping (guards for missing keys)
         stocks_list = results.get("stocks_picked", []) or []
