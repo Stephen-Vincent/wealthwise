@@ -70,6 +70,9 @@ const SHAPDashboard = () => {
   const { portfolioData, shapData, hasShapData, chartData, loading, error } =
     usePortfolio();
 
+  // 🔍 Debug log for SHAP data
+  console.log("🔎 SHAP Data:", shapData);
+
   const [activeTab, setActiveTab] = useState("summary");
 
   if (loading) {
@@ -184,7 +187,7 @@ const SHAPDashboard = () => {
 };
 
 // Summary Tab - Fixed target progress calculation
-const SummaryTab = ({ shapData, portfolioData, chartData }) => {
+const SummaryTab = ({ shapData, portfolioData }) => {
   const confidence = shapData?.confidence_score || shapData?.confidence || 75;
   const portfolioQualityScore = shapData?.portfolio_quality_score || 85;
 
