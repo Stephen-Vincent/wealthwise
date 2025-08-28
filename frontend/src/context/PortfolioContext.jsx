@@ -99,6 +99,15 @@ export const PortfolioProvider = ({ children }) => {
           simulationData?.results?.education?.summary ||
           "";
 
+        // --- Backfill results.ai_analysis.ai_summary for consumers that expect it ---
+        if (normalizedAiSummary) {
+          if (!simulationData.results) simulationData.results = {};
+          if (!simulationData.results.ai_analysis)
+            simulationData.results.ai_analysis = {};
+          if (!simulationData.results.ai_analysis.ai_summary)
+            simulationData.results.ai_analysis.ai_summary = normalizedAiSummary;
+        }
+
         // Attach normalized summary if not present at top-level
         if (!simulationData.ai_summary && normalizedAiSummary) {
           simulationData.ai_summary = normalizedAiSummary;
@@ -165,6 +174,21 @@ export const PortfolioProvider = ({ children }) => {
         const completeData = {
           ...simulationData,
           ai_summary: simulationData.ai_summary ?? normalizedAiSummary ?? "",
+          // keep nested ai_analysis summary for older components
+          results: {
+            ...(simulationData.results || {}),
+            ai_analysis: {
+              ...((simulationData.results &&
+                simulationData.results.ai_analysis) ||
+                {}),
+              ai_summary:
+                (simulationData.results &&
+                  simulationData.results.ai_analysis &&
+                  simulationData.results.ai_analysis.ai_summary) ||
+                normalizedAiSummary ||
+                "",
+            },
+          },
           ...(chartData && { chart_data: chartData }),
           ...(enhancedData && { enhanced_data: enhancedData }),
         };
@@ -213,6 +237,21 @@ export const PortfolioProvider = ({ children }) => {
 
     // Fallback logic: try nested, then results, then top-level data
     const Results = data?.results || data;
+
+    // Ensure older components find the AI summary in results.ai_analysis
+    const normalizedAi =
+      data?.ai_summary ||
+      data?.results?.ai_analysis?.ai_summary ||
+      data?.results?.ai_analysis?.summary ||
+      data?.results?.education?.summary ||
+      null;
+
+    if (normalizedAi) {
+      if (!Results.ai_analysis) Results.ai_analysis = {};
+      if (!Results.ai_analysis.ai_summary)
+        Results.ai_analysis.ai_summary = normalizedAi;
+    }
+
     const timeline = Results?.timeline || data?.timeline || {};
     const portfolioArray = timeline.portfolio || [];
     const stocksPicked = Results?.stocks_picked || data?.stocks_picked || [];
@@ -344,6 +383,12 @@ export const PortfolioProvider = ({ children }) => {
     portfolioData?.results?.education?.summary ||
     "";
 
+  const hasAiSummary = !!(
+    aiSummary &&
+    typeof aiSummary === "string" &&
+    aiSummary.trim().length > 0
+  );
+
   return (
     <PortfolioContext.Provider
       value={{
@@ -374,6 +419,7 @@ export const PortfolioProvider = ({ children }) => {
         chartData,
         enhancedData,
         aiSummary,
+        hasAiSummary,
       }}
     >
       {children}
