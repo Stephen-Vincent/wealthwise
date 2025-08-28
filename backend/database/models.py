@@ -25,20 +25,28 @@ class Simulation(Base):
     __table_args__ = {"sqlite_autoincrement": True}
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=True)  # Added length
     goal = Column(String(100), nullable=False)  # Added length
     risk_score = Column(Integer, nullable=True, default=50)
     risk_label = Column(String(50), nullable=True)  # Added length
+    legacy_risk_label = Column(String(50), nullable=True)
     target_value = Column(Float, nullable=True)
     lump_sum = Column(Float, nullable=True)
     monthly = Column(Float, nullable=True)
-    timeframe = Column(String(20), nullable=False)  # Added length
+    timeframe = Column(Integer, nullable=False)
     target_achieved = Column(Boolean, default=False, nullable=False)
     income_bracket = Column(String(50), nullable=False)  # Added length
+    # Optional richer explainability fields (kept nullable for backward compatibility)
+    risk_description = Column(Text, nullable=True)
+    risk_explanation = Column(Text, nullable=True)
+    recommended_stock_allocation = Column(Float, nullable=True)
+    recommended_bond_allocation = Column(Float, nullable=True)
+    allocation_guidance = Column(JSON, nullable=True)  # can store structured guidance
     results = Column(JSON, nullable=True)  # Works in both databases!
     ai_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user = relationship("User", back_populates="simulations")
 
 class PasswordResetToken(Base):
