@@ -113,7 +113,7 @@ export default function LoadingScreen() {
         progressReason = "all-conditions-met";
       }
 
-      // FIXED: Limited debug logging - only first 3 logs after 5 seconds
+      // Limited debug logging - only first 3 logs after 5 seconds
       if (targetProgress < 100 && elapsed > 5000 && debugLogCount < 3) {
         console.log("🔍 Progress Debug:", {
           targetProgress,
@@ -141,12 +141,12 @@ export default function LoadingScreen() {
         return Math.min(prev + increment, 100);
       });
 
-      // FIXED: Add exit condition - stop after 15 seconds max
+      // Add exit condition - stop after 15 seconds max
       if (targetProgress < 100 && elapsed < 15000) {
         animationFrame = requestAnimationFrame(animate);
       } else if (elapsed >= 15000) {
         console.log("🛑 Animation stopped - 15 second timeout");
-        setProgress(100); // Force completion
+        setProgress(100);
       }
     };
 
@@ -194,10 +194,10 @@ export default function LoadingScreen() {
     return () => clearTimeout(minLoadingTime);
   }, []);
 
-  // FIXED: Check if ready to navigate with limited logging and exit conditions
+  // Check if ready to navigate with limited logging and exit conditions
   useEffect(() => {
-    // STOP INFINITE LOGGING: Limit debug attempts
-    if (debugCount > 10) {
+    // Limit debug attempts
+    if (debugCount > 5) {
       console.log("🛑 Debug limit reached, stopping navigation checks");
       return;
     }
@@ -277,8 +277,7 @@ export default function LoadingScreen() {
         hasShap: !!portfolioData?.shap_explanation,
       });
 
-      setHasNavigationAttempted(true); // PREVENT MULTIPLE ATTEMPTS
-
+      setHasNavigationAttempted(true);
       // Clear the creating portfolio flag
       localStorage.setItem("isCreatingPortfolio", "false");
       setIsCreatingPortfolio(false);

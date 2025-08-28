@@ -19,7 +19,7 @@ import Simulations from "./Simulations";
 export default function LandingScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [panel, setPanel] = useState(null); // 'login', 'signup', 'welcome', 'onboarding', 'loading', 'simulations', or null
+  const [panel, setPanel] = useState(null);
   const [logoMovedUp, setLogoMovedUp] = useState(false);
   const [showWelcomeContent, setShowWelcomeContent] = useState(true);
   const [animatingPanel, setAnimatingPanel] = useState(false);

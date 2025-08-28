@@ -30,7 +30,7 @@ export default function Simulations({ onBack, onShowLoading }) {
   const [isVisible, setIsVisible] = useState(false);
 
   // Filter and sort states
-  const [sortBy, setSortBy] = useState("date_desc"); // date_desc, date_asc, goal, risk_score, target_value
+  const [sortBy, setSortBy] = useState("date_desc");
   const [filterGoal, setFilterGoal] = useState("all");
   const [filterRisk, setFilterRisk] = useState("all");
   const [filterAchieved, setFilterAchieved] = useState("all");

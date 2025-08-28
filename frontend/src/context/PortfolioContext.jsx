@@ -55,8 +55,6 @@ export const PortfolioProvider = ({ children }) => {
         ...options,
       };
 
-      console.log(`API Call: ${options.method || "GET"} ${url}`);
-
       try {
         const response = await fetch(url, defaultOptions);
 
@@ -67,7 +65,7 @@ export const PortfolioProvider = ({ children }) => {
         }
 
         const data = await response.json();
-        console.log(`API Response (${endpoint}):`, data);
+
         return data;
       } catch (error) {
         console.error(`API Error (${endpoint}):`, error);
@@ -86,8 +84,6 @@ export const PortfolioProvider = ({ children }) => {
       setError(null);
 
       try {
-        console.log(`Fetching complete data for simulation ${simulationId}`);
-
         // Fetch main simulation data
         const simulationData = await apiCall(`/simulations/${simulationId}`);
 
@@ -115,13 +111,6 @@ export const PortfolioProvider = ({ children }) => {
 
         // Check if we already have chart_data in the simulation response
         if (simulationData.chart_data) {
-          console.log("Chart data found in simulation response");
-          console.log(
-            "🔎 Normalized ai_summary (pre-return):",
-            simulationData.ai_summary
-              ? simulationData.ai_summary.slice(0, 140) + "…"
-              : "(empty)"
-          );
           return simulationData;
         }
 
@@ -130,7 +119,6 @@ export const PortfolioProvider = ({ children }) => {
         let enhancedData = null;
 
         try {
-          console.log("Fetching additional chart data...");
           const chartResponse = await apiCall(
             `/shap-visualization/simulation/${simulationId}/chart-data`
           );
@@ -142,7 +130,6 @@ export const PortfolioProvider = ({ children }) => {
         }
 
         try {
-          console.log("Fetching enhanced data...");
           const enhancedResponse = await apiCall(
             `/shap-visualization/simulation/${simulationId}/enhanced-data`
           );
@@ -165,9 +152,6 @@ export const PortfolioProvider = ({ children }) => {
               simulationData?.results?.timeline ||
               [],
           };
-          console.log(
-            "🧩 Constructed minimal chart_data from shap_explanation"
-          );
         }
 
         // Merge all data together
@@ -192,19 +176,6 @@ export const PortfolioProvider = ({ children }) => {
           ...(chartData && { chart_data: chartData }),
           ...(enhancedData && { enhanced_data: enhancedData }),
         };
-        console.log(
-          "🔎 Final ai_summary length:",
-          completeData.ai_summary ? completeData.ai_summary.length : 0
-        );
-
-        console.log("Complete simulation data assembled:", {
-          hasSimulation: true,
-          hasChartData: !!completeData.chart_data,
-          hasEnhancedData: !!completeData.enhanced_data,
-          chartDataKeys: completeData.chart_data
-            ? Object.keys(completeData.chart_data)
-            : "None",
-        });
 
         return completeData;
       } catch (error) {
@@ -220,20 +191,10 @@ export const PortfolioProvider = ({ children }) => {
 
   // Enhanced setPortfolioData that preserves all data structures
   const setPortfolioData = useCallback((data) => {
-    console.log("Setting portfolio data:", data);
-
     if (!data) {
       _setPortfolioData(null);
       return;
     }
-
-    // Add explicit logging for chart_data preservation
-    console.log("Chart data check:", {
-      hasChartData: !!data?.chart_data,
-      chartDataKeys: data?.chart_data ? Object.keys(data.chart_data) : "None",
-      hasResults: !!data?.results,
-      hasEnhancedData: !!data?.enhanced_data,
-    });
 
     // Fallback logic: try nested, then results, then top-level data
     const Results = data?.results || data;
@@ -260,13 +221,9 @@ export const PortfolioProvider = ({ children }) => {
 
     // Create breakdown from stocks_picked using allocation field
     if (stocksPicked.length > 0) {
-      console.log("Creating breakdown from stocks_picked:", stocksPicked);
-
       breakdown = Object.fromEntries(
         stocksPicked.map((stock) => [stock.symbol, stock.allocation || 0])
       );
-
-      console.log("Generated breakdown:", breakdown);
     }
 
     // Use backend breakdown if available, otherwise use computed breakdown
@@ -306,13 +263,6 @@ export const PortfolioProvider = ({ children }) => {
       finalBalance: enhancedData.final_balance,
       hasBreakdown: !!finalBreakdown,
     });
-
-    console.log(
-      "📝 ai_summary present:",
-      !!enhancedData.ai_summary,
-      "length:",
-      enhancedData.ai_summary ? enhancedData.ai_summary.length : 0
-    );
 
     _setPortfolioData(enhancedData);
   }, []);
