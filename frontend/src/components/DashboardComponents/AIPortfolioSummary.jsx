@@ -18,22 +18,53 @@ export default function AIPortfolioSummary() {
   if (error) return <p>Error loading portfolio data: {String(error)}</p>;
 
   const aiAnalysis = portfolioData?.ai_analysis;
+  // Debug: inspect the full AI analysis payload when not in production
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.log("[AIPortfolioSummary] ai_analysis:", aiAnalysis);
+  }
 
   if (!portfolioData || !aiAnalysis) {
-    return <p>No AI analysis available yet.</p>;
+    return (
+      <p>
+        No AI analysis found for this simulation. Try opening a newer run or
+        regenerate analysis.
+      </p>
+    );
   }
 
   const normalizeToMarkdown = (value) => {
     if (value == null) return "";
+
+    // If backend wrapped the summary in a known key
+    if (typeof value === "object" && !Array.isArray(value)) {
+      const possible =
+        value.markdown || value.text || value.content || value.summary;
+      if (possible != null) return normalizeToMarkdown(possible);
+    }
+
     if (typeof value === "string") {
-      // unescape literal "\n" into real newlines
-      return value.replace(/\\n/g, "\n");
+      // Unescape literal "\n" into real newlines; trim trailing spaces
+      return value.replace(/\\n/g, "\n").trim();
     }
+
     if (Array.isArray(value)) {
-      // join array parts as paragraphs
-      return value.map(normalizeToMarkdown).join("\n\n");
+      // Join array items; if items are objects, stringify them prettily
+      return value
+        .map((item) => {
+          if (item == null) return "";
+          if (typeof item === "string") return item;
+          try {
+            return "```\n" + JSON.stringify(item, null, 2) + "\n```";
+          } catch {
+            return String(item);
+          }
+        })
+        .filter(Boolean)
+        .join("\n\n");
     }
-    // objects/numbers/bools → pretty JSON as a fenced block
+
+    // Fallback: objects/numbers/booleans → pretty JSON as a fenced block
     try {
       return "```\n" + JSON.stringify(value, null, 2) + "\n```";
     } catch {
@@ -44,7 +75,12 @@ export default function AIPortfolioSummary() {
   const summaryText = normalizeToMarkdown(aiAnalysis.summary);
 
   if (!summaryText.trim()) {
-    return <p>No AI analysis available yet.</p>;
+    return (
+      <p>
+        AI analysis is present but empty. Please regenerate or check server
+        logs.
+      </p>
+    );
   }
 
   return (
